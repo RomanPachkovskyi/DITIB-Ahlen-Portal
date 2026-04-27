@@ -1,0 +1,135 @@
+# Error - Internal Server Error
+
+Class "Filament\Forms\Components\Section" not found
+
+PHP 8.5.4
+Laravel 13.6.0
+localhost:8000
+
+## Stack Trace
+
+0 - app/Filament/Resources/Members/Schemas/MemberForm.php:20
+1 - app/Filament/Resources/Members/MemberResource.php:31
+2 - vendor/filament/filament/src/Resources/Pages/ViewRecord.php:174
+3 - vendor/filament/schemas/src/Concerns/InteractsWithSchemas.php:303
+4 - vendor/filament/schemas/src/Concerns/InteractsWithSchemas.php:325
+5 - vendor/filament/schemas/src/Concerns/ResolvesDynamicLivewireProperties.php:26
+6 - vendor/filament/filament/src/Resources/Pages/ViewRecord.php:108
+7 - vendor/filament/filament/src/Resources/Pages/ViewRecord.php:91
+8 - vendor/filament/filament/src/Resources/Pages/ViewRecord.php:74
+9 - vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+10 - vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+11 - vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+12 - vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+13 - vendor/livewire/livewire/src/Wrapped.php:23
+14 - vendor/livewire/livewire/src/Features/SupportLifecycleHooks/SupportLifecycleHooks.php:176
+15 - vendor/livewire/livewire/src/Features/SupportLifecycleHooks/SupportLifecycleHooks.php:35
+16 - vendor/livewire/livewire/src/ComponentHook.php:19
+17 - vendor/livewire/livewire/src/ComponentHookRegistry.php:45
+18 - vendor/livewire/livewire/src/EventBus.php:87
+19 - vendor/livewire/livewire/src/helpers.php:98
+20 - vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:77
+21 - vendor/livewire/livewire/src/LivewireManager.php:102
+22 - vendor/livewire/livewire/src/Features/SupportPageComponents/HandlesPageComponents.php:19
+23 - vendor/livewire/livewire/src/Features/SupportPageComponents/SupportPageComponents.php:118
+24 - vendor/livewire/livewire/src/Features/SupportPageComponents/HandlesPageComponents.php:14
+25 - vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php:46
+26 - vendor/laravel/framework/src/Illuminate/Routing/Route.php:269
+27 - vendor/laravel/framework/src/Illuminate/Routing/Route.php:215
+28 - vendor/laravel/framework/src/Illuminate/Routing/Router.php:822
+29 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:180
+30 - vendor/filament/filament/src/Http/Middleware/DispatchServingFilamentEvent.php:15
+31 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+32 - vendor/filament/filament/src/Http/Middleware/DisableBladeIconComponents.php:14
+33 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+34 - vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php:52
+35 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+36 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestForgery.php:104
+37 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+38 - vendor/laravel/framework/src/Illuminate/Session/Middleware/AuthenticateSession.php:70
+39 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+40 - vendor/laravel/framework/src/Illuminate/Auth/Middleware/Authenticate.php:63
+41 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+42 - vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php:48
+43 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+44 - vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php:120
+45 - vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php:63
+46 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+47 - vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php:36
+48 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+49 - vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php:74
+50 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+51 - vendor/filament/filament/src/Http/Middleware/SetUpPanel.php:19
+52 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+53 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:137
+54 - vendor/laravel/framework/src/Illuminate/Routing/Router.php:821
+55 - vendor/laravel/framework/src/Illuminate/Routing/Router.php:800
+56 - vendor/laravel/framework/src/Illuminate/Routing/Router.php:764
+57 - vendor/laravel/framework/src/Illuminate/Routing/Router.php:753
+58 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php:200
+59 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:180
+60 - vendor/livewire/livewire/src/Features/SupportDisablingBackButtonCache/DisableBackButtonCacheMiddleware.php:19
+61 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+62 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php:21
+63 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php:31
+64 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+65 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php:21
+66 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php:51
+67 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+68 - vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php:27
+69 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+70 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php:109
+71 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+72 - vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php:61
+73 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+74 - vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php:58
+75 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+76 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php:22
+77 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+78 - vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php:28
+79 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:219
+80 - vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php:137
+81 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php:175
+82 - vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php:144
+83 - vendor/laravel/framework/src/Illuminate/Foundation/Application.php:1220
+84 - public/index.php:20
+85 - vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php:23
+
+
+## Request
+
+GET /admin/members/1
+
+## Headers
+
+* **host**: localhost:8000
+* **accept**: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+* **sec-fetch-site**: same-origin
+* **upgrade-insecure-requests**: 1
+* **sec-fetch-mode**: navigate
+* **user-agent**: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15
+* **referer**: http://localhost:8000/admin/members
+* **sec-fetch-dest**: document
+* **accept-language**: en-GB,en;q=0.9
+* **priority**: u=0, i
+* **accept-encoding**: gzip, deflate
+* **cookie**: XSRF-TOKEN=eyJpdiI6InpJRkZIRmp6a3NsZlNyY2ZHNUYyM1E9PSIsInZhbHVlIjoiS290bVYvM083YTkyb1NrRXZ5U0FRelVUOVRMTmpFWDlyMnBCc2xoRHRlMUdsa2hHUWcralZPQXRoZzdVTDZ1eWRXMlJsQ0xieXpVU0tOUWxhRmMxYkVaWG9KY0xqYnlZbmo2aVNPSEZGWDMvWlFhanFsU1psY1pMSVlnN010NHgiLCJtYWMiOiIwYmUwOTBiMzY0YzZlZDlmYzljMzk4N2E5ZmVlMDA3ZGQzYjk5M2M0NjFhNTViYTcyNTVhMTE4ZGM1NDFjYTljIiwidGFnIjoiIn0%3D; laravel-session=eyJpdiI6IlFuL0J3cGVreDhTZGVpWnBWeDB1VXc9PSIsInZhbHVlIjoiYjJTMFFEcHFNZ254ZGg1dzhFTTZrNXh1Wkt3VDhRRzJndmxFUkRnbU5tNHZIZXVuVjRWVFkwN3FzQ2NJVEVlQzdmOGJaK1VxZXVnd1RsU1RFbnBtY2IxNk1SdSs4QlZwWU1XVTk2c3EvVDd0UXFqZy9qdWJjb3pIMG45akFycWMiLCJtYWMiOiIxYTE3NDAzMzM5YzlhYjUwZjRhZDY1MDk4ZGVlYzBlNWM5NjRlN2FmNzQ4ZWI0MTkxMmVjYjkwNTIzNTI0OGNjIiwidGFnIjoiIn0%3D; __utma=111872281.51785645.1777284229.1777284229.1777288796.2; __utmb=111872281.6.10.1777288796; __utmc=111872281; __utmz=111872281.1777284229.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d=eyJpdiI6ImRQNjNsUWNrNEttbE9uVFcwcXhOaVE9PSIsInZhbHVlIjoiYTlBYjRRZHVpakJ0d3B0ODFCemNndmU1QlhUWmNMZXRSK3Z6c2FzdTNMeWo5d25TdFRrY1pjMkJBblRSVmdaMGhHeWtKd01uSWx0R1M0eUliVUNHL2hZT1hxaXdLTXIzd1RBdWtnY09EbnRzTi9qcTZ2eVlxczFyVW9BQW1kR3hZc1RXWS9EenNqejFhV0ZlR0J3a0UrODJtWWRpMzNiUU1kWjJjdlJjZDdybS9mQ3lKSTRwb1VmMDJZeldKdWh4d21GRTZLemhsUnZaWkdudi9LWS8yMUpVVFlBVkZwNi9WOUExbkwxM01vaz0iLCJtYWMiOiIzOGZlYzEwNmJlMmIwZjc5MDQwMmNkMDhjMjc0NjNiYzE4NTFiODNkZmNlYjJkZWVmNDg3YWRlMDAzMjJhNDUxIiwidGFnIjoiIn0%3D; wp-settings-1=libraryContent%3Dbrowse%26posts_list_mode%3Dlist%26editor%3Dtinymce; wp-settings-time-1=1774257167
+* **connection**: keep-alive
+
+## Route Context
+
+controller: App\Filament\Resources\Members\Pages\ViewMember
+route name: filament.admin.resources.members.view
+middleware: panel:admin, Illuminate\Cookie\Middleware\EncryptCookies, Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse, Illuminate\Session\Middleware\StartSession, Filament\Http\Middleware\AuthenticateSession, Illuminate\View\Middleware\ShareErrorsFromSession, Illuminate\Foundation\Http\Middleware\PreventRequestForgery, Illuminate\Routing\Middleware\SubstituteBindings, Filament\Http\Middleware\DisableBladeIconComponents, Filament\Http\Middleware\DispatchServingFilamentEvent, Filament\Http\Middleware\Authenticate
+
+## Route Parameters
+
+{
+    "record": "1"
+}
+
+## Database Queries
+
+* sqlite - select * from "sessions" where "id" = 'QoB1BHKbvl3EDo4cAnwLOVJh4VZGxs8q6DWk3Hcu' limit 1 (0.57 ms)
+* sqlite - select * from "users" where "id" = 1 limit 1 (0.04 ms)
+* sqlite - select * from "members" where "id" = '1' limit 1 (0.06 ms)

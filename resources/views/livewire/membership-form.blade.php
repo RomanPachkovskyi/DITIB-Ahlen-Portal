@@ -153,14 +153,17 @@
                     hasDrawn: false,
                     ctx: null,
                     init() {
-                        const canvas = this.$refs.canvas;
-                        canvas.width = canvas.parentElement.clientWidth - 4;
-                        canvas.height = 160;
-                        this.ctx = canvas.getContext('2d');
-                        this.ctx.strokeStyle = '#1e293b';
-                        this.ctx.lineWidth = 2;
-                        this.ctx.lineCap = 'round';
-                        this.ctx.lineJoin = 'round';
+                        this.$nextTick(() => {
+                            const canvas = this.$refs.canvas;
+                            const rect = canvas.getBoundingClientRect();
+                            canvas.width = Math.floor(rect.width);
+                            canvas.height = 160;
+                            this.ctx = canvas.getContext('2d');
+                            this.ctx.strokeStyle = '#1e293b';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.lineCap = 'round';
+                            this.ctx.lineJoin = 'round';
+                        });
                     },
                     getPos(e) {
                         const rect = this.$refs.canvas.getBoundingClientRect();
