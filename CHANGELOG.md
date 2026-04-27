@@ -96,7 +96,29 @@
 - **Публічна форма** перебудована на 4 кроки: 1-Kişisel Bilgiler, 2-Adres, 3-Aidat/Banka, 4-İmza
 - Валідація мінімального віку 16 років (кастомне правило), мін. €25/міс
 - SEPA-поля (Kontoinhaber/IBAN/BIC) показуються тільки при zahlungsart=lastschrift/dauerauftrag
-- Двомовні мітки DE+TR на всіх полях форми
+- Двомовні мітки DE+TR прибрано з усіх полів — залишено тільки німецьку. Турецька — Етап 4.
+
+### [2026-04-27 15:00] Документація — аудит і зафіксовані архітектурні рішення — Claude Code
+- **`Правки і зміни на сайті.md`** повністю переструктуровано по 4 етапах з позначками ✅/⬜/🔲
+- Додано технічні рішення (зафіксовано) до кожного етапу:
+  - Етап 2: PLZ → локальна БД (не API), FilePond + Image Crop, Laravel Queues для email
+  - Етап 3: spatie/laravel-settings для підпису/печатки, Base64 в DomPDF (критично), Event+Job для підтвердження
+  - Етап 4: Middleware SetLocale, lang/de.json + lang/tr.json, Magic Link (temporarySignedRoute)
+- Дизайн адмінки виділено в окреме завдання: Dashboard stats, іконки навігації, логотип
+- **`PROJECT.md`** оновлено: таблиця БД відповідає поточній схемі, стек доповнено (Queues, spatie/laravel-settings), статус реалізації розбито по 4 етапах
+- Проаналізовано файл `==logs/Analytics.md` (Gemini): більшість порад прийнято, хибне зауваження про версії (Laravel 13/Filament v5/PHP 8.5) відхилено — версії актуальні станом на 2026
+
+### [2026-04-27 16:30] Етап 2 — Автозаповнення міст за PLZ (Поштовим індексом) — Gemini
+- Створено міграцію та модель `PostalCode` (`plz`, `ort`, `bundesland`)
+- Написано Artisan команду `ImportPostalCodes` (`php artisan app:import-postal-codes`) для завантаження бази поштових індексів Німеччини (із GeoNames, `DE.zip`) та імпорту в локальну базу даних (завантажено 23,297 індексів)
+- `MembershipForm` (Livewire) оновлено: додано хук `updatedPostalCode()`
+- `membership-form.blade.php` оновлено: інпут `postal_code` використовує `wire:model.live.debounce.300ms` для миттєвого підтягування `city` та `state` без перезавантаження
+
+- **Fix:** Створено міграцію `make_sepa_fields_nullable_in_members_table`, щоб `kontoinhaber` та `iban` могли бути `null` (для виправлення помилки при `barzahlung` "NOT NULL constraint failed")
+
+### [2026-04-27 16:35] Адмін-панель: редирект після збереження — Gemini
+- Оновлено `EditMember.php`: додано `getRedirectUrl()`, щоб після успішного збереження редагувань користувача (Save changes) система автоматично повертала адміна до списку (`index`), замість того щоб залишатися на сторінці редагування.
+- В `Правки і зміни на сайті.md` відмічено відповідні пункти як виконані (✅).
 
 ---
 

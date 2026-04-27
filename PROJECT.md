@@ -45,9 +45,11 @@
 | Стилі | Tailwind CSS | v4 |
 | База даних (local) | SQLite | — |
 | База даних (production) | MySQL | Plesk |
-| Email | Laravel Mail → SMTP хостингу | — |
-| PDF | barryvdh/laravel-dompdf | — |
+| Email | Laravel Mail → SMTP + Queues | — |
+| PDF | barryvdh/laravel-dompdf | встановлено |
 | Підпис | Alpine.js canvas | вбудований |
+| Налаштування адміна | spatie/laravel-settings | Етап 3 |
+| Черги (email/PDF) | Laravel Queue (database driver) | Етап 2–3 |
 
 > **Важливо для Filament v5:** `Section` знаходиться в `Filament\Schemas\Components\Section`, НЕ в `Filament\Forms\Components`.
 
@@ -56,11 +58,12 @@
 ## Функціональність
 
 ### Публічна форма (`/`)
-- 3-крокова форма Mitgliedsantrag (DE + TR планується)
-- Крок 1: Persönliche Daten
-- Крок 2: Bankverbindung (SEPA)
-- Крок 3: Unterschrift (canvas) + SEPA/DSGVO Zustimmung
-- Після відправки → сторінка підтвердження, статус `pending`
+- 4-крокова форма Mitgliedsantrag (тільки DE, TR — Етап 4)
+- Крок 1: Persönliche Daten (ПІБ, народження, громадянство, сім'я, Cenaze Fonu, Gemeinderegister, берuf, Heimatstadt)
+- Крок 2: Adresse & Kontakt
+- Крок 3: Beitrag & Zahlungsweise (мін. €25, умовні SEPA-поля)
+- Крок 4: Unterschrift (canvas) + DSGVO Zustimmung
+- Після відправки → сторінка підтвердження з member_number, статус `pending`
 
 ### Кабінет члена (`/konto`) — Filament MemberPanel
 - Вхід через email (Filament auth)
@@ -82,16 +85,26 @@
 
 | Поле | Тип | Примітка |
 |------|-----|---------|
+| member_number | string(20) | unique, auto DA-YYYY-NNNN |
 | full_name | string | |
+| birth_date | date | |
+| birth_place | string | nullable |
+| staatsangehoerigkeit | string | nullable |
+| familienangehoerige | tinyint | default 1 |
+| cenaze_fonu | boolean | default false |
+| cenaze_fonu_nr | string(50) | nullable |
+| gemeinderegister | boolean | default false |
+| beruf | string | nullable |
+| heimatstadt | string | nullable |
 | street | string | |
 | city, state, postal_code | string | |
-| birth_date | date | |
 | email | string | unique |
 | phone | string | |
-| jahresbeitrag | decimal | мін. €36 |
-| kontoinhaber | string | |
-| iban | text | **encrypted** в БД |
-| bic | text | **encrypted** в БД, nullable |
+| zahlungsart | enum | barzahlung / lastschrift / dauerauftrag |
+| monatsbeitrag | decimal | мін. €25 |
+| kontoinhaber | string | nullable (тільки при SEPA) |
+| iban | text | **encrypted**, nullable |
+| bic | text | **encrypted**, nullable |
 | kreditinstitut | string | nullable |
 | unterschrift | text | base64 PNG, hidden |
 | sepa_zustimmung | boolean | |
@@ -179,17 +192,31 @@ MAIL_HOST=...
 
 ## Статус реалізації
 
+### Етап 1 ✅ ВИКОНАНО
 - [x] Репозиторій створено, структура папок
 - [x] Laravel 13 + Filament v5 встановлені
-- [x] Міграції: `members`, `change_requests`
-- [x] Моделі: `Member` (encrypted), `ChangeRequest`
-- [x] AdminPanel (`/admin`) — MemberResource з View/Edit/List
+- [x] Міграції: `members` (всі поля), `change_requests`
+- [x] Модель `Member`: encrypted IBAN/BIC, auto member_number, всі fillable/casts
+- [x] AdminPanel (`/admin`) — MemberResource з View/Edit/List, member_number першим
 - [x] MemberPanel (`/konto`) — базова панель створена
 - [x] Публічна форма (`/`) — 4-крокова, всі поля анкети, умовний SEPA, валідація 16+
-- [ ] Кабінет члена — сторінки перегляду даних і Änderungsantrag
-- [ ] Email підтвердження після відправки форми
-- [ ] Двомовність форми (DE + TR)
+
+### Етап 2 ⬜ Наступний
+- [ ] Автовизначення PLZ → місто і федеральна земля (локальна БД)
+- [ ] Фото профілю (FilePond + Image Crop 1:1)
+- [ ] Email клієнту після відправки форми (через Queue)
+- [ ] Email адміну про нову заявку
+
+### Етап 3 ⬜
+- [ ] Dashboard адмінки зі статистикою (widgets)
+- [ ] Іконки навігації + логотип DITIB в адмінці
+- [ ] spatie/laravel-settings — сторінка налаштувань (підпис, печатка)
+- [ ] PDF підтвердження членства (Base64 для зображень)
+- [ ] Email клієнту при підтвердженні реєстрації (Event + Job)
+
+### Етап 4 🔲
+- [ ] Кабінет члена — перегляд даних, Änderungsantrag
+- [ ] Двомовність (DE + TR): Middleware SetLocale, lang/de.json, lang/tr.json
 - [ ] Деплой на Plesk налаштований
-- [ ] PDF підтвердження членства
 
 > Зміни в статусі — оновлювати тут і писати в `CHANGELOG.md`

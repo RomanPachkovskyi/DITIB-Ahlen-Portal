@@ -100,6 +100,17 @@ class MembershipForm extends Component
         ];
     }
 
+    public function updatedPostalCode($value)
+    {
+        if (strlen($value) >= 5) {
+            $postalCode = \App\Models\PostalCode::where('plz', $value)->first();
+            if ($postalCode) {
+                $this->city = $postalCode->ort;
+                $this->state = $postalCode->bundesland;
+            }
+        }
+    }
+
     public function nextStep(): void
     {
         match ($this->step) {

@@ -146,7 +146,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Postleitzahl *</label>
-                    <input wire:model="postal_code" type="text" placeholder="59229"
+                    <input wire:model.live.debounce.300ms="postal_code" type="text" placeholder="59229"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('postal_code') border-red-400 @enderror">
                     @error('postal_code') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
