@@ -32,6 +32,7 @@
 | База даних (production) | MySQL (Plesk хостинг) |
 | Email | Laravel Mail → SMTP хостингу |
 | PDF | barryvdh/laravel-dompdf |
+| Підпис | Filament Signature Pad плагін (обирається при встановленні) |
 
 ---
 
@@ -69,8 +70,8 @@
 | Telefonnummer | Phone | Так |
 | Jahresbeitrag | Currency (мін. €36) | Так |
 | Kontoinhaber | Text | Так |
-| IBAN | Text | Так |
-| BIC | Text | Ні |
+| IBAN | Text (зашифровано в БД) | Так |
+| BIC | Text (зашифровано в БД) | Ні |
 | Kreditinstitut | Text | Ні |
 | Unterschrift | Signature (canvas) | Так |
 | SEPA Zustimmung | Checkbox | Так |
@@ -83,12 +84,27 @@
 - **Хостинг:** Plesk (virtual hosting)
 - **Домен:** `mitglied.ditib-ahlen-projekte.de`
 - **Deploy:** git push main → Plesk Git інтеграція → auto-deploy
+- **Deploy actions на Plesk (після кожного push):**
+```bash
+composer install --optimize-autoloader --no-dev
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
 
 ## Локальна розробка
 
 ```bash
 php artisan serve   # → localhost:8000
 ```
+
+## Безпека та DSGVO
+
+- IBAN і BIC зберігаються в БД у зашифрованому вигляді через Laravel `encrypted` cast
+- `.env` з ключами шифрування — ніколи не комітити в git
+- Кожен член бачить тільки власні дані (Filament Panel ізоляція)
+- Згода SEPA і DSGVO фіксується при відправці форми
 
 ---
 
@@ -102,6 +118,7 @@ php artisan serve   # → localhost:8000
 1. Commit повідомлення — коротко, англійською
 2. `.env` — ніколи не комітити
 3. Міграції — тільки через `php artisan make:migration`
+4. Бізнес-логіку тримати чистою — без прив'язки до конкретної організації (на майбутнє)
 
 ---
 
