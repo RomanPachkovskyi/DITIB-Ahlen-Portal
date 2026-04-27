@@ -147,17 +147,74 @@
         @if ($step === 3)
             <h2 class="text-lg font-semibold text-gray-800 mb-5">Unterschrift & Zustimmung</h2>
 
-            <div class="mb-5">
+            <div class="mb-5"
+                x-data="{
+                    drawing: false,
+                    hasDrawn: false,
+                    ctx: null,
+                    init() {
+                        const canvas = this.$refs.canvas;
+                        canvas.width = canvas.parentElement.clientWidth - 4;
+                        canvas.height = 160;
+                        this.ctx = canvas.getContext('2d');
+                        this.ctx.strokeStyle = '#1e293b';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.lineCap = 'round';
+                        this.ctx.lineJoin = 'round';
+                    },
+                    getPos(e) {
+                        const rect = this.$refs.canvas.getBoundingClientRect();
+                        const src = e.touches ? e.touches[0] : e;
+                        return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+                    },
+                    start(e) {
+                        this.drawing = true;
+                        this.ctx.beginPath();
+                        const p = this.getPos(e);
+                        this.ctx.moveTo(p.x, p.y);
+                    },
+                    move(e) {
+                        if (!this.drawing) return;
+                        const p = this.getPos(e);
+                        this.ctx.lineTo(p.x, p.y);
+                        this.ctx.stroke();
+                        this.hasDrawn = true;
+                    },
+                    stop() {
+                        if (!this.drawing) return;
+                        this.drawing = false;
+                        if (this.hasDrawn) {
+                            const dataURL = this.$refs.canvas.toDataURL('image/png');
+                            $wire.set('unterschrift', dataURL);
+                        }
+                    },
+                    clear() {
+                        this.ctx.clearRect(0, 0, this.$refs.canvas.width, this.$refs.canvas.height);
+                        this.hasDrawn = false;
+                        $wire.set('unterschrift', '');
+                    }
+                }"
+                x-init="init()">
+
                 <label class="block text-sm font-medium text-gray-700 mb-2">Unterschrift *</label>
-                <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white @error('unterschrift') border-red-400 @enderror">
-                    <canvas id="signature-pad" class="w-full" height="160"></canvas>
+                <div class="border-2 border-gray-300 rounded-lg bg-white cursor-crosshair @error('unterschrift') border-red-400 @enderror">
+                    <canvas
+                        x-ref="canvas"
+                        @mousedown="start($event)"
+                        @mousemove="move($event)"
+                        @mouseup="stop()"
+                        @mouseleave="stop()"
+                        @touchstart.prevent="start($event)"
+                        @touchmove.prevent="move($event)"
+                        @touchend="stop()"
+                        style="display:block; touch-action:none;">
+                    </canvas>
                 </div>
                 <div class="flex justify-between items-center mt-1">
                     <p class="text-xs text-gray-400">Zeichnen Sie Ihre Unterschrift oben</p>
-                    <button type="button" onclick="clearSignature()" class="text-xs text-red-400 hover:text-red-600">Löschen</button>
+                    <button type="button" @click="clear()" class="text-xs text-red-400 hover:text-red-600">Löschen</button>
                 </div>
                 @error('unterschrift') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                <input type="hidden" wire:model="unterschrift" id="unterschrift-input">
             </div>
 
             <div class="space-y-3 mb-6">
@@ -211,41 +268,4 @@
     </div>
 @endif
 
-@if ($step === 3 && !$submitted)
-<script>
-    const canvas = document.getElementById('signature-pad');
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth;
-
-    let drawing = false;
-    let hasDrawn = false;
-
-    function getPos(e) {
-        const rect = canvas.getBoundingClientRect();
-        const src = e.touches ? e.touches[0] : e;
-        return { x: src.clientX - rect.left, y: src.clientY - rect.top };
-    }
-
-    canvas.addEventListener('mousedown', e => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); });
-    canvas.addEventListener('mousemove', e => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); hasDrawn = true; });
-    canvas.addEventListener('mouseup', () => { drawing = false; saveSignature(); });
-    canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); }, { passive: false });
-    canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); hasDrawn = true; }, { passive: false });
-    canvas.addEventListener('touchend', () => { drawing = false; saveSignature(); });
-
-    function saveSignature() {
-        if (!hasDrawn) return;
-        const dataURL = canvas.toDataURL('image/png');
-        document.getElementById('unterschrift-input').value = dataURL;
-        @this.set('unterschrift', dataURL);
-    }
-
-    function clearSignature() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        hasDrawn = false;
-        document.getElementById('unterschrift-input').value = '';
-        @this.set('unterschrift', '');
-    }
-</script>
-@endif
 </div>
