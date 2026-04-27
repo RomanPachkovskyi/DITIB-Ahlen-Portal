@@ -20,12 +20,28 @@ class MemberForm
                 Section::make('Persönliche Daten')
                     ->columns(2)
                     ->schema([
+                        TextInput::make('member_number')
+                            ->label('Mitgliedsnummer')
+                            ->disabled()
+                            ->dehydrated(false),
                         TextInput::make('full_name')
                             ->label('Vor- und Nachname')
                             ->required(),
                         DatePicker::make('birth_date')
                             ->label('Geburtsdatum')
                             ->required(),
+                        TextInput::make('birth_place')
+                            ->label('Geburtsort'),
+                        TextInput::make('staatsangehoerigkeit')
+                            ->label('Staatsangehörigkeit'),
+                        TextInput::make('familienangehoerige')
+                            ->label('Anzahl der Familienangehörigen')
+                            ->numeric()
+                            ->default(1),
+                        TextInput::make('beruf')
+                            ->label('Beruf'),
+                        TextInput::make('heimatstadt')
+                            ->label('Heimatstadt'),
                         TextInput::make('street')
                             ->label('Straße und Hausnummer')
                             ->required()
@@ -44,31 +60,51 @@ class MemberForm
                             ->email()
                             ->required(),
                         TextInput::make('phone')
-                            ->label('Telefonnummer')
+                            ->label('Telefon')
                             ->tel()
                             ->required(),
+                        Toggle::make('cenaze_fonu')
+                            ->label('Mitglied des Bestattungsinstituts (Cenaze Fonu)'),
+                        TextInput::make('cenaze_fonu_nr')
+                            ->label('Cenaze Fonu Nr.')
+                            ->visible(fn ($get) => $get('cenaze_fonu')),
+                        Toggle::make('gemeinderegister')
+                            ->label('Im Gemeinderegister eingetragen'),
                     ]),
 
-                Section::make('Bankverbindung (SEPA)')
+                Section::make('Beitrag & Bankverbindung')
                     ->columns(2)
                     ->schema([
-                        TextInput::make('jahresbeitrag')
-                            ->label('Jahresbeitrag (€)')
+                        TextInput::make('monatsbeitrag')
+                            ->label('Monatlicher Mitgliedsbeitrag (€)')
                             ->numeric()
-                            ->default(36.00)
+                            ->default(25.00)
+                            ->minValue(25)
                             ->prefix('€')
                             ->required(),
+                        Select::make('zahlungsart')
+                            ->label('Zahlungsweise')
+                            ->options([
+                                'barzahlung'  => 'Barzahlung',
+                                'lastschrift' => 'Lastschrift',
+                                'dauerauftrag' => 'Dauerauftrag',
+                            ])
+                            ->default('barzahlung')
+                            ->required()
+                            ->live(),
                         TextInput::make('kontoinhaber')
                             ->label('Kontoinhaber')
-                            ->required(),
+                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag'])),
                         TextInput::make('iban')
                             ->label('IBAN')
-                            ->required()
+                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
                             ->columnSpanFull(),
                         TextInput::make('bic')
-                            ->label('BIC'),
+                            ->label('BIC')
+                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag'])),
                         TextInput::make('kreditinstitut')
-                            ->label('Kreditinstitut'),
+                            ->label('Kreditinstitut')
+                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag'])),
                     ]),
 
                 Section::make('Status & Verwaltung')

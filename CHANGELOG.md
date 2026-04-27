@@ -86,4 +86,18 @@
 
 ---
 
+## 2026-04-27 (продовження)
+
+### [2026-04-27 14:00] Етап 1 — нові поля, 4-крокова форма, валідація — Claude Code
+- **Міграція** `update_members_table_stage1`: нові поля `member_number` (унікальний, auto), `birth_place`, `staatsangehoerigkeit`, `familienangehoerige`, `cenaze_fonu`, `cenaze_fonu_nr`, `gemeinderegister`, `beruf`, `heimatstadt`, `zahlungsart` (enum); перейменування `jahresbeitrag` → `monatsbeitrag`, дефолт €25
+- **Модель `Member`**: оновлено `$fillable`, `$casts`, auto-генерація `member_number` у форматі `DA-YYYY-NNNN` через `booted()`
+- **`MemberForm` (Filament admin)**: нові секції з усіма полями, умовна видимість SEPA-полів через `->visible()` та `->live()`
+- **`MembersTable`**: `member_number` — перша колонка, `monatsbeitrag` замість `jahresbeitrag`, `zahlungsart`
+- **Публічна форма** перебудована на 4 кроки: 1-Kişisel Bilgiler, 2-Adres, 3-Aidat/Banka, 4-İmza
+- Валідація мінімального віку 16 років (кастомне правило), мін. €25/міс
+- SEPA-поля (Kontoinhaber/IBAN/BIC) показуються тільки при zahlungsart=lastschrift/dauerauftrag
+- Двомовні мітки DE+TR на всіх полях форми
+
+---
+
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

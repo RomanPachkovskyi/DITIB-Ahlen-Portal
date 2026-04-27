@@ -185,7 +185,7 @@ MAIL_HOST=...
 - [x] Моделі: `Member` (encrypted), `ChangeRequest`
 - [x] AdminPanel (`/admin`) — MemberResource з View/Edit/List
 - [x] MemberPanel (`/konto`) — базова панель створена
-- [x] Публічна форма (`/`) — 3-крокова, підпис, SEPA/DSGVO
+- [x] Публічна форма (`/`) — 4-крокова, всі поля анкети, умовний SEPA, валідація 16+
 - [ ] Кабінет члена — сторінки перегляду даних і Änderungsantrag
 - [ ] Email підтвердження після відправки форми
 - [ ] Двомовність форми (DE + TR)

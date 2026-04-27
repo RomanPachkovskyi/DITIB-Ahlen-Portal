@@ -1,6 +1,5 @@
 <div>
 @if ($submitted)
-    {{-- Bestätigungsseite --}}
     <div class="text-center py-16">
         <div class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg class="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -9,6 +8,9 @@
         </div>
         <h1 class="text-2xl font-bold text-gray-900 mb-2">Antrag eingegangen!</h1>
         <p class="text-gray-600 mb-1">Vielen Dank, <strong>{{ $full_name }}</strong>.</p>
+        @if ($member_number)
+            <p class="text-gray-600 mb-1">Ihre Mitgliedsnummer: <strong class="text-teal-700">{{ $member_number }}</strong></p>
+        @endif
         <p class="text-gray-600 mb-6">Ihr Mitgliedsantrag wurde erfolgreich übermittelt.<br>Sie erhalten eine Bestätigung an <strong>{{ $email }}</strong>.</p>
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-sm mx-auto text-sm text-yellow-800">
             Ihr Antrag wird geprüft. Nach der Genehmigung erhalten Sie Ihren Mitgliedsausweis.
@@ -18,16 +20,16 @@
     {{-- Fortschrittsanzeige --}}
     <div class="mb-8">
         <h1 class="text-2xl font-bold text-gray-900 mb-1">Mitgliedsantrag</h1>
-        <p class="text-gray-500 text-sm">DITIB Ahlen — Islamische Gemeinschaft e.V.</p>
+        <p class="text-gray-500 text-sm">DİTİB Türkisch-Islamische Gemeinde zu Ahlen e. V. / Ahlen Ulu Camii</p>
 
-        <div class="flex items-center mt-6 gap-2">
-            @foreach ([1 => 'Persönliche Daten', 2 => 'Bankverbindung', 3 => 'Unterschrift'] as $n => $label)
-                <div class="flex items-center gap-2 {{ $loop->last ? '' : 'flex-1' }}">
+        <div class="flex items-center mt-6 gap-1">
+            @foreach ([1 => 'Persönliche Daten', 2 => 'Adresse & Kontakt', 3 => 'Beitrag & Zahlung', 4 => 'Unterschrift'] as $n => $label)
+                <div class="flex items-center gap-1 {{ $loop->last ? '' : 'flex-1' }}">
                     <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0
                         {{ $step > $n ? 'bg-teal-600 text-white' : ($step === $n ? 'bg-teal-600 text-white ring-4 ring-teal-100' : 'bg-gray-200 text-gray-500') }}">
                         {{ $step > $n ? '✓' : $n }}
                     </div>
-                    <span class="text-xs {{ $step === $n ? 'text-teal-700 font-semibold' : 'text-gray-400' }} hidden sm:inline">{{ $label }}</span>
+                    <span class="text-xs {{ $step === $n ? 'text-teal-700 font-semibold' : 'text-gray-400' }} hidden sm:inline whitespace-nowrap">{{ $label }}</span>
                     @if (!$loop->last)
                         <div class="flex-1 h-px {{ $step > $n ? 'bg-teal-400' : 'bg-gray-200' }} mx-1"></div>
                     @endif
@@ -57,6 +59,84 @@
                     @error('birth_date') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Geburtsort</label>
+                    <input wire:model="birth_place" type="text" placeholder="Berlin"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Staatsangehörigkeit</label>
+                    <input wire:model="staatsangehoerigkeit" type="text" placeholder="Deutsch"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Anzahl der Familienangehörigen</label>
+                    <input wire:model="familienangehoerige" type="number" min="1"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Beruf</label>
+                    <input wire:model="beruf" type="text" placeholder="Ingenieur"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Heimatstadt</label>
+                    <input wire:model="heimatstadt" type="text" placeholder="Ankara"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+
+                {{-- Cenaze Fonu --}}
+                <div class="sm:col-span-2 border border-gray-100 rounded-lg p-4 bg-gray-50">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Mitglied des Bestattungsinstituts (Cenaze Fonu)</p>
+                    <div class="flex gap-6">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input wire:model.live="cenaze_fonu" type="radio" value="1"
+                                class="text-teal-600">
+                            <span class="text-sm">Ja</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input wire:model.live="cenaze_fonu" type="radio" value="0"
+                                class="text-teal-600">
+                            <span class="text-sm">Nein</span>
+                        </label>
+                    </div>
+                    @if ($cenaze_fonu)
+                        <div class="mt-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nr.</label>
+                            <input wire:model="cenaze_fonu_nr" type="text" placeholder="Nummer"
+                                class="w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Gemeinderegister --}}
+                <div class="sm:col-span-2 border border-gray-100 rounded-lg p-4 bg-gray-50">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Im Gemeinderegister eingetragen</p>
+                    <div class="flex gap-6">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input wire:model.live="gemeinderegister" type="radio" value="1"
+                                class="text-teal-600">
+                            <span class="text-sm">Ja</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input wire:model.live="gemeinderegister" type="radio" value="0"
+                                class="text-teal-600">
+                            <span class="text-sm">Nein</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- STEP 2: Adresse & Kontakt --}}
+        @if ($step === 2)
+            <h2 class="text-lg font-semibold text-gray-800 mb-5">Adresse & Kontakt</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
                 <div class="sm:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Straße und Hausnummer *</label>
                     <input wire:model="street" type="text" placeholder="Musterstraße 1"
@@ -66,7 +146,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Postleitzahl *</label>
-                    <input wire:model="postal_code" type="text" placeholder="59227"
+                    <input wire:model="postal_code" type="text" placeholder="59229"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('postal_code') border-red-400 @enderror">
                     @error('postal_code') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -93,7 +173,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Telefonnummer *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
                     <input wire:model="phone" type="tel" placeholder="+49 2382 ..."
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('phone') border-red-400 @enderror">
                     @error('phone') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -101,50 +181,70 @@
             </div>
         @endif
 
-        {{-- STEP 2: Bankverbindung --}}
-        @if ($step === 2)
-            <h2 class="text-lg font-semibold text-gray-800 mb-1">Bankverbindung (SEPA)</h2>
-            <p class="text-sm text-gray-500 mb-5">Der Jahresbeitrag wird jeweils im September per Lastschrift eingezogen.</p>
+        {{-- STEP 3: Beitrag & Zahlung --}}
+        @if ($step === 3)
+            <h2 class="text-lg font-semibold text-gray-800 mb-5">Beitrag & Zahlungsweise</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Jahresbeitrag (€) *</label>
-                    <input wire:model="jahresbeitrag" type="number" min="36" step="0.01"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('jahresbeitrag') border-red-400 @enderror">
-                    <p class="text-xs text-gray-400 mt-1">Mindestbetrag: €36,00</p>
-                    @error('jahresbeitrag') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Monatlicher Mitgliedsbeitrag (€) *</label>
+                    <input wire:model="monatsbeitrag" type="number" min="25" step="0.01"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('monatsbeitrag') border-red-400 @enderror">
+                    <p class="text-xs text-gray-400 mt-1">Mindestbetrag: 25,00 €</p>
+                    @error('monatsbeitrag') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Kontoinhaber *</label>
-                    <input wire:model="kontoinhaber" type="text" placeholder="Max Mustermann"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('kontoinhaber') border-red-400 @enderror">
-                    @error('kontoinhaber') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Zahlungsweise *</label>
+                    <select wire:model.live="zahlungsart"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('zahlungsart') border-red-400 @enderror">
+                        <option value="barzahlung">Barzahlung</option>
+                        <option value="lastschrift">Lastschrift</option>
+                        <option value="dauerauftrag">Dauerauftrag</option>
+                    </select>
+                    @error('zahlungsart') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="sm:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">IBAN *</label>
-                    <input wire:model="iban" type="text" placeholder="DE00 0000 0000 0000 0000 00"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 @error('iban') border-red-400 @enderror">
-                    @error('iban') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
+                @if (in_array($zahlungsart, ['lastschrift', 'dauerauftrag']))
+                    <div class="sm:col-span-2">
+                        <div class="border-t border-gray-100 pt-4 mt-2">
+                            <p class="text-sm font-medium text-gray-700 mb-3">Kontodaten</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">BIC</label>
-                    <input wire:model="bic" type="text" placeholder="DEUTDEDB"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500">
-                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Kontoinhaber *</label>
+                                    <input wire:model="kontoinhaber" type="text" placeholder="Max Mustermann"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('kontoinhaber') border-red-400 @enderror">
+                                    @error('kontoinhaber') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Kreditinstitut</label>
-                    <input wire:model="kreditinstitut" type="text" placeholder="Deutsche Bank"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Kreditinstitut</label>
+                                    <input wire:model="kreditinstitut" type="text" placeholder="Deutsche Bank"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                </div>
+
+                                <div class="sm:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">IBAN *</label>
+                                    <input wire:model="iban" type="text" placeholder="DE00 0000 0000 0000 0000 00"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 @error('iban') border-red-400 @enderror">
+                                    @error('iban') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">BIC</label>
+                                    <input wire:model="bic" type="text" placeholder="DEUTDEDB"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         @endif
 
-        {{-- STEP 3: Unterschrift & Zustimmung --}}
-        @if ($step === 3)
+        {{-- STEP 4: Unterschrift & Zustimmung --}}
+        @if ($step === 4)
             <h2 class="text-lg font-semibold text-gray-800 mb-5">Unterschrift & Zustimmung</h2>
 
             <div class="mb-5"
@@ -221,15 +321,16 @@
             </div>
 
             <div class="space-y-3 mb-6">
-                <label class="flex items-start gap-3 cursor-pointer">
-                    <input wire:model="sepa_zustimmung" type="checkbox"
-                        class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('sepa_zustimmung') border-red-400 @enderror">
-                    <span class="text-sm text-gray-700">
-                        Ich erteile das <strong>SEPA-Lastschriftmandat</strong> und ermächtige DITIB Ahlen,
-                        den Jahresbeitrag von meinem Konto einzuziehen. *
-                    </span>
-                </label>
-                @error('sepa_zustimmung') <p class="text-red-500 text-xs ml-7">{{ $message }}</p> @enderror
+                @if (in_array($zahlungsart, ['lastschrift', 'dauerauftrag']))
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input wire:model="sepa_zustimmung" type="checkbox"
+                            class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded">
+                        <span class="text-sm text-gray-700">
+                            Ich erteile das <strong>SEPA-Lastschriftmandat</strong> und ermächtige DITIB Ahlen,
+                            den monatlichen Mitgliedsbeitrag von meinem Konto einzuziehen.
+                        </span>
+                    </label>
+                @endif
 
                 <label class="flex items-start gap-3 cursor-pointer">
                     <input wire:model="dsgvo_zustimmung" type="checkbox"
@@ -243,7 +344,7 @@
             </div>
         @endif
 
-        {{-- Navigation Buttons --}}
+        {{-- Navigation --}}
         <div class="flex justify-between items-center mt-6 pt-5 border-t border-gray-100">
             @if ($step > 1)
                 <button wire:click="prevStep" type="button"
@@ -254,7 +355,7 @@
                 <div></div>
             @endif
 
-            @if ($step < 3)
+            @if ($step < 4)
                 <button wire:click="nextStep" type="button"
                     class="px-6 py-2 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700">
                     Weiter →
@@ -264,7 +365,7 @@
                     wire:loading.attr="disabled"
                     class="px-6 py-2 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50">
                     <span wire:loading.remove>Antrag absenden</span>
-                    <span wire:loading>Wird gesendet...</span>
+                    <span wire:loading>Wird gesendet…</span>
                 </button>
             @endif
         </div>

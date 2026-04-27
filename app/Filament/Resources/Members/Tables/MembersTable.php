@@ -17,6 +17,11 @@ class MembersTable
     {
         return $table
             ->columns([
+                TextColumn::make('member_number')
+                    ->label('Nr.')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable(),
                 TextColumn::make('full_name')
                     ->label('Name')
                     ->searchable()
@@ -30,10 +35,18 @@ class MembersTable
                 TextColumn::make('city')
                     ->label('Ort')
                     ->searchable(),
-                TextColumn::make('jahresbeitrag')
-                    ->label('Beitrag')
+                TextColumn::make('monatsbeitrag')
+                    ->label('Beitrag/Mo.')
                     ->money('EUR')
                     ->sortable(),
+                TextColumn::make('zahlungsart')
+                    ->label('Zahlungsart')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'barzahlung'  => 'Bar',
+                        'lastschrift' => 'Lastschr.',
+                        'dauerauftrag' => 'Dauera.',
+                        default => $state,
+                    }),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
