@@ -45,19 +45,37 @@ app/
 ├── Providers/
 │   └── Filament/
 │       ├── AdminPanelProvider.php   ← /admin
-│       └── MemberPanelProvider.php  ← /konto (ще не створений)
+│       └── MemberPanelProvider.php  ← /konto (кабінет члена)
 resources/views/     ← Blade шаблони (публічна форма)
 database/migrations/ ← всі міграції
 ```
 
+## CHANGELOG — обов'язково для кожного агента
+
+**Після будь-яких змін у проекті** — додати запис у `CHANGELOG.md`.
+
+### Формат
+```
+### [YYYY-MM-DD HH:MM] Короткий опис — AgentName
+- що зроблено / змінено / виправлено
+```
+
+### Правила
+- Дата і час — реальні, не приблизні
+- AgentName — назва агента: `Claude Code`, `Codex`, `Gemini`
+- Один запис на сесію роботи (не на кожен файл)
+- Хронологія — від старих до нових (нові додаються знизу)
+- Не редагувати чужі записи
+
 ## Обов'язкові правила
 
-1. **Ніколи не комітити `.env`** — тільки `.env.example`
-2. **Міграції** — тільки через `php artisan make:migration`
-3. **IBAN і BIC** — обов'язково `'encrypted'` cast у моделі
-4. **Commit повідомлення** — англійська, коротко (`feat:`, `fix:`, `docs:`)
-5. **Гілка** — завжди `main` для цього репо
-6. **Не чіпати** `~/Project/DITIB-Ahlen/main/` — це інший проект (лендінг)
+1. **CHANGELOG.md** — оновлювати після кожної сесії змін
+2. **Ніколи не комітити `.env`** — тільки `.env.example`
+3. **Міграції** — тільки через `php artisan make:migration`
+4. **IBAN і BIC** — обов'язково `'encrypted'` cast у моделі
+5. **Commit повідомлення** — англійська, коротко (`feat:`, `fix:`, `docs:`)
+6. **Гілка** — завжди `main` для цього репо
+7. **Не чіпати** `~/Project/DITIB-Ahlen/main/` — це інший проект (лендінг)
 
 ## Безпека (DSGVO)
 - IBAN, BIC — зашифровані в БД (`encrypted` cast)
