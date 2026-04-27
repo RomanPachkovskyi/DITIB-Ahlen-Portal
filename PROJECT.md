@@ -86,7 +86,7 @@
 | Папка | `~/Project/DITIB-Ahlen/portal/` |
 | PHP | 8.5 (Homebrew) |
 | База даних | SQLite → `database/database.sqlite` |
-| Порт | **8000** |
+| Порт | **8000** (фіксовано, не конфліктує з Docker на 8080) |
 | Адмін-панель | http://localhost:8000/admin |
 | Публічна форма | http://localhost:8000 |
 | Кабінет члена | http://localhost:8000/konto |
