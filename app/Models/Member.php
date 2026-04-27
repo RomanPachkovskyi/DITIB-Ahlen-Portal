@@ -39,7 +39,7 @@ class Member extends Model
         'bic'              => 'encrypted',
     ];
 
-    protected $hidden = ['iban', 'bic', 'unterschrift'];
+    protected $hidden = ['unterschrift'];
 
     public function changeRequests(): HasMany
     {
