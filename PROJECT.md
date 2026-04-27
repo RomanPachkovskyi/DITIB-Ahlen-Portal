@@ -79,12 +79,55 @@
 
 ---
 
+## Локальна розробка
+
+| Параметр | Значення |
+|----------|----------|
+| Папка | `~/Project/DITIB-Ahlen/portal/` |
+| PHP | 8.5 (Homebrew) |
+| База даних | SQLite → `database/database.sqlite` |
+| Порт | **8000** |
+| Адмін-панель | http://localhost:8000/admin |
+| Публічна форма | http://localhost:8000 |
+| Кабінет члена | http://localhost:8000/konto |
+
+**Запуск сервера:**
+```bash
+cd ~/Project/DITIB-Ahlen/portal
+php artisan serve --port=8000
+```
+
+**Перший запуск (після клонування):**
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate
+php artisan make:filament-user
+php artisan serve --port=8000
+```
+
+**Тест адмін-доступу:**
+```
+URL:      http://localhost:8000/admin/login
+Email:    rpachkovskyi@gmail.com
+Password: Admin1234!
+```
+
+---
+
 ## Хостинг і деплой
 
-- **Хостинг:** Plesk (virtual hosting)
-- **Домен:** `mitglied.ditib-ahlen-projekte.de`
-- **Deploy:** git push main → Plesk Git інтеграція → auto-deploy
-- **Deploy actions на Plesk (після кожного push):**
+| Параметр | Значення |
+|----------|----------|
+| Хостинг | Plesk (virtual hosting) |
+| Домен | `mitglied.ditib-ahlen-projekte.de` |
+| PHP на сервері | 8.2+ |
+| База даних | MySQL (Plesk) |
+| Deploy | git push main → Plesk Git → auto-deploy |
+
+**Deploy actions на Plesk (після кожного push):**
 ```bash
 composer install --optimize-autoloader --no-dev
 php artisan migrate --force
@@ -93,11 +136,20 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-## Локальна розробка
-
-```bash
-php artisan serve   # → localhost:8000
+**Змінні середовища на Plesk (`.env` на сервері, не в git):**
 ```
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://mitglied.ditib-ahlen-projekte.de
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_DATABASE=...
+DB_USERNAME=...
+DB_PASSWORD=...
+MAIL_HOST=...   # SMTP хостингу ditib-ahlen-projekte.de
+```
+
+---
 
 ## Безпека та DSGVO
 
