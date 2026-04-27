@@ -122,4 +122,40 @@
 
 ---
 
+### [2026-04-27 17:00] Аудит статусів у документі вимог — Claude Code
+- Виявлено і виправлено помилково проставлені ✅ у `Правки і зміни на сайті.md`:
+  - "Підтвердження реєстрації" → повернуто в ⬜ (кнопки підтвердження одним кліком нема, є лише ручна зміна статусу через Edit-форму)
+  - "Видалення користувача" → повернуто в ⬜ (bulk-delete і Delete на Edit-сторінці є, але кнопки в рядку/View нема)
+- Підтверджено реально виконані: авто-редирект після збереження (`getRedirectUrl()`), PLZ→місто/земля (`updatedPostalCode()`)
+- Три нові пункти від Gemini/користувача впорядковано: прибирання Filament-блоку, German locale, Dashboard зі статистикою — усі поставлені в ⬜ (Етап 3)
+- Dashboard і branding-задачі переміщено з Етапу 4 до Етапу 3 (вони належать до адмінки)
+
+### [2026-04-27 17:30] Адмін-таблиця: колонки, статуси, хлібні крихти — Claude Code
+- **Таблиця**: гумові колонки (`->wrap()`), Column Toggle (`->toggleable()`) — за замовчуванням видно Nr./Name/Status/E-Mail/Ort/Beitrag/Eingegangen, решта приховані
+- **Статус у таблиці**: badge з іконками — Ausstehend ✦ (warning), Aktiv ✓ (success), Inaktiv ✕ (danger)
+- **Додатковий фільтр** по Zahlungsart
+- **Статус у формі Edit**: ToggleButtons з іконками та кольорами (`->inline()`) замість Select-дропдауну
+- **Хлібні крихти**: `getRecordTitle()` в MemberResource → показує `full_name` члена замість "View"
+- **Fix**: підпис методу `getRecordTitle()` виправлено до сумісного з батьківським класом (nullable record, Htmlable return type)
+
+---
+
+### [2026-04-27 19:00] Адмін-панель: layout форми, хлібні крихти, меню таблиці — Claude Code
+
+- **Хлібні крихти**: перевизначено `getBreadcrumb()` у `ViewMember` і `EditMember` → тепер показує ім'я члена (`full_name`), а не "View"
+- **Заголовок сторінок**: `getTitle()` у ViewMember → ім'я члена; у EditMember → "ім'я bearbeiten"
+- **Редирект після збереження**: `getRedirectUrl()` в EditMember → переходить на View-сторінку запису (не на список)
+- **Меню в рядках таблиці**: `ActionGroup::make([View/Bearbeiten/Löschen])` у `->recordActions()` — три дії під кнопкою "⋮"
+- **Layout форми**: виявлено, що Filament v5 Schema за замовчуванням вже є 2-колонковим гридом — прибрано зайвий `Grid::make()` та `Group::make()`, секції передаються прямо в `$schema->components([])`
+- **Результат layout**: ліво — Persönliche Daten + Beitrag & Bankverbindung; право — Status & Verwaltung (`grid-row: span 2`)
+- **Persönliche Daten**: внутрішня 2-колонкова сітка `->columns(['default' => 1, 'sm' => 2])` — парні поля поряд (Geburtsdatum/Geburtsort, Staatsangehörigkeit/Familienangehörige, Beruf/Heimatstadt, Postleitzahl/Ort, Bundesland/Telefon); довгі поля (`street`, `email`, toggles) → `->columnSpanFull()`
+- **Fix**: `Toggle::make('cenaze_fonu')` отримав `->live()` — поле `cenaze_fonu_nr` з'являється без перезавантаження сторінки
+- **Fix**: Radio не підтримує `->icons()` у Filament v5 → замінено на `ToggleButtons`
+
+### [2026-04-27 19:15] Адмін-панель: правки в Persönliche Daten — Gemini
+- `Mitgliedsnummer`: замінено з `TextInput` (disabled) на `Placeholder`, вирівняно по правому краю в стилі технічного ідентифікатора, показується тільки якщо номер вже згенеровано (не показується при створенні).
+- `full_name`: встановлено `->columnSpanFull()`, щоб поле "Vor- und Nachname" займало всю ширину блоку, аналогічно до "Straße und Hausnummer".
+
+---
+
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

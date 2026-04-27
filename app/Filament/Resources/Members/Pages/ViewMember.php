@@ -10,10 +10,20 @@ class ViewMember extends ViewRecord
 {
     protected static string $resource = MemberResource::class;
 
+    public function getBreadcrumb(): string
+    {
+        return $this->record->full_name;
+    }
+
+    public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        return $this->record->full_name;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
+            EditAction::make()->label('Bearbeiten'),
         ];
     }
 }

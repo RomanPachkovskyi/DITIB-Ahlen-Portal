@@ -26,6 +26,15 @@ class MemberResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Mitglieder';
 
+    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
+    {
+        if (! $record) {
+            return null;
+        }
+
+        return $record->full_name;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return MemberForm::configure($schema);

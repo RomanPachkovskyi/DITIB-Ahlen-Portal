@@ -6,7 +6,6 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -21,35 +20,23 @@ class MembersTable
                     ->label('Nr.')
                     ->searchable()
                     ->sortable()
-                    ->copyable(),
+                    ->copyable()
+                    ->grow(false),
+
                 TextColumn::make('full_name')
                     ->label('Name')
                     ->searchable()
-                    ->sortable(),
-                TextColumn::make('email')
-                    ->label('E-Mail')
-                    ->searchable(),
-                TextColumn::make('phone')
-                    ->label('Telefon')
-                    ->searchable(),
-                TextColumn::make('city')
-                    ->label('Ort')
-                    ->searchable(),
-                TextColumn::make('monatsbeitrag')
-                    ->label('Beitrag/Mo.')
-                    ->money('EUR')
-                    ->sortable(),
-                TextColumn::make('zahlungsart')
-                    ->label('Zahlungsart')
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'barzahlung'  => 'Bar',
-                        'lastschrift' => 'Lastschr.',
-                        'dauerauftrag' => 'Dauera.',
-                        default => $state,
-                    }),
+                    ->sortable()
+                    ->wrap(),
+
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
+                    ->icon(fn (string $state): string => match ($state) {
+                        'pending'  => 'heroicon-m-sparkles',
+                        'active'   => 'heroicon-m-check-circle',
+                        'inactive' => 'heroicon-m-x-circle',
+                    })
                     ->color(fn (string $state): string => match ($state) {
                         'pending'  => 'warning',
                         'active'   => 'success',
@@ -60,11 +47,62 @@ class MembersTable
                         'active'   => 'Aktiv',
                         'inactive' => 'Inaktiv',
                     })
-                    ->sortable(),
+                    ->sortable()
+                    ->grow(false),
+
+                TextColumn::make('email')
+                    ->label('E-Mail')
+                    ->searchable()
+                    ->wrap()
+                    ->toggleable(),
+
+                TextColumn::make('city')
+                    ->label('Ort')
+                    ->searchable()
+                    ->wrap()
+                    ->toggleable(),
+
+                TextColumn::make('monatsbeitrag')
+                    ->label('Beitrag/Mo.')
+                    ->money('EUR')
+                    ->sortable()
+                    ->grow(false)
+                    ->toggleable(),
+
                 TextColumn::make('created_at')
                     ->label('Eingegangen am')
                     ->date('d.m.Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->grow(false)
+                    ->toggleable(),
+
+                // Додаткові колонки — приховані за замовчуванням
+                TextColumn::make('phone')
+                    ->label('Telefon')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('zahlungsart')
+                    ->label('Zahlungsart')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'barzahlung'   => 'Barzahlung',
+                        'lastschrift'  => 'Lastschrift',
+                        'dauerauftrag' => 'Dauerauftrag',
+                        default        => $state,
+                    })
+                    ->badge()
+                    ->color('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('staatsangehoerigkeit')
+                    ->label('Staatsangehörigkeit')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('birth_date')
+                    ->label('Geburtsdatum')
+                    ->date('d.m.Y')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -75,10 +113,20 @@ class MembersTable
                         'active'   => 'Aktiv',
                         'inactive' => 'Inaktiv',
                     ]),
+                SelectFilter::make('zahlungsart')
+                    ->label('Zahlungsart')
+                    ->options([
+                        'barzahlung'   => 'Barzahlung',
+                        'lastschrift'  => 'Lastschrift',
+                        'dauerauftrag' => 'Dauerauftrag',
+                    ]),
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                \Filament\Actions\ActionGroup::make([
+                    ViewAction::make()->label('Anzeigen'),
+                    EditAction::make()->label('Bearbeiten'),
+                    \Filament\Actions\DeleteAction::make()->label('Löschen'),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
