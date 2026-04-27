@@ -31,43 +31,76 @@ class MemberForm
                         TextInput::make('full_name')
                             ->label('Vor- und Nachname')
                             ->required()
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->validationMessages(['regex' => 'Der Name darf тільки літери та пробіли.'])
+                            ->live(onBlur: true)
                             ->columnSpanFull(),
                         DatePicker::make('birth_date')
                             ->label('Geburtsdatum')
-                            ->required(),
+                            ->required()
+                            ->live(onBlur: true),
                         TextInput::make('birth_place')
-                            ->label('Geburtsort'),
+                            ->label('Geburtsort')
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->live(onBlur: true),
                         TextInput::make('staatsangehoerigkeit')
-                            ->label('Staatsangehörigkeit'),
+                            ->label('Staatsangehörigkeit')
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->live(onBlur: true),
                         TextInput::make('familienangehoerige')
                             ->label('Familienangehörige (Anzahl)')
                             ->numeric()
-                            ->default(1),
+                            ->required()
+                            ->default(1)
+                            ->live(onBlur: true),
                         TextInput::make('beruf')
-                            ->label('Beruf'),
+                            ->label('Beruf')
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->live(onBlur: true),
                         TextInput::make('heimatstadt')
-                            ->label('Heimatstadt'),
+                            ->label('Heimatstadt')
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->live(onBlur: true),
                         TextInput::make('street')
                             ->label('Straße und Hausnummer')
                             ->required()
+                            ->live(onBlur: true)
                             ->columnSpanFull(),
                         TextInput::make('postal_code')
                             ->label('Postleitzahl')
-                            ->required(),
+                            ->regex('/^[0-9]{5}$/')
+                            ->required()
+                            ->maxLength(5)
+                            ->extraInputAttributes([
+                                'inputmode' => 'numeric',
+                                'maxlength' => '5',
+                                'oninput'   => "this.value = this.value.replace(/[^0-9]/g, '').slice(0,5)",
+                            ])
+                            ->live(onBlur: true),
                         TextInput::make('city')
                             ->label('Ort')
-                            ->required(),
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->required()
+                            ->live(onBlur: true),
                         TextInput::make('state')
                             ->label('Bundesland')
-                            ->required(),
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->required()
+                            ->live(onBlur: true),
                         TextInput::make('phone')
                             ->label('Telefon')
                             ->tel()
-                            ->required(),
+                            ->regex('/^[+\(\)\-\s0-9]+$/')
+                            ->required()
+                            ->extraInputAttributes([
+                                'oninput' => "this.value = this.value.replace(/[a-zA-ZäöüÄÖÜа-яА-Я]/g, '')",
+                            ])
+                            ->live(onBlur: true),
                         TextInput::make('email')
                             ->label('E-Mail')
                             ->email()
                             ->required()
+                            ->live(onBlur: true)
                             ->columnSpanFull(),
                         Toggle::make('cenaze_fonu')
                             ->label('Mitglied des Bestattungsinstituts (Cenaze Fonu)')
@@ -75,7 +108,8 @@ class MemberForm
                             ->columnSpanFull(),
                         TextInput::make('cenaze_fonu_nr')
                             ->label('Cenaze Fonu Nr.')
-                            ->visible(fn ($get) => $get('cenaze_fonu')),
+                            ->visible(fn ($get) => $get('cenaze_fonu'))
+                            ->live(onBlur: true),
                         Toggle::make('gemeinderegister')
                             ->label('Im Gemeinderegister eingetragen')
                             ->columnSpanFull(),
@@ -123,7 +157,12 @@ class MemberForm
                             ->default(25.00)
                             ->minValue(25)
                             ->prefix('€')
-                            ->required(),
+                            ->required()
+                            ->extraInputAttributes([
+                                'min' => '25',
+                                'x-on:input' => "if(parseFloat(this.value) < 25 && this.value !== '') this.classList.add('border-red-400'); else this.classList.remove('border-red-400');",
+                            ])
+                            ->live(onBlur: true),
                         Select::make('zahlungsart')
                             ->label('Zahlungsweise')
                             ->options([
@@ -136,17 +175,26 @@ class MemberForm
                             ->live(),
                         TextInput::make('kontoinhaber')
                             ->label('Kontoinhaber')
-                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag'])),
+                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->required(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->live(onBlur: true),
                         TextInput::make('iban')
                             ->label('IBAN')
                             ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->required(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->regex('/^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9]{11,30}$/')
+                            ->live(onBlur: true)
                             ->columnSpanFull(),
                         TextInput::make('bic')
                             ->label('BIC')
-                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag'])),
+                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->live(onBlur: true),
                         TextInput::make('kreditinstitut')
                             ->label('Kreditinstitut')
-                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag'])),
+                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->live(onBlur: true),
                     ]),
 
             ]);

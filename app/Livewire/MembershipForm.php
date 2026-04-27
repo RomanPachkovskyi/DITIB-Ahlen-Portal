@@ -30,6 +30,10 @@ class MembershipForm extends Component
     public string $email = '';
     public string $phone = '';
 
+    // PLZ Autocomplete
+    public array $plzSuggestions = [];
+    public bool $showPlzDropdown = false;
+
     // Step 3 — Beitrag & Bankverbindung
     public float $monatsbeitrag = 25.00;
     public string $zahlungsart = 'barzahlung';
@@ -49,17 +53,17 @@ class MembershipForm extends Component
     protected function rulesStep1(): array
     {
         return [
-            'full_name'            => 'required|string|max:255',
+            'full_name'            => ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
             'birth_date'           => ['required', 'date', 'before:today', function ($attr, $value, $fail) {
                 if (Carbon::parse($value)->age < 16) {
                     $fail('Eine Registrierung ist erst ab 16 Jahren möglich. / Kayıt yalnızca 16 yaş ve üzeri için mümkündür.');
                 }
             }],
-            'birth_place'          => 'nullable|string|max:255',
-            'staatsangehoerigkeit' => 'nullable|string|max:100',
+            'birth_place'          => ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
+            'staatsangehoerigkeit' => ['nullable', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
             'familienangehoerige'  => 'required|integer|min:1',
-            'beruf'                => 'nullable|string|max:255',
-            'heimatstadt'          => 'nullable|string|max:255',
+            'beruf'                => ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
+            'heimatstadt'          => ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
         ];
     }
 
@@ -67,11 +71,11 @@ class MembershipForm extends Component
     {
         return [
             'street'      => 'required|string|max:255',
-            'postal_code' => 'required|string|max:10',
-            'city'        => 'required|string|max:100',
-            'state'       => 'required|string|max:100',
+            'postal_code' => ['required', 'string', 'regex:/^[0-9]{5}$/'],
+            'city'        => ['required', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
+            'state'       => ['required', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
             'email'       => 'required|email|unique:members,email',
-            'phone'       => 'required|string|max:30',
+            'phone'       => ['required', 'string', 'max:30', 'regex:/^[+\(\)\-\s0-9]+$/'],
         ];
     }
 
@@ -83,10 +87,10 @@ class MembershipForm extends Component
         ];
 
         if (in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag'])) {
-            $rules['kontoinhaber']  = 'required|string|max:255';
-            $rules['iban']          = 'required|string|max:34';
+            $rules['kontoinhaber']  = ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
+            $rules['iban']          = ['required', 'string', 'regex:/^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9]{11,30}$/'];
             $rules['bic']           = 'nullable|string|max:11';
-            $rules['kreditinstitut'] = 'nullable|string|max:255';
+            $rules['kreditinstitut'] = ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
         }
 
         return $rules;
@@ -100,14 +104,81 @@ class MembershipForm extends Component
         ];
     }
 
-    public function updatedPostalCode($value)
+    public function updatedPostalCode(string $value): void
     {
-        if (strlen($value) >= 5) {
-            $postalCode = \App\Models\PostalCode::where('plz', $value)->first();
-            if ($postalCode) {
-                $this->city = $postalCode->ort;
-                $this->state = $postalCode->bundesland;
+        $value = preg_replace('/[^0-9]/', '', $value);
+
+        if (strlen($value) >= 2) {
+            // Load all matches, then group by PLZ and pick the shortest ort
+            // (company names like "Sparkasse Münsterland Ost Hauptstelle Ahlen" are always longer than city names)
+            $all = \App\Models\PostalCode::where('plz', 'like', $value . '%')
+                ->orderBy('plz')
+                ->get(['plz', 'ort', 'bundesland']);
+
+            $grouped = [];
+            foreach ($all as $row) {
+                $plz = $row->plz;
+                if (!isset($grouped[$plz]) || mb_strlen($row->ort) < mb_strlen($grouped[$plz]['ort'])) {
+                    $grouped[$plz] = [
+                        'plz'        => $plz,
+                        'ort'        => $row->ort,
+                        'bundesland' => $row->bundesland,
+                    ];
+                }
             }
+
+            $this->plzSuggestions = array_values(array_slice($grouped, 0, 10));
+            $this->showPlzDropdown = count($this->plzSuggestions) > 0;
+        } else {
+            $this->plzSuggestions = [];
+            $this->showPlzDropdown = false;
+        }
+
+        // Auto-fill on exact 5-digit match
+        if (strlen($value) === 5) {
+            $all = \App\Models\PostalCode::where('plz', $value)->get(['ort', 'bundesland']);
+            if ($all->isNotEmpty()) {
+                // Pick shortest ort = most likely city name
+                $best = $all->sortBy(fn($r) => mb_strlen($r->ort))->first();
+                $this->city  = $best->ort;
+                $this->state = $best->bundesland;
+                $this->showPlzDropdown = false;
+                $this->plzSuggestions = [];
+            }
+        }
+    }
+
+    public function selectPlz(string $plz, string $ort, string $bundesland): void
+    {
+        $this->postal_code      = $plz;
+        $this->city             = $ort;
+        $this->state            = $bundesland;
+        $this->plzSuggestions   = [];
+        $this->showPlzDropdown  = false;
+
+        // Clear any validation errors that appeared while typing (partial PLZ)
+        $this->resetValidation(['postal_code', 'city', 'state']);
+    }
+
+    public function closePlzDropdown(): void
+    {
+        $this->showPlzDropdown = false;
+        $this->plzSuggestions  = [];
+        $this->resetValidation(['postal_code', 'city', 'state']);
+    }
+
+    public function updated($propertyName): void
+    {
+        $rules = match ($this->step) {
+            1 => $this->rulesStep1(),
+            2 => $this->rulesStep2(),
+            3 => $this->rulesStep3(),
+            4 => $this->rulesStep4(),
+            default => [],
+        };
+
+        if (array_key_exists($propertyName, $rules)) {
+            $this->validateOnly($propertyName, $rules);
         }
     }
 
@@ -121,6 +192,7 @@ class MembershipForm extends Component
         };
 
         $this->step++;
+        $this->resetValidation();
     }
 
     public function prevStep(): void
@@ -148,7 +220,7 @@ class MembershipForm extends Component
             'city'                 => $this->city,
             'state'                => $this->state,
             'email'                => $this->email,
-            'phone'                => $this->phone,
+            'phone'                => preg_replace('/[^\+0-9]/', '', $this->phone),
             'monatsbeitrag'        => $this->monatsbeitrag,
             'zahlungsart'          => $this->zahlungsart,
             'kontoinhaber'         => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? $this->kontoinhaber : null,

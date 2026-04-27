@@ -47,46 +47,56 @@
 
                 <div class="sm:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Vor- und Nachname *</label>
-                    <input wire:model="full_name" type="text" placeholder="Max Mustermann"
+                    <input wire:model.live="full_name" type="text" placeholder="Max Mustermann"
+                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('full_name') border-red-400 @enderror">
                     @error('full_name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Geburtsdatum *</label>
-                    <input wire:model="birth_date" type="date"
+                    <input wire:model.blur="birth_date" type="date"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('birth_date') border-red-400 @enderror">
                     @error('birth_date') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Geburtsort</label>
-                    <input wire:model="birth_place" type="text" placeholder="Berlin"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <input wire:model.live.debounce.500ms="birth_place" type="text" placeholder="Berlin"
+                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('birth_place') border-red-400 @enderror">
+                    @error('birth_place') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Staatsangehörigkeit</label>
-                    <input wire:model="staatsangehoerigkeit" type="text" placeholder="Deutsch"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <input wire:model.live.debounce.500ms="staatsangehoerigkeit" type="text" placeholder="Deutsch"
+                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('staatsangehoerigkeit') border-red-400 @enderror">
+                    @error('staatsangehoerigkeit') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Anzahl der Familienangehörigen</label>
-                    <input wire:model="familienangehoerige" type="number" min="1"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <input wire:model.blur="familienangehoerige" type="number" min="1"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('familienangehoerige') border-red-400 @enderror">
+                    @error('familienangehoerige') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Beruf</label>
-                    <input wire:model="beruf" type="text" placeholder="Ingenieur"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <input wire:model.live.debounce.500ms="beruf" type="text" placeholder="Ingenieur"
+                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('beruf') border-red-400 @enderror">
+                    @error('beruf') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Heimatstadt</label>
-                    <input wire:model="heimatstadt" type="text" placeholder="Ankara"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <input wire:model.live.debounce.500ms="heimatstadt" type="text" placeholder="Ankara"
+                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('heimatstadt') border-red-400 @enderror">
+                    @error('heimatstadt') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Cenaze Fonu --}}
@@ -107,7 +117,7 @@
                     @if ($cenaze_fonu)
                         <div class="mt-3">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Nr.</label>
-                            <input wire:model="cenaze_fonu_nr" type="text" placeholder="Nummer"
+                            <input wire:model.blur="cenaze_fonu_nr" type="text" placeholder="Nummer"
                                 class="w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
                         </div>
                     @endif
@@ -139,42 +149,75 @@
 
                 <div class="sm:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Straße und Hausnummer *</label>
-                    <input wire:model="street" type="text" placeholder="Musterstraße 1"
+                    <input wire:model.blur="street" type="text" placeholder="Musterstraße 1"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('street') border-red-400 @enderror">
                     @error('street') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
-                <div>
+                {{-- PLZ mit Autocomplete --}}
+                <div class="relative" x-data="{}" x-on:click.outside="$wire.closePlzDropdown()">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Postleitzahl *</label>
-                    <input wire:model.live.debounce.300ms="postal_code" type="text" placeholder="59229"
+                    <input wire:model.live.debounce.250ms="postal_code"
+                        type="text"
+                        placeholder="59229"
+                        inputmode="numeric"
+                        maxlength="5"
+                        autocomplete="off"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,5)"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('postal_code') border-red-400 @enderror">
                     @error('postal_code') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+
+                    {{-- Dropdown Suggestions --}}
+                    @if ($showPlzDropdown && count($plzSuggestions) > 0)
+                        <div style="position:absolute; z-index:9999; left:0; right:0; top:100%; margin-top:4px;
+                                    background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+                                    box-shadow:0 10px 25px rgba(0,0,0,.12);
+                                    max-height:220px; overflow-y:scroll;">
+                            <div style="padding:6px 12px 4px; font-size:11px; color:#9ca3af; border-bottom:1px solid #f3f4f6; font-weight:500;">
+                                {{ count($plzSuggestions) }} Ergebnisse
+                            </div>
+                            @foreach ($plzSuggestions as $s)
+                                <button
+                                    wire:click="selectPlz('{{ $s['plz'] }}', '{{ addslashes($s['ort']) }}', '{{ addslashes($s['bundesland']) }}')"
+                                    type="button"
+                                    style="display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+                                           padding:8px 12px; font-size:13px; border:none; background:transparent;
+                                           border-bottom:1px solid #f9fafb; cursor:pointer;"
+                                    onmouseover="this.style.background='#f0fdfa'"
+                                    onmouseout="this.style.background='transparent'">
+                                    <span style="font-family:monospace; font-weight:700; color:#0d9488; min-width:50px;">{{ $s['plz'] }}</span>
+                                    <span style="color:#1f2937; flex:1;">{{ $s['ort'] }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Ort *</label>
-                    <input wire:model="city" type="text" placeholder="Ahlen"
+                    <input wire:model.blur="city" type="text" placeholder="Ahlen"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('city') border-red-400 @enderror">
                     @error('city') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Bundesland *</label>
-                    <input wire:model="state" type="text" placeholder="Nordrhein-Westfalen"
+                    <input wire:model.blur="state" type="text" placeholder="Nordrhein-Westfalen"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('state') border-red-400 @enderror">
                     @error('state') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail *</label>
-                    <input wire:model="email" type="email" placeholder="name@beispiel.de"
+                    <input wire:model.blur="email" type="email" placeholder="name@beispiel.de"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('email') border-red-400 @enderror">
                     @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
-                    <input wire:model="phone" type="tel" placeholder="+49 2382 ..."
+                    <input wire:model.blur="phone" type="tel" placeholder="+49 2382 ..."
+                        oninput="this.value = this.value.replace(/[a-zA-ZäöüÄÖÜа-яА-Я]/g, '')"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('phone') border-red-400 @enderror">
                     @error('phone') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -188,7 +231,8 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Monatlicher Mitgliedsbeitrag (€) *</label>
-                    <input wire:model="monatsbeitrag" type="number" min="25" step="0.01"
+                    <input wire:model.blur="monatsbeitrag" type="number" min="25" step="0.01"
+                        x-on:input="if(parseFloat(this.value) < 25 && this.value !== '') this.setCustomValidity('Mindestbetrag 25 €'); else this.setCustomValidity('');"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('monatsbeitrag') border-red-400 @enderror">
                     <p class="text-xs text-gray-400 mt-1">Mindestbetrag: 25,00 €</p>
                     @error('monatsbeitrag') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -213,27 +257,27 @@
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Kontoinhaber *</label>
-                                    <input wire:model="kontoinhaber" type="text" placeholder="Max Mustermann"
+                                    <input wire:model.blur="kontoinhaber" type="text" placeholder="Max Mustermann"
                                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('kontoinhaber') border-red-400 @enderror">
                                     @error('kontoinhaber') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Kreditinstitut</label>
-                                    <input wire:model="kreditinstitut" type="text" placeholder="Deutsche Bank"
+                                    <input wire:model.blur="kreditinstitut" type="text" placeholder="Deutsche Bank"
                                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
                                 </div>
 
                                 <div class="sm:col-span-2">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">IBAN *</label>
-                                    <input wire:model="iban" type="text" placeholder="DE00 0000 0000 0000 0000 00"
+                                    <input wire:model.blur="iban" type="text" placeholder="DE00 0000 0000 0000 0000 00"
                                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 @error('iban') border-red-400 @enderror">
                                     @error('iban') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">BIC</label>
-                                    <input wire:model="bic" type="text" placeholder="DEUTDEDB"
+                                    <input wire:model.blur="bic" type="text" placeholder="DEUTDEDB"
                                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500">
                                 </div>
                             </div>
@@ -323,7 +367,7 @@
             <div class="space-y-3 mb-6">
                 @if (in_array($zahlungsart, ['lastschrift', 'dauerauftrag']))
                     <label class="flex items-start gap-3 cursor-pointer">
-                        <input wire:model="sepa_zustimmung" type="checkbox"
+                        <input wire:model.blur="sepa_zustimmung" type="checkbox"
                             class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded">
                         <span class="text-sm text-gray-700">
                             Ich erteile das <strong>SEPA-Lastschriftmandat</strong> und ermächtige DITIB Ahlen,
@@ -333,7 +377,7 @@
                 @endif
 
                 <label class="flex items-start gap-3 cursor-pointer">
-                    <input wire:model="dsgvo_zustimmung" type="checkbox"
+                    <input wire:model.blur="dsgvo_zustimmung" type="checkbox"
                         class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('dsgvo_zustimmung') border-red-400 @enderror">
                     <span class="text-sm text-gray-700">
                         Ich habe die <strong>Datenschutzerklärung</strong> gelesen und stimme der
