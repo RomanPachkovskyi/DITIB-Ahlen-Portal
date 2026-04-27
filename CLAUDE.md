@@ -1,88 +1,155 @@
-# AI Agent Instructions — DITIB-Ahlen-Portal
+# CLAUDE.md — AI Agent Instructions
+## DITIB-Ahlen-Portal
+
+> **Цей файл читається автоматично кожним AI агентом при відкритті проекту.**
+> Тут — операційні правила, команди, середовище.
+
+---
+
+## Три документи проекту
+
+| Файл | Призначення | Коли читати |
+|------|-------------|-------------|
+| **`CLAUDE.md`** ← ти тут | Правила для агентів, команди, середовище | Завжди, першим |
+| **`PROJECT.md`** | Архітектура, стек, функціональність, деплой | Перед початком роботи над кодом |
+| **`CHANGELOG.md`** | Хронологія всіх змін з підписами агентів | Перед змінами і після |
+
+**Обов'язковий порядок для нового агента:**
+1. Прочитай `CLAUDE.md` (цей файл) — правила і середовище
+2. Прочитай `PROJECT.md` — що вже збудовано і як
+3. Прочитай `CHANGELOG.md` — що змінювалось останнім часом
+4. Тільки потім починай роботу
+
+---
 
 ## Проект
-Laravel 13 + Filament v5 портал для членів ісламської громади DITIB Ahlen.
-Детальна документація: `PROJECT.md`
+
+Laravel 13 + Filament v5 портал членів громади DITIB Ahlen.
+Пов'язаний з лендінгом [ditib-ahlen-projekte.de](https://ditib-ahlen-projekte.de).
+Детальна архітектура → `PROJECT.md`
+
+---
 
 ## Порти (фіксовано — не змінювати)
 
-| Порт | Проект | Як запускається |
-|------|--------|-----------------|
-| **8080** | Лендінг (`main/`) | Docker (`docker-compose up`) |
-| **8000** | Портал (`portal/`) | `php artisan serve --port=8000` |
+| Порт | Проект | Запуск |
+|------|--------|--------|
+| **8080** | Лендінг `main/` | Docker |
+| **8000** | Портал `portal/` | `php artisan serve --port=8000` |
 
-Проекти працюють паралельно без конфліктів.
+---
 
 ## Середовище
 
 | | Local | Production |
 |--|-------|------------|
-| URL | http://localhost:8000 | https://mitglied.ditib-ahlen-projekte.de |
+| Форма | http://localhost:8000 | https://mitglied.ditib-ahlen-projekte.de |
 | Admin | http://localhost:8000/admin | https://mitglied.ditib-ahlen-projekte.de/admin |
+| Konto | http://localhost:8000/konto | https://mitglied.ditib-ahlen-projekte.de/konto |
 | DB | SQLite (`database/database.sqlite`) | MySQL (Plesk) |
 | PHP | 8.5 (Homebrew, не Docker) | 8.2+ |
 
+---
+
 ## Запуск локально
+
 ```bash
 cd ~/Project/DITIB-Ahlen/portal
 php artisan serve --port=8000
 ```
 
-## Ключові команди
+**Після клонування (перший раз):**
 ```bash
-php artisan migrate                    # застосувати міграції
-php artisan migrate:rollback           # відкотити останню міграцію
-php artisan make:migration <name>      # нова міграція (ТІЛЬКИ ТАК)
-php artisan make:model <Name> -m       # модель + міграція
-php artisan make:filament-resource <Name>  # Filament ресурс
-php artisan config:clear && php artisan cache:clear  # скинути кеш
+composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate
+php artisan make:filament-user
+php artisan serve --port=8000
 ```
+
+---
+
+## Ключові команди
+
+```bash
+php artisan migrate                        # застосувати міграції
+php artisan migrate:rollback               # відкотити останню міграцію
+php artisan make:migration <name>          # нова міграція (ТІЛЬКИ ТАК)
+php artisan make:model <Name> -m           # модель + міграція
+php artisan make:filament-resource <Name>  # Filament ресурс
+php artisan config:clear                   # скинути кеш конфігу
+php artisan cache:clear                    # скинути кеш
+```
+
+---
 
 ## Структура проекту
+
 ```
 app/
-├── Models/          ← Eloquent моделі
-├── Providers/
-│   └── Filament/
-│       ├── AdminPanelProvider.php   ← /admin
-│       └── MemberPanelProvider.php  ← /konto (кабінет члена)
-resources/views/     ← Blade шаблони (публічна форма)
-database/migrations/ ← всі міграції
+├── Livewire/
+│   └── MembershipForm.php          ← публічна форма (3 кроки)
+├── Models/
+│   ├── Member.php                   ← encrypted: iban, bic
+│   └── ChangeRequest.php
+├── Filament/Resources/Members/     ← адмін ресурс
+└── Providers/Filament/
+    ├── AdminPanelProvider.php       ← /admin
+    └── MemberPanelProvider.php      ← /konto
+resources/views/
+├── livewire/membership-form.blade.php
+└── layouts/public.blade.php
+database/migrations/
 ```
 
-## CHANGELOG — обов'язково для кожного агента
+---
 
-**Після будь-яких змін у проекті** — додати запис у `CHANGELOG.md`.
+## CHANGELOG — обов'язково після кожної сесії
 
-### Формат
+**Файл:** `CHANGELOG.md`
+
+Після будь-яких змін — додати запис у кінець файлу:
 ```
 ### [YYYY-MM-DD HH:MM] Короткий опис — AgentName
 - що зроблено / змінено / виправлено
 ```
 
-### Правила
-- Дата і час — реальні, не приблизні
-- AgentName — назва агента: `Claude Code`, `Codex`, `Gemini`
-- Один запис на сесію роботи (не на кожен файл)
-- Хронологія — від старих до нових (нові додаються знизу)
+**Правила changelog:**
+- Дата і час — реальні
+- AgentName: `Claude Code`, `Codex`, `Gemini`
+- Один запис на сесію роботи
+- Нові записи — завжди знизу
 - Не редагувати чужі записи
+
+---
 
 ## Обов'язкові правила
 
-1. **CHANGELOG.md** — оновлювати після кожної сесії змін
-2. **Ніколи не комітити `.env`** — тільки `.env.example`
-3. **Міграції** — тільки через `php artisan make:migration`
-4. **IBAN і BIC** — обов'язково `'encrypted'` cast у моделі
-5. **Commit повідомлення** — англійська, коротко (`feat:`, `fix:`, `docs:`)
-6. **Гілка** — завжди `main` для цього репо
-7. **Не чіпати** `~/Project/DITIB-Ahlen/main/` — це інший проект (лендінг)
+1. **`CHANGELOG.md`** — оновлювати після кожної сесії
+2. **`PROJECT.md`** — оновлювати статус і архітектуру при великих змінах
+3. **`.env`** — ніколи не комітити, тільки `.env.example`
+4. **Міграції** — тільки через `php artisan make:migration`
+5. **IBAN і BIC** — обов'язково `'encrypted'` cast у моделі (DSGVO)
+6. **Commit** — англійська, коротко: `feat:`, `fix:`, `docs:`, `chore:`
+7. **Гілка** — завжди `main` для цього репо
+8. **Не чіпати** `~/Project/DITIB-Ahlen/main/` — інший проект
+9. **Filament v5** — `Section` → `Filament\Schemas\Components\Section` (не Forms)
+
+---
 
 ## Безпека (DSGVO)
-- IBAN, BIC — зашифровані в БД (`encrypted` cast)
+
+- IBAN, BIC — `'encrypted'` cast → зашифровані в БД
+- `$hidden` у моделі не використовувати для IBAN/BIC — блокує Filament
 - Члени бачать тільки свої дані (Filament Panel ізоляція)
 - `.env` з `APP_KEY` — ніколи в git
 
+---
+
 ## Git
+
 ```bash
 # Репозиторій
 git@github.com:RomanPachkovskyi/DITIB-Ahlen-Portal.git
