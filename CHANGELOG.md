@@ -166,4 +166,41 @@
 
 ---
 
+### [2026-04-27–28] Валідація форм + PLZ-автодоповнення з dropdown — Claude Sonnet
+
+#### Виправлення валідації (публічна форма реєстрації)
+- **`MembershipForm.php`** — метод `updated()` виправлено: тепер перевіряє лише правила **поточного кроку** (`match($this->step)` замість злиття всіх 4 кроків), що усуває хибні помилки
+- **Regex-валідація** додана до всіх текстових полів у `rulesStep1()`: `full_name`, `birth_place`, `staatsangehoerigkeit`, `beruf`, `heimatstadt` — regex `/^[\pL\s\-]+$/u` (тільки літери, пробіли, дефіс; цифри заборонені)
+- **`nextStep()`** тепер викликає `$this->resetValidation()` після переходу кроку — щоб старі помилки не показувалися на новому кроці
+- **`@error()` блоки** додані до раніше "сліпих" необов'язкових полів: `birth_place`, `staatsangehoerigkeit`, `beruf`, `heimatstadt` — тепер помилки фактично відображаються у браузері
+
+#### Фізичне блокування символів (браузерний рівень)
+- **Проблема**: `x-on:input` (Alpine.js) + `wire:model.blur` конфліктували — Livewire перезаписував DOM після blur-sync, скасовуючи Alpine-фільтрацію
+- **Рішення**: текстові поля з блокуванням перемкнуто на `wire:model.live.debounce.500ms`; `x-on:input` синхронізується до Livewire-стану відразу, тому фільтрація зберігається
+- **Адмін-форма (Filament)**: замінено `x-on:input` на нативний `oninput` у `->extraInputAttributes()` — незалежний від Alpine.js, завжди спрацьовує
+- Тепер фізично неможливо ввести:
+  - Цифри у `Postleitzahl` → `oninput` видаляє нецифрові символи, `maxlength=5`
+  - Літери у `Telefon` → `oninput` видаляє кирилицю, латиницю, умляути
+  - Цифри у текстових полях (ім'я, місто, берег тощо) → `x-on:input` + `wire:model.live`
+
+#### PLZ Autocomplete — повний dropdown-пошук
+- **`MembershipForm.php`**: новий стан `$plzSuggestions[]`, `$showPlzDropdown`; переписано `updatedPostalCode()`, додано методи `selectPlz()` і `closePlzDropdown()`
+- **Алгоритм**: групування по PLZ + вибір найкоротшого `ort` → усуває корпоративні назви ("Sparkasse Münsterland Ost Hauptstelle Ahlen" → "Ahlen")
+- **Dropdown-поведінка**: з'являється від 2 введених цифр, оновлюється з кожною новою, при виборі → заповнює PLZ + Ort + Bundesland, клік поза полем → закриває
+- **Після вибору**: `selectPlz()` викликає `$this->resetValidation(['postal_code', 'city', 'state'])` — зникають помилки що з'явились під час набору часткового PLZ
+- **Стиль**: dropdown на inline CSS (не Tailwind) щоб обійти можливий `overflow:hidden` батьківського контейнера; `overflow-y:scroll` з фіксованою висотою `220px`
+
+#### Заміна бази даних PLZ
+- **Стара база**: Deutsche Post PLZ-дані (23,297 записів) — містила Großkunde-PLZ (PLZ компаній: LR Health & Beauty Systems GmbH, IKK classic тощо)
+- **Нова база**: [openplzapi.org](https://openplzapi.org) — відкрите API на основі офіційних даних Destatis (Федеральне статистичне відомство)
+- **Нова команда**: `php artisan plz:import-openplz` → `app/Console/Commands/ImportPlzFromOpenPlz.php`
+- **Результат**: **50,451 записів**, 0 помилок, тільки реальні міста та громади (Gemeinden) — жодних компаній
+
+#### Адмін-форма (Filament MemberForm)
+- `->live(onBlur: true)` додано до всіх полів секцій `monatsbeitrag`, `kontoinhaber`, `iban`, `bic`, `kreditinstitut`
+- `->regex('/^[\pL\s\-]+$/u')` додано до `kontoinhaber`, `kreditinstitut`
+- `->minValue(25)` + `oninput` feedback для `monatsbeitrag`
+
+---
+
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*
