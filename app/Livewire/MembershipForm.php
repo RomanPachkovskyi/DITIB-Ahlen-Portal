@@ -43,8 +43,8 @@ class MembershipForm extends Component
     public string $bic = '';
     public string $kreditinstitut = '';
 
-    // Step 4 — Unterschrift & Zustimmung
-    public string $unterschrift = '';
+    // Step 3 (додатково) — Zustimmung
+    // public string $unterschrift = ''; // TODO: Etap 4 — Unterschrift & Foto
     public bool $sepa_zustimmung = false;
     public bool $dsgvo_zustimmung = false;
 
@@ -84,26 +84,20 @@ class MembershipForm extends Component
     protected function rulesStep3(): array
     {
         $rules = [
-            'monatsbeitrag' => 'required|numeric|min:25',
-            'zahlungsart'   => 'required|in:barzahlung,lastschrift,dauerauftrag',
+            'monatsbeitrag'    => 'required|numeric|min:25',
+            'zahlungsart'      => 'required|in:barzahlung,lastschrift,dauerauftrag',
+            'dsgvo_zustimmung' => 'accepted',
         ];
 
         if (in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag'])) {
-            $rules['kontoinhaber']  = ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
-            $rules['iban']          = ['required', 'string', 'regex:/^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9]{11,30}$/'];
-            $rules['bic']           = 'nullable|string|max:11';
-            $rules['kreditinstitut'] = ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
+            $rules['sepa_zustimmung'] = 'accepted';
+            $rules['kontoinhaber']    = ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
+            $rules['iban']            = ['required', 'string', 'regex:/^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9]{11,30}$/'];
+            $rules['bic']             = 'nullable|string|max:11';
+            $rules['kreditinstitut']  = ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
         }
 
         return $rules;
-    }
-
-    protected function rulesStep4(): array
-    {
-        return [
-            'unterschrift'     => 'required|string',
-            'dsgvo_zustimmung' => 'accepted',
-        ];
     }
 
     public function updatedPostalCode(string $value): void
@@ -175,7 +169,6 @@ class MembershipForm extends Component
             1 => $this->rulesStep1(),
             2 => $this->rulesStep2(),
             3 => $this->rulesStep3(),
-            4 => $this->rulesStep4(),
             default => [],
         };
 
@@ -189,11 +182,10 @@ class MembershipForm extends Component
         match ($this->step) {
             1 => $this->validate($this->rulesStep1()),
             2 => $this->validate($this->rulesStep2()),
-            3 => $this->validate($this->rulesStep3()),
             default => null,
         };
 
-        $this->step++;
+        $this->step = min(3, $this->step + 1);
         $this->resetValidation();
     }
 
@@ -204,7 +196,7 @@ class MembershipForm extends Component
 
     public function submit(): void
     {
-        $this->validate($this->rulesStep4());
+        $this->validate($this->rulesStep3());
 
         $member = Member::create([
             'anrede'               => $this->anrede,
@@ -230,7 +222,7 @@ class MembershipForm extends Component
             'iban'                 => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? $this->iban : null,
             'bic'                  => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? ($this->bic ?: null) : null,
             'kreditinstitut'       => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? ($this->kreditinstitut ?: null) : null,
-            'unterschrift'         => $this->unterschrift,
+            'unterschrift'         => '', // TODO: Etap 4 — canvas підпис
             'sepa_zustimmung'      => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? true : false,
             'dsgvo_zustimmung'     => $this->dsgvo_zustimmung,
             'zustimmung_at'        => now(),

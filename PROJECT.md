@@ -61,8 +61,8 @@
 - 4-крокова форма Mitgliedsantrag (тільки DE, TR — Етап 4)
 - Крок 1: Persönliche Daten (ПІБ, народження, громадянство, сім'я, Cenaze Fonu, Gemeinderegister, берuf, Heimatstadt)
 - Крок 2: Adresse & Kontakt
-- Крок 3: Beitrag & Zahlungsweise (мін. €25, умовні SEPA-поля)
-- Крок 4: Unterschrift (canvas) + DSGVO Zustimmung
+- Крок 3: Beitrag & Zahlungsweise (мін. €25, умовні SEPA-поля, SEPA-згода, DSGVO-згода)
+- ~~Крок 4: Unterschrift~~ → перенесено в Етап 4 разом із фото профілю
 - Після відправки → сторінка підтвердження з member_number, статус `pending`
 
 ### Кабінет члена (`/konto`) — Filament MemberPanel
@@ -203,18 +203,20 @@ MAIL_HOST=...
 
 ### Етап 2 ✅ ВИКОНАНО
 - [x] Автовизначення PLZ → місто і федеральна земля (OpenPLZ API)
-- [ ] Фото профілю (FilePond + Image Crop 1:1)
 - [x] Email клієнту після відправки форми (через Queue)
 - [x] Email адміну про нову заявку
 
 ### Етап 3 ✅ ВИКОНАНО
 - [x] Dashboard адмінки зі статистикою (widgets)
 - [x] Іконки навігації + логотип DITIB в адмінці
+- [x] Email клієнту при підтвердженні реєстрації (Event + Job)
+- [x] DSGVO-згода та SEPA-згода перенесені на Крок 3 форми
 - [ ] spatie/laravel-settings — сторінка налаштувань (підпис, печатка)
 - [ ] PDF підтвердження членства (Base64 для зображень)
-- [x] Email клієнту при підтвердженні реєстрації (Event + Job)
 
 ### Етап 4 🔲
+- [ ] Фото профілю (FilePond + Image Crop 1:1)
+- [ ] Unterschrift canvas у формі реєстрації (Крок 4)
 - [ ] Кабінет члена — перегляд даних, Änderungsantrag
 - [ ] Двомовність (DE + TR): Middleware SetLocale, lang/de.json, lang/tr.json
 - [ ] Деплой на Plesk налаштований

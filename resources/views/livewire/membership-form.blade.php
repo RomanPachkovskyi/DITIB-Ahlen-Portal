@@ -28,10 +28,10 @@
             
             {{-- Connecting Line (Progress) --}}
             <div class="absolute top-5 left-0 h-1 bg-teal-600 rounded-full transition-all duration-500 ease-in-out" 
-                 style="width: {{ ($step - 1) / 3 * 100 }}%"></div>
+            style="width: {{ ($step - 1) / 2 * 100 }}%"></div>
 
             <nav class="relative flex justify-between items-start">
-                @foreach ([1 => 'Persönliche Daten', 2 => 'Adresse & Kontakt', 3 => 'Beitrag & Zahlung', 4 => 'Unterschrift'] as $n => $label)
+                @foreach ([1 => 'Persönliche Daten', 2 => 'Adresse & Kontakt', 3 => 'Beitrag & Zahlung'] as $n => $label)
                     <div class="flex flex-col items-center group flex-1">
                         {{-- Circle --}}
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold z-10 transition-all duration-300 shadow-sm
@@ -50,7 +50,7 @@
                             <span class="block text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wider transition-colors duration-300
                                 {{ $step >= $n ? 'text-teal-800' : 'text-gray-400' }}">
                                 @php
-                                    $mobileLabels = [1 => 'Daten', 2 => 'Kontakt', 3 => 'Zahlung', 4 => 'Sign'];
+                                    $mobileLabels = [1 => 'Daten', 2 => 'Kontakt', 3 => 'Zahlung'];
                                 @endphp
                                 <span class="hidden sm:inline">{{ $label }}</span>
                                 <span class="sm:hidden">{{ $mobileLabels[$n] }}</span>
@@ -320,109 +320,40 @@
                         </div>
                     </div>
                 @endif
-            </div>
-        @endif
 
-        {{-- STEP 4: Unterschrift & Zustimmung --}}
-        @if ($step === 4)
-            <h2 class="text-lg font-semibold text-gray-800 mb-5">Unterschrift & Zustimmung</h2>
+                {{-- Zustimmung --}}
+                <div class="sm:col-span-2 space-y-3 mt-2">
+                    @if (in_array($zahlungsart, ['lastschrift', 'dauerauftrag']))
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input wire:model.blur="sepa_zustimmung" type="checkbox"
+                                class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('sepa_zustimmung') border-red-400 @enderror">
+                            <span class="text-sm text-gray-700">
+                                Ich erteile das <strong>SEPA-Lastschriftmandat</strong> und ermächtige DITIB Ahlen,
+                                den monatlichen Mitgliedsbeitrag von meinem Konto einzuziehen.
+                            </span>
+                        </label>
+                        @error('sepa_zustimmung') <p class="text-red-500 text-xs ml-7">{{ $message }}</p> @enderror
+                    @endif
 
-            <div class="mb-5"
-                x-data="{
-                    drawing: false,
-                    hasDrawn: false,
-                    ctx: null,
-                    init() {
-                        this.$nextTick(() => {
-                            const canvas = this.$refs.canvas;
-                            const rect = canvas.getBoundingClientRect();
-                            canvas.width = Math.floor(rect.width);
-                            canvas.height = 160;
-                            this.ctx = canvas.getContext('2d');
-                            this.ctx.strokeStyle = '#1e293b';
-                            this.ctx.lineWidth = 2;
-                            this.ctx.lineCap = 'round';
-                            this.ctx.lineJoin = 'round';
-                        });
-                    },
-                    getPos(e) {
-                        const rect = this.$refs.canvas.getBoundingClientRect();
-                        const src = e.touches ? e.touches[0] : e;
-                        return { x: src.clientX - rect.left, y: src.clientY - rect.top };
-                    },
-                    start(e) {
-                        this.drawing = true;
-                        this.ctx.beginPath();
-                        const p = this.getPos(e);
-                        this.ctx.moveTo(p.x, p.y);
-                    },
-                    move(e) {
-                        if (!this.drawing) return;
-                        const p = this.getPos(e);
-                        this.ctx.lineTo(p.x, p.y);
-                        this.ctx.stroke();
-                        this.hasDrawn = true;
-                    },
-                    stop() {
-                        if (!this.drawing) return;
-                        this.drawing = false;
-                        if (this.hasDrawn) {
-                            const dataURL = this.$refs.canvas.toDataURL('image/png');
-                            $wire.set('unterschrift', dataURL);
-                        }
-                    },
-                    clear() {
-                        this.ctx.clearRect(0, 0, this.$refs.canvas.width, this.$refs.canvas.height);
-                        this.hasDrawn = false;
-                        $wire.set('unterschrift', '');
-                    }
-                }"
-                x-init="init()">
-
-                <label class="block text-sm font-medium text-gray-700 mb-2">Unterschrift *</label>
-                <div class="border-2 border-gray-300 rounded-lg bg-white cursor-crosshair @error('unterschrift') border-red-400 @enderror">
-                    <canvas
-                        x-ref="canvas"
-                        @mousedown="start($event)"
-                        @mousemove="move($event)"
-                        @mouseup="stop()"
-                        @mouseleave="stop()"
-                        @touchstart.prevent="start($event)"
-                        @touchmove.prevent="move($event)"
-                        @touchend="stop()"
-                        style="display:block; touch-action:none;">
-                    </canvas>
-                </div>
-                <div class="flex justify-between items-center mt-1">
-                    <p class="text-xs text-gray-400">Zeichnen Sie Ihre Unterschrift oben</p>
-                    <button type="button" @click="clear()" class="text-xs text-red-400 hover:text-red-600">Löschen</button>
-                </div>
-                @error('unterschrift') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div class="space-y-3 mb-6">
-                @if (in_array($zahlungsart, ['lastschrift', 'dauerauftrag']))
                     <label class="flex items-start gap-3 cursor-pointer">
-                        <input wire:model.blur="sepa_zustimmung" type="checkbox"
-                            class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded">
+                        <input wire:model.blur="dsgvo_zustimmung" type="checkbox"
+                            class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('dsgvo_zustimmung') border-red-400 @enderror">
                         <span class="text-sm text-gray-700">
-                            Ich erteile das <strong>SEPA-Lastschriftmandat</strong> und ermächtige DITIB Ahlen,
-                            den monatlichen Mitgliedsbeitrag von meinem Konto einzuziehen.
+                            Ich habe die <strong>Datenschutzerklärung</strong> gelesen und stimme der
+                            Verarbeitung meiner Daten gemäß DSGVO zu. *
                         </span>
                     </label>
-                @endif
-
-                <label class="flex items-start gap-3 cursor-pointer">
-                    <input wire:model.blur="dsgvo_zustimmung" type="checkbox"
-                        class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('dsgvo_zustimmung') border-red-400 @enderror">
-                    <span class="text-sm text-gray-700">
-                        Ich habe die <strong>Datenschutzerklärung</strong> gelesen und stimme der
-                        Verarbeitung meiner Daten gemäß DSGVO zu. *
-                    </span>
-                </label>
-                @error('dsgvo_zustimmung') <p class="text-red-500 text-xs ml-7">{{ $message }}</p> @enderror
+                    @error('dsgvo_zustimmung') <p class="text-red-500 text-xs ml-7">{{ $message }}</p> @enderror
+                </div>
             </div>
         @endif
+
+        {{-- STEP 4 (Etap 4 — ausgeblendet): Unterschrift & Foto
+        @if ($step === 4)
+            <h2 class="text-lg font-semibold text-gray-800 mb-5">Unterschrift & Zustimmung</h2>
+            ... canvas Unterschrift ...
+        @endif
+        --}}
 
         {{-- Navigation --}}
         <div class="flex justify-between items-center mt-6 pt-5 border-t border-gray-100">
@@ -435,7 +366,7 @@
                 <div></div>
             @endif
 
-            @if ($step < 4)
+            @if ($step < 3)
                 <button wire:click="nextStep" type="button"
                     class="px-6 py-2 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700">
                     Weiter →
