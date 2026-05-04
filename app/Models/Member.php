@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Member extends Model
 {
     protected $fillable = [
+        'anrede',
         'member_number',
         'full_name',
         'street',

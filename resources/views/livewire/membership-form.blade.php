@@ -69,12 +69,24 @@
             <h2 class="text-lg font-semibold text-gray-800 mb-5">Persönliche Daten</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                <div class="sm:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Vor- und Nachname *</label>
-                    <input wire:model.live="full_name" type="text" placeholder="Max Mustermann"
-                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('full_name') border-red-400 @enderror">
-                    @error('full_name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                <div class="sm:col-span-2 flex flex-col sm:flex-row gap-4">
+                    <div class="w-full sm:w-1/5">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Anrede *</label>
+                        <select wire:model.blur="anrede" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('anrede') border-red-400 @enderror">
+                            <option value="">Wählen...</option>
+                            <option value="Frau">Frau</option>
+                            <option value="Herr">Herr</option>
+                        </select>
+                        @error('anrede') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="w-full sm:w-4/5">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Vor- und Nachname *</label>
+                        <input wire:model.live="full_name" type="text" placeholder="Max Mustermann"
+                            x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('full_name') border-red-400 @enderror">
+                        @error('full_name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
                 </div>
 
                 <div>

@@ -28,13 +28,19 @@ class MemberForm
                             ->extraAttributes(['class' => 'text-right text-gray-500 text-sm font-semibold tracking-wider'])
                             ->columnSpanFull()
                             ->visible(fn ($record) => $record !== null),
+                        Select::make('anrede')
+                            ->label('Anrede')
+                            ->options([
+                                'Frau' => 'Frau',
+                                'Herr' => 'Herr',
+                            ])
+                            ->required(),
                         TextInput::make('full_name')
                             ->label('Vor- und Nachname')
                             ->required()
                             ->regex('/^[\pL\s\-]+$/u')
                             ->validationMessages(['regex' => 'Der Name darf тільки літери та пробіли.'])
-                            ->live(onBlur: true)
-                            ->columnSpanFull(),
+                            ->live(onBlur: true),
                         DatePicker::make('birth_date')
                             ->label('Geburtsdatum')
                             ->required()

@@ -11,6 +11,7 @@ class MembershipForm extends Component
     public int $step = 1;
 
     // Step 1 — Persönliche Daten
+    public string $anrede = '';
     public string $full_name = '';
     public string $birth_date = '';
     public string $birth_place = '';
@@ -53,6 +54,7 @@ class MembershipForm extends Component
     protected function rulesStep1(): array
     {
         return [
+            'anrede'               => 'required|in:Frau,Herr',
             'full_name'            => ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
             'birth_date'           => ['required', 'date', 'before:today', function ($attr, $value, $fail) {
                 if (Carbon::parse($value)->age < 16) {
@@ -205,6 +207,7 @@ class MembershipForm extends Component
         $this->validate($this->rulesStep4());
 
         $member = Member::create([
+            'anrede'               => $this->anrede,
             'full_name'            => $this->full_name,
             'birth_date'           => $this->birth_date,
             'birth_place'          => $this->birth_place ?: null,
