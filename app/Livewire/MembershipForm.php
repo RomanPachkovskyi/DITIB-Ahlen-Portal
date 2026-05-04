@@ -236,6 +236,8 @@ class MembershipForm extends Component
 
         $this->member_number = $member->member_number;
         $this->submitted = true;
+
+        \App\Events\MemberRegistered::dispatch($member);
     }
 
     public function render()

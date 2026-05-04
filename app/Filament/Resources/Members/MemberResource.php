@@ -18,6 +18,8 @@ class MemberResource extends Resource
 {
     protected static ?string $model = Member::class;
 
+    protected static ?string $recordTitleAttribute = 'full_name';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
     protected static ?string $navigationLabel = 'Mitglieder';

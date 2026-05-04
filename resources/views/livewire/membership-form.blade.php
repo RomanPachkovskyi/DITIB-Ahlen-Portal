@@ -18,23 +18,47 @@
     </div>
 @else
     {{-- Fortschrittsanzeige --}}
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-900 mb-1">Mitgliedsantrag</h1>
-        <p class="text-gray-500 text-sm">DİTİB Türkisch-Islamische Gemeinde zu Ahlen e. V. / Ahlen Ulu Camii</p>
+    <div class="mb-10">
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-2 text-center sm:text-left tracking-tight">Mitgliedsantrag</h1>
+        <p class="text-gray-500 text-sm text-center sm:text-left font-medium">DITIB - Türkisch Islamische Gemeinde zu Ahlen e.V.</p>
 
-        <div class="flex items-center mt-6 gap-1">
-            @foreach ([1 => 'Persönliche Daten', 2 => 'Adresse & Kontakt', 3 => 'Beitrag & Zahlung', 4 => 'Unterschrift'] as $n => $label)
-                <div class="flex items-center gap-1 {{ $loop->last ? '' : 'flex-1' }}">
-                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0
-                        {{ $step > $n ? 'bg-teal-600 text-white' : ($step === $n ? 'bg-teal-600 text-white ring-4 ring-teal-100' : 'bg-gray-200 text-gray-500') }}">
-                        {{ $step > $n ? '✓' : $n }}
+        <div class="mt-10 relative">
+            {{-- Connecting Line (Background) --}}
+            <div class="absolute top-5 left-0 w-full h-1 bg-gray-100 rounded-full" aria-hidden="true"></div>
+            
+            {{-- Connecting Line (Progress) --}}
+            <div class="absolute top-5 left-0 h-1 bg-teal-600 rounded-full transition-all duration-500 ease-in-out" 
+                 style="width: {{ ($step - 1) / 3 * 100 }}%"></div>
+
+            <nav class="relative flex justify-between items-start">
+                @foreach ([1 => 'Persönliche Daten', 2 => 'Adresse & Kontakt', 3 => 'Beitrag & Zahlung', 4 => 'Unterschrift'] as $n => $label)
+                    <div class="flex flex-col items-center group flex-1">
+                        {{-- Circle --}}
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold z-10 transition-all duration-300 shadow-sm
+                            {{ $step > $n ? 'bg-teal-600 text-white' : ($step === $n ? 'bg-teal-600 text-white ring-4 ring-teal-100' : 'bg-white border-2 border-gray-200 text-gray-400') }}">
+                            @if ($step > $n)
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            @else
+                                {{ $n }}
+                            @endif
+                        </div>
+                        
+                        {{-- Label --}}
+                        <div class="mt-3 text-center px-1">
+                            <span class="block text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wider transition-colors duration-300
+                                {{ $step >= $n ? 'text-teal-800' : 'text-gray-400' }}">
+                                @php
+                                    $mobileLabels = [1 => 'Daten', 2 => 'Kontakt', 3 => 'Zahlung', 4 => 'Sign'];
+                                @endphp
+                                <span class="hidden sm:inline">{{ $label }}</span>
+                                <span class="sm:hidden">{{ $mobileLabels[$n] }}</span>
+                            </span>
+                        </div>
                     </div>
-                    <span class="text-xs {{ $step === $n ? 'text-teal-700 font-semibold' : 'text-gray-400' }} hidden sm:inline whitespace-nowrap">{{ $label }}</span>
-                    @if (!$loop->last)
-                        <div class="flex-1 h-px {{ $step > $n ? 'bg-teal-400' : 'bg-gray-200' }} mx-1"></div>
-                    @endif
-                </div>
-            @endforeach
+                @endforeach
+            </nav>
         </div>
     </div>
 

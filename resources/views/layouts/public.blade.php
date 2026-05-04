@@ -6,16 +6,18 @@
     <title>Mitgliedsantrag — DITIB Ahlen</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
 </head>
 <body class="bg-gray-50 min-h-screen">
 
-    <header class="bg-white border-b border-gray-200">
-        <div class="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-            <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm">D</div>
-            <div>
-                <div class="font-semibold text-gray-900 text-sm">DITIB Ahlen</div>
-                <div class="text-xs text-gray-500">Islamische Gemeinschaft</div>
-            </div>
+    <header class="py-8">
+        <div class="max-w-3xl mx-auto px-4 flex flex-col items-center text-center">
+            <img src="{{ asset('images/ditib_ahlen_logo.png') }}" alt="DITIB Ahlen Logo" class="w-32 h-auto mb-3">
+            <div class="font-bold text-gray-900 text-lg tracking-wide">DITIB Ahlen</div>
         </div>
     </header>
 
