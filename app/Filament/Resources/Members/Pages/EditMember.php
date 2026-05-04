@@ -12,7 +12,7 @@ class EditMember extends EditRecord
 
     public function getBreadcrumb(): string
     {
-        return $this->record->full_name;
+        return __('Bearbeiten');
     }
 
     public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
@@ -34,7 +34,9 @@ class EditMember extends EditRecord
 
     protected function getCancelFormAction(): \Filament\Actions\Action
     {
-        return parent::getCancelFormAction()->label('Abbrechen');
+        return parent::getCancelFormAction()
+            ->label('Abbrechen')
+            ->url($this->getResource()::getUrl('view', ['record' => $this->record]));
     }
 
     protected function getRedirectUrl(): string

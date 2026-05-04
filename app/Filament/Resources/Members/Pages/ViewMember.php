@@ -12,7 +12,7 @@ class ViewMember extends ViewRecord
 
     public function getBreadcrumb(): string
     {
-        return $this->record->full_name;
+        return __('Vorschau');
     }
 
     public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
