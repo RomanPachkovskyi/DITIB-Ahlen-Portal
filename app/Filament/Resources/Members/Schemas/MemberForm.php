@@ -28,19 +28,25 @@ class MemberForm
                             ->extraAttributes(['class' => 'text-right text-gray-500 text-sm font-semibold tracking-wider'])
                             ->columnSpanFull()
                             ->visible(fn ($record) => $record !== null),
+                        TextInput::make('full_name')
+                            ->label('Vor- und Nachname')
+                            ->required()
+                            ->maxLength(255)
+                            ->regex('/^[\pL\s\-]+$/u')
+                            ->columnSpan([
+                                'default' => 2,
+                                'sm' => 1,
+                            ])
+                            ->validationMessages(['regex' => 'Der Name darf тільки літери та пробіли.'])
+                            ->live(onBlur: true),
                         Select::make('anrede')
                             ->label('Anrede')
                             ->options([
                                 'Frau' => 'Frau',
                                 'Herr' => 'Herr',
                             ])
-                            ->required(),
-                        TextInput::make('full_name')
-                            ->label('Vor- und Nachname')
                             ->required()
-                            ->regex('/^[\pL\s\-]+$/u')
-                            ->validationMessages(['regex' => 'Der Name darf тільки літери та пробіли.'])
-                            ->live(onBlur: true),
+                            ->columnSpan(1),
                         DatePicker::make('birth_date')
                             ->label('Geburtsdatum')
                             ->required()
