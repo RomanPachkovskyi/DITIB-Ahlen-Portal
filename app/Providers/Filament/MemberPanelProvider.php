@@ -9,6 +9,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\View\PanelsRenderHook;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
@@ -34,6 +35,10 @@ class MemberPanelProvider extends PanelProvider
             ->brandLogo(asset('images/ditib_ahlen_logo.png'))
             ->brandLogoHeight('3rem')
             ->favicon(asset('favicon.svg'))
+            ->renderHook(
+                PanelsRenderHook::FOOTER,
+                fn () => view('filament.footer'),
+            )
             ->discoverResources(in: app_path('Filament/Member/Resources'), for: 'App\Filament\Member\Resources')
             ->discoverPages(in: app_path('Filament/Member/Pages'), for: 'App\Filament\Member\Pages')
             ->pages([
