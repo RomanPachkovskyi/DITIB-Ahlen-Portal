@@ -252,6 +252,15 @@
 - Зафіксовано поточний hosting-стан: MySQL database/user створені, серверний `.env` створено, Plesk Git deploy налаштовано.
 - Оновлено статус Етапу 4: Plesk Git deploy налаштований, перший manual deploy ще потрібно запустити й перевірити за логами.
 
+### [2026-05-05 17:41] Перший manual deploy — помилка Deploy actions — Codex
+- Plesk успішно пройшов deploy key validation і скопіював файли в `mitglied.ditib-ahlen-projekte.de`.
+- Deploy actions не виконались через `execv("/bin/bash") failed system error: Permission denied`.
+- Зафіксовано діагноз: Git deploy працює, але Plesk/subscription user не має права запускати shell для additional deployment actions; потрібно увімкнути shell access (`/bin/bash` або `/bin/sh`) або просити хостинг дозволити Plesk Git deploy actions/Terminal.
+
+### [2026-05-05 17:49] Fallback-стратегії без SSH — Codex
+- Додано в `PROJECT.md` варіанти роботи, якщо хостинг не дозволить SSH/shell: дозвіл тільки для Plesk Deploy actions, Plesk Composer/Node/Scheduled Tasks/phpMyAdmin, artifact deploy із готовими `vendor/` і `public/build/`, тимчасовий захищений web-deploy endpoint або перехід на тариф/VPS із SSH.
+- Зафіксовано, що artifact/web endpoint варіанти можливі, але менш бажані для Laravel production і потребують контрольованого процесу для міграцій БД.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*
