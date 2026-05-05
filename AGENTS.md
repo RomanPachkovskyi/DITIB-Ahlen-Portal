@@ -47,7 +47,20 @@ Laravel 13 + Filament v5 портал членів громади DITIB Ahlen.
 | Admin | http://localhost:8000/admin | https://mitglied.ditib-ahlen-projekte.de/admin |
 | Konto | http://localhost:8000/konto | https://mitglied.ditib-ahlen-projekte.de/konto |
 | DB | SQLite (`database/database.sqlite`) | MySQL (Plesk) |
-| PHP | 8.5 (Homebrew, не Docker) | 8.2+ |
+| PHP | 8.5 (Homebrew, не Docker) | 8.3+ |
+
+---
+
+## Хостинг Plesk — важливо
+
+- Subdomain `mitglied.ditib-ahlen-projekte.de` має окрему папку поруч із `httpdocs`: `mitglied.ditib-ahlen-projekte.de/`
+- Це Laravel-портал, тому на сервер деплоїться **весь репозиторій**, не тільки `public/build`
+- Document Root домену має бути: `mitglied.ditib-ahlen-projekte.de/public`
+- З браузера має бути доступна тільки папка `public/`, не корінь Laravel-проєкту
+- `public/build` — це лише Vite assets (CSS/JS), не сам застосунок
+- Production DB: MySQL у Plesk; SQLite використовується тільки локально
+- `.env` створюється вручну на сервері та ніколи не комітиться
+- `APP_KEY` на production згенерувати один раз і не міняти: він потрібен для encrypted IBAN/BIC
 
 ---
 
@@ -90,7 +103,7 @@ php artisan cache:clear                    # скинути кеш
 ```
 app/
 ├── Livewire/
-│   └── MembershipForm.php          ← публічна форма (3 кроки)
+│   └── MembershipForm.php          ← публічна форма
 ├── Models/
 │   ├── Member.php                   ← encrypted: iban, bic
 │   └── ChangeRequest.php

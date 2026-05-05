@@ -239,6 +239,19 @@
 - **Причина**: літні члени громади часто не мають власної електронної пошти — їх реєструють діти або родичі на свій email.
 - **Зафіксовано в `PROJECT.md`**: архітектурне рішення задокументовано з нотаткою для майбутньої реалізації кабінету (`/konto`) — при magic link авторизації потрібно передбачити вибір серед кількох членів на один email.
 
+### [2026-05-05 17:22] Документація Plesk-деплою — Codex
+- Зафіксовано hosting-схему для `mitglied.ditib-ahlen-projekte.de`: окрема папка subdomain поруч із `httpdocs`, Document Root = `mitglied.ditib-ahlen-projekte.de/public`.
+- Уточнено, що Laravel-портал деплоїться як весь репозиторій, а `public/build` — тільки Vite assets, не сам застосунок.
+- Додано Plesk Git settings: remote repository, deploy key, server path `/mitglied.ditib-ahlen-projekte.de`, automatic/manual deployment mode і включення deploy actions.
+- Додано порядок першого тестового деплою на Plesk: MySQL, серверний `.env`, одноразовий `php artisan key:generate`, `composer install`, `npm ci`, `npm run build`, `php artisan migrate --force`, cache-команди і створення Filament admin.
+- Додано покрокову інструкцію створення серверного `.env` через Plesk File Manager і production-шаблон для першого тесту.
+- Додано сценарій без SSH/Terminal: регулярні команди через Plesk Deploy actions, а `APP_KEY` генерується локально через `php artisan key:generate --show` і вставляється вручну в `.env`.
+- Оновлено production PHP requirement до `8.3+` відповідно до `composer.json`.
+
+### [2026-05-05 17:39] Plesk readiness перед першим деплоєм — Codex
+- Зафіксовано поточний hosting-стан: MySQL database/user створені, серверний `.env` створено, Plesk Git deploy налаштовано.
+- Оновлено статус Етапу 4: Plesk Git deploy налаштований, перший manual deploy ще потрібно запустити й перевірити за логами.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

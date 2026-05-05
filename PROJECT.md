@@ -2,7 +2,7 @@
 ## DITIB-Ahlen-Portal
 
 > Тут — архітектура, стек, функціональність, деплой. Актуальний стан проекту.
-> Правила для агентів → `CLAUDE.md` | Історія змін → `CHANGELOG.md`
+> Правила для агентів → `AGENTS.md` | Історія змін → `CHANGELOG.md`
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Файл | Призначення |
 |------|-------------|
-| **`CLAUDE.md`** | Правила для агентів, команди, середовище — читати першим |
+| **`AGENTS.md`** | Правила для агентів, команди, середовище — читати першим |
 | **`PROJECT.md`** ← ти тут | Архітектура, стек, функціональність, деплой |
 | **`CHANGELOG.md`** | Хронологія всіх змін — що, коли, хто зробив |
 
@@ -164,6 +164,13 @@
 cd ~/Project/DITIB-Ahlen/portal && php artisan serve --port=8000
 ```
 
+**Build локально:**
+```bash
+npm run build
+```
+
+`npm run build` створює тільки Vite assets у `public/build/` (CSS/JS). Це не окремий статичний сайт і не повний build застосунку. Laravel-порталу для роботи потрібні PHP-код, `vendor/`, `routes/`, `resources/`, `storage/`, `.env` і база даних.
+
 ---
 
 ## Хостинг і деплой
@@ -172,30 +179,207 @@ cd ~/Project/DITIB-Ahlen/portal && php artisan serve --port=8000
 |----------|----------|
 | Хостинг | Plesk (virtual hosting) |
 | Домен | `mitglied.ditib-ahlen-projekte.de` |
-| PHP | 8.2+ |
+| Server folder | `mitglied.ditib-ahlen-projekte.de/` (окремо від `httpdocs`) |
+| Document Root | `mitglied.ditib-ahlen-projekte.de/public` |
+| PHP | 8.3+ (`composer.json` вимагає `^8.3`) |
 | DB | MySQL (Plesk) |
 | Deploy | git push main → Plesk Git → auto-deploy |
 
-**Deploy actions на Plesk:**
+### Plesk Git settings
+
+У Plesk обирати **Install from remote repository**, не `Install Skeleton`.
+
+| Поле | Значення |
+|------|----------|
+| Repository URL | `git@github.com:RomanPachkovskyi/DITIB-Ahlen-Portal.git` |
+| SSH public key | додати цей ключ у GitHub repo → Settings → Deploy keys |
+| Deploy key permissions | Read-only достатньо |
+| Repository name | `DITIB-Ahlen-Portal` або `DITIB-Ahlen-Portal.git` |
+| Deployment mode | `Automatic` після першої перевірки; `Manual` можна для першого тесту |
+| Server path | `/mitglied.ditib-ahlen-projekte.de` |
+| Additional deployment actions | увімкнути |
+
+Server path має бути коренем Laravel-проєкту (`/mitglied.ditib-ahlen-projekte.de`), **не** `/mitglied.ditib-ahlen-projekte.de/public`. `public` задається окремо в Hosting Settings як Document Root.
+
+### Як влаштований сервер
+
+Plesk для subdomain створює окрему папку поруч із `httpdocs`:
+
+```text
+home directory/
+├── httpdocs/                              # основний домен / landing
+├── mitglied.ditib-ahlen-projekte.de/      # Laravel portal repo
+│   ├── app/
+│   ├── bootstrap/
+│   ├── config/
+│   ├── database/
+│   ├── public/                            # Document Root дивиться сюди
+│   ├── resources/
+│   ├── routes/
+│   ├── storage/
+│   ├── vendor/
+│   ├── .env                               # тільки на сервері, не в git
+│   ├── artisan
+│   ├── composer.json
+│   └── package.json
+└── logs/
+```
+
+Це не React/Vite-only сайт. На сервер деплоїться **весь Laravel-репозиторій**, а не тільки `public/build`. Відвідувачі сайту при цьому мають бачити тільки `public/`, тому Document Root обов'язково:
+
+```text
+mitglied.ditib-ahlen-projekte.de/public
+```
+
+Якщо Document Root буде `mitglied.ditib-ahlen-projekte.de` без `/public`, це небезпечно: браузеру можуть стати видимими Laravel-файли, `.env`, `storage`, `vendor` тощо.
+
+### База даних на production
+
+Production потребує MySQL у Plesk:
+
+1. Створити MySQL database і database user у Plesk.
+2. Прописати доступи в серверному `.env`.
+3. Запустити `php artisan migrate --force`.
+
+SQLite (`database/database.sqlite`) використовується тільки локально. Для production не переносити локальний SQLite-файл на сервер.
+
+**Стан на 2026-05-05:** MySQL database/user створені в Plesk, серверний `.env` створений, Plesk Git deploy налаштований. Перший deploy виконувати вручну, щоб перевірити лог і помилки до увімкнення регулярного automatic deploy.
+
+### Deploy actions на Plesk
+
+Якщо SSH/Terminal на хостингу недоступні, усі регулярні команди виконуються через **Plesk Git → Deploy actions**.
+
+Перед першим автодеплоєм створити `.env` на сервері та налаштувати MySQL. `APP_KEY` можна:
+
+- згенерувати локально командою `php artisan key:generate --show` і вставити значення вручну в серверний `.env`;
+- або тимчасово додати `php artisan key:generate --force` у Deploy actions тільки для першого запуску, а після успіху одразу прибрати.
+
+Переважний варіант без SSH: **згенерувати APP_KEY локально і вставити вручну**. Так немає ризику випадково змінити ключ на наступному деплої.
+
+```bash
+php artisan key:generate --show
+```
+
+Після першого production-деплою `APP_KEY` не міняти, бо IBAN/BIC шифруються Laravel encrypted cast через цей ключ.
+
+У поле **Deploy actions** у Plesk вставити команди, кожну з нового рядка:
+
 ```bash
 composer install --optimize-autoloader --no-dev
+npm ci
+npm run build
 php artisan migrate --force
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 ```
 
-**`.env` на сервері (не в git):**
+`npm ci` використовується, бо в репозиторії є `package-lock.json`; це стабільніше для production, ніж `npm install`.
+
+Якщо Plesk не знаходить `composer`, `npm` або потрібну версію `php`, треба вказати повні шляхи з Plesk/PHP settings або виконувати ці команди через Plesk Terminal у правильному PHP/Node середовищі.
+
+Повторні ручні деплої виконують той самий набір команд:
+```bash
+composer install --optimize-autoloader --no-dev
+npm ci
+npm run build
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+Після першого деплою створити адміна:
+```bash
+php artisan make:filament-user
+```
+
+### `.env` на сервері
+
+`.env` створюється вручну в `mitglied.ditib-ahlen-projekte.de/.env` і не комітиться в git:
+
+**Як створити через Plesk File Manager:**
+
+1. Відкрити Plesk → Domains → `mitglied.ditib-ahlen-projekte.de` → File Manager.
+2. Зайти в папку `mitglied.ditib-ahlen-projekte.de` (корінь Laravel-проєкту).
+3. Натиснути `+` / `New File`.
+4. Назва файлу: `.env` (саме з крапкою на початку, без `.txt`).
+5. Вставити вміст нижче і зберегти.
+
+**Приклад для першого production-тесту:**
+
+```env
+APP_NAME="DITIB Ahlen"
+APP_ENV=production
+APP_KEY=base64:PASTE_GENERATED_KEY_HERE
+APP_DEBUG=false
+APP_URL=https://mitglied.ditib-ahlen-projekte.de
+
+APP_LOCALE=de
+APP_FALLBACK_LOCALE=de
+APP_FAKER_LOCALE=de_DE
+
+LOG_CHANNEL=stack
+LOG_STACK=single
+LOG_LEVEL=debug
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=ditib_ahlen_portal
+DB_USERNAME=ditib_portal_user
+DB_PASSWORD=DITIB-Ahlen-Portal_2026!m5
+
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_DOMAIN=null
+
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+
+BROADCAST_CONNECTION=log
+FILESYSTEM_DISK=local
+
+MAIL_MAILER=smtp
+MAIL_HOST=mail.ditib-ahlen-projekte.de
+MAIL_PORT=587
+MAIL_USERNAME=info@ditib-ahlen-projekte.de
+MAIL_PASSWORD=
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="info@ditib-ahlen-projekte.de"
+MAIL_FROM_NAME="${APP_NAME}"
+
+VITE_APP_NAME="${APP_NAME}"
+```
+
+`APP_KEY` згенерувати локально і вставити замість `base64:PASTE_GENERATED_KEY_HERE`:
+
+```bash
+php artisan key:generate --show
+```
+
+Якщо SSH/Terminal на сервері недоступні, це повністю замінює серверний `php artisan key:generate`. Після цього `APP_KEY` не міняти.
+
+Якщо SMTP ще не готовий, `MAIL_PASSWORD` можна тимчасово залишити порожнім, але email-повідомлення не будуть працювати повноцінно.
+
+**Мінімальна структура, яку завжди перевіряти:**
+
 ```
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://mitglied.ditib-ahlen-projekte.de
 DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
 DB_DATABASE=...
 DB_USERNAME=...
 DB_PASSWORD=...
 MAIL_HOST=...
 ```
+
+Для першого тесту можна тимчасово залишити mail налаштування мінімальними, але перед перевіркою реєстраційних листів потрібно прописати реальний SMTP і перевірити черги (`QUEUE_CONNECTION=database`).
 
 ---
 
@@ -228,6 +412,6 @@ MAIL_HOST=...
 - [ ] Unterschrift canvas у формі реєстрації (Крок 4)
 - [ ] Кабінет члена — перегляд даних, Änderungsantrag
 - [ ] Двомовність (DE + TR): Middleware SetLocale, lang/de.json, lang/tr.json
-- [ ] Деплой на Plesk налаштований
+- [x] Plesk Git deploy налаштований: DB створена, `.env` створено, Document Root = `mitglied.ditib-ahlen-projekte.de/public`; перший manual deploy очікує запуску
 
 > Зміни в статусі — оновлювати тут і писати в `CHANGELOG.md`
