@@ -58,7 +58,7 @@ class MembershipForm extends Component
             'full_name'            => ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
             'birth_date'           => ['required', 'date', 'before:today', function ($attr, $value, $fail) {
                 if (Carbon::parse($value)->age < 16) {
-                    $fail('Eine Registrierung ist erst ab 16 Jahren möglich. / Kayıt yalnızca 16 yaş ve üzeri için mümkündür.');
+                    $fail('Eine Registrierung ist erst ab 16 Jahren möglich.');
                 }
             }],
             'birth_place'          => ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
@@ -76,8 +76,62 @@ class MembershipForm extends Component
             'postal_code' => ['required', 'string', 'regex:/^[0-9]{5}$/'],
             'city'        => ['required', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
             'state'       => ['required', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
-            'email'       => 'required|email|unique:members,email',
+            'email'       => 'required|email', // unique не застосовується: один email може використовуватись для кількох членів (діти реєструють батьків)
             'phone'       => ['required', 'string', 'max:30', 'regex:/^[+\(\)\-\s0-9]+$/'],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            // Pflichtfelder
+            'required'                        => 'Dieses Feld ist erforderlich.',
+            'accepted'                        => 'Ihre Zustimmung ist erforderlich.',
+
+            // Schritt 1
+            'anrede.required'                 => 'Bitte wählen Sie eine Anrede.',
+            'anrede.in'                       => 'Ungültige Anrede.',
+            'full_name.required'              => 'Bitte geben Sie Ihren Namen ein.',
+            'full_name.max'                   => 'Der Name ist zu lang (max. 255 Zeichen).',
+            'full_name.regex'                 => 'Der Name darf nur Buchstaben und Bindestriche enthalten.',
+            'birth_date.required'             => 'Bitte geben Sie Ihr Geburtsdatum ein.',
+            'birth_date.date'                 => 'Ungültiges Datumsformat.',
+            'birth_date.before'               => 'Das Geburtsdatum muss in der Vergangenheit liegen.',
+            'birth_place.regex'               => 'Nur Buchstaben und Bindestriche erlaubt.',
+            'staatsangehoerigkeit.regex'      => 'Nur Buchstaben und Bindestriche erlaubt.',
+            'familienangehoerige.required'    => 'Bitte geben Sie die Anzahl der Familienmitglieder ein.',
+            'familienangehoerige.integer'     => 'Bitte geben Sie eine ganze Zahl ein.',
+            'familienangehoerige.min'         => 'Mindestens 1 Familienmitglied erforderlich.',
+            'beruf.regex'                     => 'Nur Buchstaben und Bindestriche erlaubt.',
+            'heimatstadt.regex'               => 'Nur Buchstaben und Bindestriche erlaubt.',
+
+            // Schritt 2
+            'street.required'                 => 'Bitte geben Sie Ihre Straße und Hausnummer ein.',
+            'postal_code.required'            => 'Bitte geben Sie Ihre Postleitzahl ein.',
+            'postal_code.regex'               => 'Die Postleitzahl muss aus 5 Ziffern bestehen.',
+            'city.required'                   => 'Bitte geben Sie Ihren Ort ein.',
+            'city.regex'                      => 'Nur Buchstaben und Bindestriche erlaubt.',
+            'state.required'                  => 'Bitte geben Sie das Bundesland ein.',
+            'state.regex'                     => 'Nur Buchstaben und Bindestriche erlaubt.',
+            'email.required'                  => 'Bitte geben Sie Ihre E-Mail-Adresse ein.',
+            'email.email'                     => 'Ungültige E-Mail-Adresse.',
+            'phone.required'                  => 'Bitte geben Sie Ihre Telefonnummer ein.',
+            'phone.regex'                     => 'Ungültige Telefonnummer.',
+
+            // Schritt 3
+            'monatsbeitrag.required'          => 'Bitte geben Sie Ihren Monatsbeitrag ein.',
+            'monatsbeitrag.numeric'           => 'Der Beitrag muss eine Zahl sein.',
+            'monatsbeitrag.min'               => 'Der Mindestbeitrag beträgt 25,00 €.',
+            'zahlungsart.required'            => 'Bitte wählen Sie eine Zahlungsweise.',
+            'zahlungsart.in'                  => 'Ungültige Zahlungsweise.',
+            'kontoinhaber.required'           => 'Bitte geben Sie den Kontoinhaber ein.',
+            'kontoinhaber.regex'              => 'Nur Buchstaben und Bindestriche erlaubt.',
+            'iban.required'                   => 'Bitte geben Sie Ihre IBAN ein.',
+            'iban.regex'                      => 'Ungültige IBAN.',
+            'bic.max'                         => 'Die BIC darf maximal 11 Zeichen haben.',
+            'kreditinstitut.regex'            => 'Nur Buchstaben und Bindestriche erlaubt.',
+            'sepa_zustimmung.accepted'        => 'Bitte stimmen Sie dem SEPA-Lastschriftmandat zu.',
+            'dsgvo_zustimmung.accepted'       => 'Bitte stimmen Sie der Datenschutzerklärung zu.',
         ];
     }
 
@@ -173,15 +227,15 @@ class MembershipForm extends Component
         };
 
         if (array_key_exists($propertyName, $rules)) {
-            $this->validateOnly($propertyName, $rules);
+            $this->validateOnly($propertyName, $rules, $this->messages());
         }
     }
 
     public function nextStep(): void
     {
         match ($this->step) {
-            1 => $this->validate($this->rulesStep1()),
-            2 => $this->validate($this->rulesStep2()),
+            1 => $this->validate($this->rulesStep1(), $this->messages()),
+            2 => $this->validate($this->rulesStep2(), $this->messages()),
             default => null,
         };
 
@@ -196,7 +250,7 @@ class MembershipForm extends Component
 
     public function submit(): void
     {
-        $this->validate($this->rulesStep3());
+        $this->validate($this->rulesStep3(), $this->messages());
 
         $member = Member::create([
             'anrede'               => $this->anrede,

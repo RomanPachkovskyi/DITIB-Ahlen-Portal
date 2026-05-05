@@ -98,7 +98,7 @@
 | heimatstadt | string | nullable |
 | street | string | |
 | city, state, postal_code | string | |
-| email | string | unique |
+| email | string | **не unique** — один email дозволений для кількох членів (сім'я) |
 | phone | string | |
 | zahlungsart | enum | barzahlung / lastschrift / dauerauftrag |
 | monatsbeitrag | decimal | мін. €25 |
@@ -134,6 +134,15 @@
 - Члени бачать тільки свої дані (Filament Panel ізоляція)
 - Згода SEPA і DSGVO фіксується з timestamp при відправці форми
 - `.env` з `APP_KEY` — ніколи не комітити в git
+
+---
+
+## Архітектурні рішення
+
+### Email — не унікальний (v1.0)
+Один email може використовуватись для кількох членів. Причина: літні члени громади не мають власної пошти — діти або родичі реєструють їх на свій email.
+
+> **Майбутнє (Етап 4+):** При реалізації кабінету (`/konto`) входу через email-посилання (magic link) потрібно продумати логіку вибору облікового запису, якщо на один email зареєстровано кількох членів (наприклад, показати список і дати вибрати, або використовувати `member_number` як додатковий ідентифікатор).
 
 ---
 
