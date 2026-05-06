@@ -239,6 +239,7 @@
 - **Причина**: літні члени громади часто не мають власної електронної пошти — їх реєструють діти або родичі на свій email.
 - **Зафіксовано в `PROJECT.md`**: архітектурне рішення задокументовано з нотаткою для майбутньої реалізації кабінету (`/konto`) — при magic link авторизації потрібно передбачити вибір серед кількох членів на один email.
 
+
 ### [2026-05-05 17:22] Документація Plesk-деплою — Codex
 - Зафіксовано hosting-схему для `mitglied.ditib-ahlen-projekte.de`: окрема папка subdomain поруч із `httpdocs`, Document Root = `mitglied.ditib-ahlen-projekte.de/public`.
 - Уточнено, що Laravel-портал деплоїться як весь репозиторій, а `public/build` — тільки Vite assets, не сам застосунок.
@@ -351,6 +352,22 @@
 - Додано `MAIL_LOGO_URL` у `.env.example` і `config/mail.php`; email header тепер використовує стабільний production HTTPS URL логотипу.
 - Додано regression tests для клієнтського delete email і присутності logo URL у rendered email HTML.
 - Оновлено `PROJECT.md` і `Правки і зміни на сайті.md`.
+
+### [2026-05-06 13:45] Inline logo для email header — Codex
+- Перевірено, що production PNG логотипу доступний через HTTPS, але поштовий клієнт показував alt-текст замість картинки.
+- Оновлено mail header: логотип тепер вбудовується як inline/CID image через `$message->embed(...)`, з fallback на `MAIL_LOGO_URL`.
+- Додано email-safe атрибути `width`, `height`, `display:block`, `border:0` для стабільнішого рендерингу в поштових клієнтах.
+
+### [2026-05-06 14:08] План інтеграції старих Excel-даних — Codex
+- Додано `LEGACY_IMPORT.md` з рішенням не змішувати стару історичну нумерацію з поточним `member_number`.
+- Зафіксовано рекомендовану схему імпорту: окреме поле `legacy_member_number`, мобільний номер у `phone`, звичайний номер у майбутнє поле `phone_landline`.
+- Оновлено `PROJECT.md` коротким архітектурним рішенням і посиланням на документ інтеграції legacy-даних.
+
+### [2026-05-06 14:33] Централізація брендування email — Codex
+- Зведено брендування Laravel Markdown emails в один стандартний шар: `config/mail.php` → `mail.brand.*`, спільні шаблони `resources/views/vendor/mail/`, окремі `resources/views/emails/` лишаються тільки контентом.
+- Прибрано inline/CID logo як основний механізм; HTML header використовує стабільний `MAIL_LOGO_URL`, `MAIL_BRAND_NAME`, `MAIL_BRAND_URL` і спільний footer.
+- Оновлено `.env.example`, `PROJECT.md` і `Правки і зміни на сайті.md` з поточною email-архітектурою та майбутнім варіантом переходу на власний HTML-шаблон.
+- Додано regression assertion, що email header/footer рендериться через централізований branding layer без `cid:`.
 
 ---
 

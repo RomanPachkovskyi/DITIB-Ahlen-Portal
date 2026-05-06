@@ -115,6 +115,22 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
-    'logo_url' => env('MAIL_LOGO_URL', 'https://mitglied.ditib-ahlen-projekte.de/images/ditib_ahlen_logo.png'),
+    /*
+    |--------------------------------------------------------------------------
+    | Mail Branding
+    |--------------------------------------------------------------------------
+    |
+    | All Markdown mailables share this single branding layer. Individual
+    | email views should contain only message content, while the logo,
+    | brand URL, and footer stay centralized here.
+    |
+    */
+
+    'brand' => [
+        'name' => env('MAIL_BRAND_NAME', env('APP_NAME', 'DITIB Ahlen')),
+        'url' => env('MAIL_BRAND_URL', env('APP_URL', 'https://mitglied.ditib-ahlen-projekte.de')),
+        'logo_url' => env('MAIL_LOGO_URL', 'https://mitglied.ditib-ahlen-projekte.de/images/ditib_ahlen_logo.png'),
+        'footer' => env('MAIL_BRAND_FOOTER', 'DITIB Türkisch-Islamische Gemeinde zu Ahlen e.V.'),
+    ],
 
 ];

@@ -45,7 +45,7 @@
 | Стилі | Tailwind CSS | v4 |
 | База даних (local) | SQLite | — |
 | База даних (production) | MySQL | Plesk |
-| Email | Laravel Mail → SMTP, синхронно при реєстрації | — |
+| Email | Laravel Mail → SMTP, Markdown Mailables + централізований branding layer | — |
 | PDF | barryvdh/laravel-dompdf | встановлено |
 | Підпис | Alpine.js canvas | вбудований |
 | Налаштування адміна | spatie/laravel-settings | Етап 3 |
@@ -145,6 +145,34 @@
 Один email може використовуватись для кількох членів. Причина: літні члени громади не мають власної пошти — діти або родичі реєструють їх на свій email.
 
 > **Майбутнє (Етап 4+):** При реалізації кабінету (`/konto`) входу через email-посилання (magic link) потрібно продумати логіку вибору облікового запису, якщо на один email зареєстровано кількох членів (наприклад, показати список і дати вибрати, або використовувати `member_number` як додатковий ідентифікатор).
+
+### Email — архітектура і брендування
+
+Поточна production-схема: Laravel Mail → SMTP, синхронна відправка без queue worker. Це свідоме рішення для Plesk artifact-deploy, де немає стабільного production worker-а для черг.
+
+Поточний шаблонний шар:
+
+- окремі листи реалізовані як `Mailable` + `markdown:` views у `resources/views/emails/`
+- спільний HTML/text layout Laravel Markdown Mail перевизначений у `resources/views/vendor/mail/`
+- бренд налаштовується централізовано через `config/mail.php` → `mail.brand.*`
+- `.env` ключі бренду: `MAIL_BRAND_NAME`, `MAIL_BRAND_URL`, `MAIL_LOGO_URL`, `MAIL_BRAND_FOOTER`
+- окремі email views не повинні містити логотип, footer або глобальні стилі — тільки зміст конкретного повідомлення
+
+Логотип у листах зараз використовується як стабільний HTTPS URL з `MAIL_LOGO_URL`. Inline/CID images не використовуються як основний механізм, щоб branding layer залишався простим, стандартним і передбачуваним для Laravel Markdown Mail.
+
+Майбутнє оновлення: якщо Gmail/Outlook/Apple Mail покажуть, що Markdown theme недостатньо контролює вигляд, можна перейти з `markdown:` на власний `view:` HTML email template. Це буде окремий етап, не змішаний із поточним SMTP/Mailable layer.
+
+### Legacy import зі старого Excel (план)
+Стара база членів існує як Excel-файл на 743 записи, а не як SQL-база. Для неї прийнято рішення **не змішувати історичний номер зі системним `member_number`**.
+
+Рекомендований підхід:
+
+- поточний `member_number` лишається новим системним номером у форматі `DA-YYYY-NNNN`
+- старий номер з Excel зберігається окремо як `legacy_member_number`
+- мобільний номер мапиться в `phone`
+- звичайний номер рекомендується зберігати окремо як `phone_landline`
+
+Детальний план міграції та підготовки імпорту описаний у `LEGACY_IMPORT.md`.
 
 ---
 
@@ -496,6 +524,10 @@ MAIL_PASSWORD=
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS="info@ditib-ahlen-projekte.de"
 MAIL_FROM_NAME="${APP_NAME}"
+MAIL_BRAND_NAME="${APP_NAME}"
+MAIL_BRAND_URL="${APP_URL}"
+MAIL_LOGO_URL="https://mitglied.ditib-ahlen-projekte.de/images/ditib_ahlen_logo.png"
+MAIL_BRAND_FOOTER="DITIB Türkisch-Islamische Gemeinde zu Ahlen e.V."
 
 VITE_APP_NAME="${APP_NAME}"
 ```
@@ -523,9 +555,13 @@ DB_DATABASE=...
 DB_USERNAME=...
 DB_PASSWORD=...
 MAIL_HOST=...
+MAIL_FROM_ADDRESS=...
+MAIL_LOGO_URL=...
 ```
 
 Для першого тесту можна тимчасово залишити mail налаштування мінімальними, але перед перевіркою реєстраційних листів потрібно прописати реальний SMTP. Реєстраційні листи відправляються синхронно під час submit, бо на поточному Plesk artifact-deploy немає стабільного queue worker-а.
+
+Брендування листів централізоване в `config/mail.php` → `mail.brand.*`. Для production мінімально перевірити `MAIL_BRAND_URL="${APP_URL}"`, публічний HTTPS `MAIL_LOGO_URL` і коректний footer. Якщо в майбутньому знадобиться повний pixel-control для Outlook/Gmail, перейти на окремий HTML-шаблон (`view:`), але поточний стандартний шар Laravel Markdown не змішувати з ручними HTML-вставками в окремих листах.
 
 ---
 
@@ -544,6 +580,7 @@ MAIL_HOST=...
 - [x] Автовизначення PLZ → місто і федеральна земля (OpenPLZ API)
 - [x] Email клієнту після відправки форми (синхронно через SMTP, без queue worker)
 - [x] Email адміну про нову заявку
+- [x] Централізований branding layer для Laravel Markdown emails
 
 ### Етап 3 ✅ ВИКОНАНО
 - [x] Dashboard адмінки зі статистикою (widgets)

@@ -101,6 +101,8 @@ class MemberLifecycleEmailTest extends TestCase
         $html = (new MemberApprovedNotification($member))->render();
 
         $this->assertStringContainsString('https://mitglied.ditib-ahlen-projekte.de/images/ditib_ahlen_logo.png', $html);
+        $this->assertStringContainsString('DITIB Türkisch-Islamische Gemeinde zu Ahlen e.V.', $html);
+        $this->assertStringNotContainsString('cid:', $html);
     }
 
     /**
