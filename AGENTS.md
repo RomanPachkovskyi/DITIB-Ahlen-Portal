@@ -183,10 +183,11 @@ scripts/build-artifact.sh
 3. **`.env`** — ніколи не комітити, тільки `.env.example`
 4. **Міграції** — тільки через `php artisan make:migration`
 5. **IBAN і BIC** — обов'язково `'encrypted'` cast у моделі (DSGVO)
-6. **Commit** — англійська, коротко: `feat:`, `fix:`, `docs:`, `chore:`
-7. **Гілка** — завжди `main` для цього репо
-8. **Не чіпати** `~/Project/DITIB-Ahlen/main/` — інший проект
-9. **Filament v5** — `Section` → `Filament\Schemas\Components\Section` (не Forms)
+6. **Member numbers** — `member_number` ніколи не перевикористовувати; видавати тільки через `MemberNumberSequence`, видалення `Member` має бути soft delete
+7. **Commit** — англійська, коротко: `feat:`, `fix:`, `docs:`, `chore:`
+8. **Гілка** — завжди `main` для цього репо
+9. **Не чіпати** `~/Project/DITIB-Ahlen/main/` — інший проект
+10. **Filament v5** — `Section` → `Filament\Schemas\Components\Section` (не Forms)
 
 ---
 

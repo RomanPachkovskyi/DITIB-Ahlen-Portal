@@ -76,6 +76,7 @@
 - Перегляд і редагування кожного запису (секції: Дані, Банк, Статус)
 - Схвалення / відхилення заявок (статуси: `pending` → `active` / `inactive`)
 - При зміні статусу на `active` член отримує email про прийняття
+- При видаленні запису використовується soft delete: номер не звільняється, запис можна переглянути через фільтр видалених і відновити
 - При видаленні запису адміністратор і член отримують email-фіксацію видалення
 - Обробка запитів на зміну даних
 
@@ -87,7 +88,7 @@
 
 | Поле | Тип | Примітка |
 |------|-----|---------|
-| member_number | string(20) | unique, auto DA-YYYY-NNNN |
+| member_number | string(20) | unique, auto DA-YYYY-NNNN, не перевикористовується |
 | full_name | string | |
 | birth_date | date | |
 | birth_place | string | nullable |
@@ -114,6 +115,16 @@
 | zustimmung_at | timestamp | |
 | status | enum | pending / active / inactive |
 | admin_notiz | text | nullable |
+| deleted_at | timestamp | nullable, soft delete для історії номерів |
+
+### Таблиця `member_number_sequences`
+
+| Поле | Тип | Примітка |
+|------|-----|---------|
+| name | string(50) | unique, зараз `members` |
+| next_number | unsigned big integer | наступний кандидат для `member_number` |
+
+Номери членів видаються тільки через `MemberNumberSequence` у DB transaction з `lockForUpdate()`. Allocator додатково перевіряє `members` разом із soft-deleted записами й переступає вже зайняті номери, якщо sequence колись відстане після імпорту або ручної правки.
 
 ### Таблиця `change_requests`
 
@@ -132,6 +143,7 @@
 ## Безпека та DSGVO
 
 - IBAN і BIC — `'encrypted'` cast → зашифровані в БД
+- `member_number` — постійний історичний ідентифікатор; soft-deleted записи зберігають номер і не дають системі видати його повторно
 - `$hidden` у моделі НЕ використовувати для IBAN/BIC (блокує Filament форму)
 - Члени бачать тільки свої дані (Filament Panel ізоляція)
 - Згода SEPA і DSGVO фіксується з timestamp при відправці форми

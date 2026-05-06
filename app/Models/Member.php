@@ -7,12 +7,15 @@ use App\Mail\MemberDeletedAdminNotification;
 use App\Mail\MemberDeletedNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 class Member extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'anrede',
         'member_number',
@@ -65,7 +68,7 @@ class Member extends Model
     {
         static::creating(function (Member $member) {
             if (empty($member->member_number)) {
-                $member->member_number = static::generateMemberNumber();
+                $member->member_number = MemberNumberSequence::issueForMembers();
             }
         });
 
@@ -112,19 +115,6 @@ class Member extends Model
                 ]);
             }
         });
-    }
-
-    private static function generateMemberNumber(): string
-    {
-        $year = now()->format('Y');
-        $last = static::whereYear('created_at', $year)
-            ->whereNotNull('member_number')
-            ->orderByDesc('id')
-            ->value('member_number');
-
-        $seq = $last ? ((int) substr($last, -4)) + 1 : 1;
-
-        return sprintf('DA-%s-%04d', $year, $seq);
     }
 
     public function changeRequests(): HasMany

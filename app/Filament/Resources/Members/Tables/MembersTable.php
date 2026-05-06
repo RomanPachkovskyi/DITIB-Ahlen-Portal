@@ -5,9 +5,12 @@ namespace App\Filament\Resources\Members\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
 class MembersTable
@@ -49,6 +52,12 @@ class MembersTable
                     })
                     ->sortable()
                     ->grow(false),
+
+                TextColumn::make('deleted_at')
+                    ->label('Gelöscht am')
+                    ->dateTime('d.m.Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('email')
                     ->label('E-Mail')
@@ -120,17 +129,21 @@ class MembersTable
                         'lastschrift'  => 'Lastschrift',
                         'dauerauftrag' => 'Dauerauftrag',
                     ]),
+                TrashedFilter::make()
+                    ->label('Gelöschte Einträge'),
             ])
             ->recordActions([
                 \Filament\Actions\ActionGroup::make([
                     ViewAction::make()->label('Anzeigen'),
                     EditAction::make()->label('Bearbeiten'),
                     \Filament\Actions\DeleteAction::make()->label('Löschen'),
+                    RestoreAction::make()->label('Wiederherstellen'),
                 ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
+                    RestoreBulkAction::make(),
                 ]),
             ]);
     }
