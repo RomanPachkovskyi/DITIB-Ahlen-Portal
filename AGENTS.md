@@ -132,10 +132,19 @@ scripts/build-artifact.sh
 - копіює туди проект без `.env`, `*.md`, `==logs/`, `node_modules/`, локальної SQLite та локальних runtime/cache файлів;
 - у staging виконує `composer install --no-dev --optimize-autoloader`;
 - у staging виконує `npm ci` і `npm run build`;
+- нормалізує права доступу перед пакуванням: директорії `755`, файли `644`, `artisan` і shell-скрипти `755`;
 - пакує готовий Laravel artifact із production `vendor/` та `public/build/`;
 - видаляє staging-папку.
 
 **Важливо для агентів:** не запускати `composer install --no-dev` і `npm ci` у робочій папці проекту для production-збірки. Це ламає локальний dev-цикл, бо прибирає dev-залежності на кшталт PHPUnit. Після `scripts/build-artifact.sh` локальні `vendor/`, `node_modules/` і `public/build/` мають залишатись недоторканими.
+
+**Важливо для Plesk:** artifact не повинен містити root `./` з правами `700`, інакше Apache дає `403 Forbidden` на весь сайт після розпакування. Перед release перевірити:
+
+```bash
+tar -tvzf deploy-artifacts/ditib-ahlen-portal-*.tar.gz | head
+```
+
+Перший рядок має бути `drwxr-xr-x` для `./`.
 
 Стабільний цикл:
 

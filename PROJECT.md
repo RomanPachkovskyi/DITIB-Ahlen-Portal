@@ -169,6 +169,8 @@ cd ~/Project/DITIB-Ahlen/portal && php artisan serve --port=8000
 npm run build
 ```
 
+Перед пакуванням staging нормалізує права доступу: директорії `755`, файли `644`, `artisan` і shell-скрипти `755`. Це важливо для Plesk/Apache: root `./` всередині tar не може мати права `700`, інакше після розпакування сайт дає `403 Forbidden`.
+
 `npm run build` створює тільки Vite assets у `public/build/` (CSS/JS). Це не окремий статичний сайт і не повний build застосунку. Laravel-порталу для роботи потрібні PHP-код, `vendor/`, `routes/`, `resources/`, `storage/`, `.env` і база даних.
 
 ---

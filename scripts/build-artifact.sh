@@ -56,6 +56,13 @@ echo "Building Vite assets in staging..."
 npm ci
 npm run build
 
+echo "Normalizing artifact permissions..."
+chmod 755 .
+find . -type d -exec chmod 755 {} +
+find . -type f -exec chmod 644 {} +
+chmod 755 artisan
+find scripts -type f -name '*.sh' -exec chmod 755 {} + 2>/dev/null || true
+
 echo "Creating artifact: ${ARTIFACT_PATH}"
 COPYFILE_DISABLE=1 tar -czf "${ARTIFACT_PATH}" \
   --exclude='./*.md' \

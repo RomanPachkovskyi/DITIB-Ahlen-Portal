@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Members\Schemas;
 
+use App\Support\Iban;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -195,7 +196,13 @@ class MemberForm
                             ->label('IBAN')
                             ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
                             ->required(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
-                            ->regex('/^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9]{11,30}$/')
+                            ->formatStateUsing(fn (?string $state): string => Iban::format($state))
+                            ->dehydrateStateUsing(fn (?string $state): string => Iban::normalize($state))
+                            ->rule(fn () => function (string $attribute, ?string $value, \Closure $fail): void {
+                                if (! Iban::isValidStructure($value)) {
+                                    $fail('Ungültige IBAN.');
+                                }
+                            })
                             ->live(onBlur: true)
                             ->columnSpanFull(),
                         TextInput::make('bic')

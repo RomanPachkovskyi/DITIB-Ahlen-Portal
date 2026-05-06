@@ -307,6 +307,20 @@
 - Зафіксовано заборону запускати `composer install --no-dev` і `npm ci` у робочій папці для production-збірки.
 - Описано стабільний цикл: локальні тести → `scripts/build-artifact.sh` → deploy archive на Plesk → подальші локальні правки без відновлення залежностей.
 
+### [2026-05-06 10:35] Фікс permissions у staging artifact — Codex
+- Виявлено, що staging root з `mktemp` пакувався в artifact як `./` з правами `700`, через що Plesk/Apache міг віддавати `403 Forbidden` після розпакування.
+- Додано normalization permissions у `scripts/build-artifact.sh`: директорії `755`, файли `644`, `artisan` і shell-скрипти `755`.
+- Оновлено `AGENTS.md` і `PROJECT.md` з правилом перевірки tar permissions перед production deploy.
+
+### [2026-05-06 10:41] Production deploy перевірено після fixes — Codex
+- Нова staging-збірка успішно розпакована на production: сторінки порталу знову завантажуються без Apache `403 Forbidden`.
+- Помилка Filament admin dashboard "Fehler beim Laden der Seite" більше не з'являється після виправлення `MembersChart` для MySQL.
+
+### [2026-05-06 10:49] Дружній формат IBAN у формі — Codex
+- Додано `App\Support\Iban` для normalization, display-formatting і структурної валідації IBAN.
+- Публічна анкета тепер приймає IBAN з пробілами та малими літерами, показує його як `DE 42 4005 0150 0068 0009 59`, а в БД зберігає canonical IBAN без пробілів.
+- Filament admin form отримав такий самий формат відображення та dehydrate до canonical IBAN.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

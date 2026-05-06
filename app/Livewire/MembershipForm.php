@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Member;
+use App\Support\Iban;
 use Carbon\Carbon;
 use Livewire\Component;
 
@@ -146,7 +147,11 @@ class MembershipForm extends Component
         if (in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag'])) {
             $rules['sepa_zustimmung'] = 'accepted';
             $rules['kontoinhaber']    = ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
-            $rules['iban']            = ['required', 'string', 'regex:/^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9]{11,30}$/'];
+            $rules['iban']            = ['required', 'string', function ($attribute, $value, $fail) {
+                if (! Iban::isValidStructure($value)) {
+                    $fail('Ungültige IBAN.');
+                }
+            }];
             $rules['bic']             = 'nullable|string|max:11';
             $rules['kreditinstitut']  = ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
         }
@@ -217,6 +222,12 @@ class MembershipForm extends Component
         $this->resetValidation(['postal_code', 'city', 'state']);
     }
 
+    public function updatedIban(string $value): void
+    {
+        $this->iban = Iban::format($value);
+        $this->resetValidation('iban');
+    }
+
     public function updated($propertyName): void
     {
         $rules = match ($this->step) {
@@ -250,6 +261,10 @@ class MembershipForm extends Component
 
     public function submit(): void
     {
+        if (in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag'])) {
+            $this->iban = Iban::format($this->iban);
+        }
+
         $this->validate($this->rulesStep3(), $this->messages());
 
         $member = Member::create([
@@ -273,7 +288,7 @@ class MembershipForm extends Component
             'monatsbeitrag'        => $this->monatsbeitrag,
             'zahlungsart'          => $this->zahlungsart,
             'kontoinhaber'         => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? $this->kontoinhaber : null,
-            'iban'                 => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? $this->iban : null,
+            'iban'                 => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? Iban::normalize($this->iban) : null,
             'bic'                  => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? ($this->bic ?: null) : null,
             'kreditinstitut'       => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? ($this->kreditinstitut ?: null) : null,
             'unterschrift'         => '', // TODO: Etap 4 — canvas підпис
