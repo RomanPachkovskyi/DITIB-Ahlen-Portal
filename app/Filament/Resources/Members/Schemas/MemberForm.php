@@ -152,11 +152,14 @@ class MemberForm
                             ->default('pending')
                             ->required(),
                         DateTimePicker::make('zustimmung_at')
-                            ->label('Zustimmung am'),
+                            ->label('Zustimmung am')
+                            ->disabledOn('edit'),
                         Toggle::make('sepa_zustimmung')
-                            ->label('SEPA-Lastschriftmandat'),
+                            ->label('SEPA-Lastschriftmandat')
+                            ->disabledOn('edit'),
                         Toggle::make('dsgvo_zustimmung')
-                            ->label('Datenschutzerklärung'),
+                            ->label('Datenschutzerklärung')
+                            ->disabledOn('edit'),
                         Textarea::make('admin_notiz')
                             ->label('Interne Notiz'),
                     ]),

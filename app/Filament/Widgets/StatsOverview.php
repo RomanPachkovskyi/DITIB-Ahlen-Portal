@@ -23,8 +23,8 @@ class StatsOverview extends BaseWidget
                 ->description('Alle registrierten Personen')
                 ->descriptionIcon('heroicon-m-users')
                 ->color('gray'),
-            Stat::make('Monatliche Einnahmen', '€ ' . number_format(Member::sum('monatsbeitrag'), 2, ',', '.'))
-                ->description('Gesamtsumme der Beiträge')
+            Stat::make('Monatliche Einnahmen', '€ ' . number_format(Member::where('status', 'active')->sum('monatsbeitrag'), 2, ',', '.'))
+                ->description('Nur aktive Mitglieder')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
         ];

@@ -393,6 +393,28 @@
 - Оновлено `deploy-artifacts/production-member-number-sequence-soft-deletes-20260506-150252.sql`, щоб порівняння `migrations.migration` з `@migration_name` явно використовувало `utf8mb4_unicode_ci`.
 - Додано явний collation також для перевірки `member_number_sequences.name`, щоб повторний імпорт через phpMyAdmin був стабільним на БД з іншим default collation.
 
+### [2026-05-06 15:26] Admin lifecycle через статус Inaktiv — Codex
+- Прибрано delete actions з адмінського UI членів: row menu, bulk actions і edit page header більше не показують `Löschen`.
+- Прибрано `Anzeigen` з row action меню; лишено `Bearbeiten` і окрему статусну групу швидких дій.
+- Додано row actions для переведення запису в `pending`, `active` або `inactive`, приховуючи поточний статус.
+- Додано bulk status actions у `Mehrfachaktionen`; масове редагування не додається, масове видалення не показується.
+- Оновлено `Monatliche Einnahmen`: тепер враховує тільки членів зі статусом `active`.
+- Додано regression test для revenue-віджета, щоб `pending` і `inactive` не потрапляли в суму.
+- Оновлено `AGENTS.md` і `PROJECT.md`: нормальний admin workflow — переводити членів у `inactive`, не видаляти через UI.
+
+### [2026-05-06 15:49] Полірування admin member UX — Codex
+- Явно налаштовано row click у таблиці членів на сторінку перегляду запису, без повернення в edit через приховану дію.
+- У статусних row/bulk actions узгоджено підписи й іконки з існуючими статусами `Ausstehend`, `Aktiv`, `Inaktiv`.
+- На edit page додано верхні кнопки `Änderungen speichern` і `Abbrechen`, щоб зберігати без прокрутки вниз.
+- Усі `Änderungen speichern` кнопки зроблено в зеленому `success` стилі.
+- Поля `zustimmung_at`, `SEPA-Lastschriftmandat` і `Datenschutzerklärung` зроблено read-only у edit UI; save backend додатково не приймає зміни цих полів.
+- Перевірено локальний admin UI в браузері: row click веде на view, actions/bulk menus не містять `Löschen`/`Anzeigen`, edit page має top/bottom save-cancel.
+
+### [2026-05-06 16:06] Admin status action colors — Codex
+- Для статусних actions у row menu і bulk menu додано точні `oklch` кольори з badge-тегів: `Aktiv` зелений `oklch(0.527 0.154 150.069)`, `Ausstehend` оранжевий `oklch(0.555 0.163 48.998)`.
+- Додано вузький admin CSS hook, щоб Filament не перебивав колір тексту та іконок у dropdown actions.
+- Усі видимі `Bearbeiten` actions залишено в сірому стилі як `Abbrechen`.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

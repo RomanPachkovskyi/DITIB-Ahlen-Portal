@@ -23,7 +23,9 @@ class ViewMember extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make()->label('Bearbeiten'),
+            EditAction::make()
+                ->label('Bearbeiten')
+                ->color('gray'),
         ];
     }
 }

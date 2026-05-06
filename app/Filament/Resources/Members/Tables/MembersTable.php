@@ -2,16 +2,17 @@
 
 namespace App\Filament\Resources\Members\Tables;
 
+use App\Filament\Resources\Members\MemberResource;
+use App\Models\Member;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\RestoreAction;
-use Filament\Actions\RestoreBulkAction;
-use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class MembersTable
 {
@@ -114,6 +115,8 @@ class MembersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
+            ->recordUrl(fn (Member $record): string => MemberResource::getUrl('view', ['record' => $record]))
+            ->recordAction(null)
             ->filters([
                 SelectFilter::make('status')
                     ->label('Status')
@@ -134,17 +137,86 @@ class MembersTable
             ])
             ->recordActions([
                 \Filament\Actions\ActionGroup::make([
-                    ViewAction::make()->label('Anzeigen'),
-                    EditAction::make()->label('Bearbeiten'),
-                    \Filament\Actions\DeleteAction::make()->label('Löschen'),
-                    RestoreAction::make()->label('Wiederherstellen'),
+                    EditAction::make()
+                        ->label('Bearbeiten')
+                        ->icon('heroicon-m-pencil-square')
+                        ->color('gray'),
+                    \Filament\Actions\ActionGroup::make(self::statusRecordActions())
+                        ->dropdown(false),
                 ]),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
-                ]),
+                BulkActionGroup::make(self::statusBulkActions()),
             ]);
+    }
+
+    /**
+     * @return array<Action>
+     */
+    private static function statusRecordActions(): array
+    {
+        return [
+            self::statusRecordAction('pending', 'Als Ausstehend markieren', 'heroicon-m-sparkles', 'warning'),
+            self::statusRecordAction('active', 'Als Aktiv markieren', 'heroicon-m-check-circle', 'success'),
+            self::statusRecordAction('inactive', 'Als Inaktiv markieren', 'heroicon-m-x-circle', 'danger'),
+        ];
+    }
+
+    private static function statusRecordAction(string $status, string $label, string $icon, string $color): Action
+    {
+        return Action::make('set_status_' . $status)
+            ->label($label)
+            ->icon($icon)
+            ->color($color)
+            ->extraAttributes(self::statusActionAttributes($status))
+            ->hidden(fn (Member $record): bool => $record->status === $status)
+            ->action(fn (Member $record): bool => $record->update(['status' => $status]))
+            ->successNotificationTitle('Status aktualisiert');
+    }
+
+    /**
+     * @return array<BulkAction>
+     */
+    private static function statusBulkActions(): array
+    {
+        return [
+            self::statusBulkAction('pending', 'Auf Ausstehend setzen', 'heroicon-m-sparkles', 'warning'),
+            self::statusBulkAction('active', 'Auf Aktiv setzen', 'heroicon-m-check-circle', 'success'),
+            self::statusBulkAction('inactive', 'Auf Inaktiv setzen', 'heroicon-m-x-circle', 'danger'),
+        ];
+    }
+
+    private static function statusBulkAction(string $status, string $label, string $icon, string $color): BulkAction
+    {
+        return BulkAction::make('bulk_set_status_' . $status)
+            ->label($label)
+            ->icon($icon)
+            ->color($color)
+            ->extraAttributes(self::statusActionAttributes($status))
+            ->requiresConfirmation()
+            ->action(fn (EloquentCollection $records) => $records->each(fn (Member $record): bool => $record->update(['status' => $status])))
+            ->deselectRecordsAfterCompletion()
+            ->successNotificationTitle('Status für ausgewählte Mitglieder aktualisiert');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function statusActionAttributes(string $status): array
+    {
+        $color = match ($status) {
+            'active' => 'oklch(0.527 0.154 150.069)',
+            'pending' => 'oklch(0.555 0.163 48.998)',
+            default => null,
+        };
+
+        if (! $color) {
+            return [];
+        }
+
+        return [
+            'class' => "fi-text-color-700 ditib-status-action-{$status}",
+            'style' => "--color-700: {$color}; --text: {$color}; --hover-text: {$color}; color: {$color};",
+        ];
     }
 }

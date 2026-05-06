@@ -188,10 +188,12 @@ scripts/build-artifact.sh
 4. **Міграції** — тільки через `php artisan make:migration`
 5. **IBAN і BIC** — обов'язково `'encrypted'` cast у моделі (DSGVO)
 6. **Member numbers** — `member_number` ніколи не перевикористовувати; видавати тільки через `MemberNumberSequence`, видалення `Member` має бути soft delete
-7. **Commit** — англійська, коротко: `feat:`, `fix:`, `docs:`, `chore:`
-8. **Гілка** — завжди `main` для цього репо
-9. **Не чіпати** `~/Project/DITIB-Ahlen/main/` — інший проект
-10. **Filament v5** — `Section` → `Filament\Schemas\Components\Section` (не Forms)
+7. **Admin member lifecycle** — в UI адмін не видаляє членів; для завершення членства переводить `status` у `inactive`
+8. **Admin consent fields** — SEPA/DSGVO consent і `zustimmung_at` у edit UI мають лишатися read-only; адмін не редагує згоду клієнта
+9. **Commit** — англійська, коротко: `feat:`, `fix:`, `docs:`, `chore:`
+10. **Гілка** — завжди `main` для цього репо
+11. **Не чіпати** `~/Project/DITIB-Ahlen/main/` — інший проект
+12. **Filament v5** — `Section` → `Filament\Schemas\Components\Section` (не Forms)
 
 ---
 
