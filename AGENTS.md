@@ -59,6 +59,7 @@ Laravel 13 + Filament v5 портал членів громади DITIB Ahlen.
 - З браузера має бути доступна тільки папка `public/`, не корінь Laravel-проєкту
 - `public/build` — це лише Vite assets (CSS/JS), не сам застосунок
 - Production DB: MySQL у Plesk; SQLite використовується тільки локально
+- Production deploy stack: **artifact upload через Plesk File Manager/FTP + SQL import через phpMyAdmin**. Не питати щоразу про SSH; вважати SSH/Terminal недоступним, якщо користувач прямо не скаже інше.
 - `.env` створюється вручну на сервері та ніколи не комітиться
 - `APP_KEY` на production згенерувати один раз і не міняти: він потрібен для encrypted IBAN/BIC
 
@@ -152,8 +153,11 @@ tar -tvzf deploy-artifacts/ditib-ahlen-portal-*.tar.gz | head
 ./vendor/bin/phpunit
 scripts/build-artifact.sh
 # завантажити deploy-artifacts/ditib-ahlen-portal-*.tar.gz на Plesk
+# якщо є нові міграції: імпортувати відповідний SQL через phpMyAdmin
 # продовжувати локальні правки без відновлення залежностей
 ```
+
+**Production DB зміни:** не планувати `php artisan migrate` на сервері як стандартний шлях. Для кожної нової міграції готувати SQL-файл у `deploy-artifacts/` і виконувати його через phpMyAdmin. SQL має також додавати запис у таблицю `migrations`, щоб Laravel не вважав міграцію невиконаною в майбутньому.
 
 ---
 

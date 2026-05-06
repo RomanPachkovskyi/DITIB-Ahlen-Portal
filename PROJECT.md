@@ -231,8 +231,11 @@ npm run build
 | PHP | 8.4+ (`composer.json` вимагає `^8.4`) |
 | DB | MySQL (Plesk) |
 | Deploy | Artifact deploy через File Manager/FTP |
+| DB changes | SQL-файли через phpMyAdmin |
 
-**Обраний робочий процес з 2026-05-06:** artifact deploy. Причина: Plesk Git успішно копіює файли, але additional deployment actions не можуть запускати shell-команди через `execv("/bin/bash") failed system error: Permission denied`. Тому production-артефакт збирається локально або в GitHub Actions і завантажується на сервер уже з `vendor/` та `public/build/`.
+**Обраний робочий процес з 2026-05-06:** artifact deploy + SQL/phpMyAdmin. Причина: Plesk Git успішно копіює файли, але additional deployment actions не можуть запускати shell-команди через `execv("/bin/bash") failed system error: Permission denied`. Тому production-артефакт збирається локально або в GitHub Actions і завантажується на сервер уже з `vendor/` та `public/build/`; зміни БД виконуються окремими SQL-файлами через phpMyAdmin.
+
+Для агентів: не питати щоразу про SSH/Terminal. Стандартний production stack цього проекту — **Plesk File Manager/FTP для файлів і phpMyAdmin для БД**. SSH/Terminal вважати недоступним, якщо користувач явно не змінить це рішення.
 
 ### Artifact deploy — поточний процес
 
@@ -283,13 +286,13 @@ npm run build
 
 ### Міграції БД при artifact deploy
 
-Оскільки `php artisan migrate --force` на сервері недоступний, зміни БД потрібно виконувати окремо через phpMyAdmin.
+Оскільки `php artisan migrate --force` на сервері недоступний і не є частиною поточного production stack, зміни БД потрібно виконувати окремо через phpMyAdmin.
 
 Для першого production-деплою імпортувати SQL-схему з міграцій у MySQL. Для наступних деплоїв:
 
 1. Перед деплоєм перевірити, чи додалися нові файли в `database/migrations/`.
 2. Якщо міграцій немає, SQL-дії не потрібні.
-3. Якщо міграції є, підготувати відповідний SQL вручну або згенерувати на тестовій MySQL-базі.
+3. Якщо міграції є, підготувати відповідний SQL-файл у `deploy-artifacts/`.
 4. Імпортувати SQL через phpMyAdmin.
 5. Перевірити таблицю `migrations`, щоб production не вважав міграцію невиконаною, якщо Artisan колись стане доступним.
 
@@ -351,11 +354,12 @@ Production потребує MySQL у Plesk:
 
 1. Створити MySQL database і database user у Plesk.
 2. Прописати доступи в серверному `.env`.
-3. Запустити `php artisan migrate --force`.
+3. Імпортувати schema/data SQL через phpMyAdmin.
+4. Для наступних змін БД імпортувати окремі migration SQL-файли з `deploy-artifacts/`.
 
 SQLite (`database/database.sqlite`) використовується тільки локально. Для production не переносити локальний SQLite-файл на сервер.
 
-**Стан на 2026-05-05:** MySQL database/user створені в Plesk, серверний `.env` створений, Plesk Git deploy налаштований. Перший deploy виконувати вручну, щоб перевірити лог і помилки до увімкнення регулярного automatic deploy.
+**Стан на 2026-05-06:** MySQL database/user створені в Plesk, серверний `.env` створений. Поточний deploy-стек зафіксований як artifact upload через File Manager/FTP + SQL import через phpMyAdmin.
 
 **Перший manual deploy 2026-05-05:** deploy key validation успішний, файли скопійовані в `mitglied.ditib-ahlen-projekte.de`, але Deploy actions не виконались:
 
@@ -365,84 +369,20 @@ execv("/bin/bash") failed system error: Permission denied
 
 Це означає, що Git deploy працює, але Plesk/subscription user не має права запускати `/bin/bash`, через який Plesk виконує additional deployment actions. Поки це не виправлено, `composer install`, `npm ci`, `npm run build`, `php artisan migrate --force` і cache-команди не запускаються.
 
-Що перевірити в Plesk:
+Через це Git deploy/Deploy actions лишаються довідковим, не основним шляхом. Не планувати production deploy навколо SSH, Terminal або `php artisan migrate --force`, якщо це рішення не буде явно переглянуте.
 
-1. Domains → `mitglied.ditib-ahlen-projekte.de` → Hosting & DNS → Web Hosting Access.
-2. Для системного користувача увімкнути shell access (`/bin/bash` або `/bin/sh`, якщо доступно).
-3. Якщо shell access недоступний у тарифі, попросити хостинг увімкнути виконання Plesk Git deploy actions або надати Plesk Terminal/SSH.
-4. Після зміни доступу повторити manual deploy.
+### Plesk Deploy actions — не активний процес
 
-Якщо хостинг не дозволяє shell/Deploy actions взагалі, потрібна fallback-стратегія без серверних команд. Варіанти нижче, від найкращого до найменш бажаного.
+Plesk Git/Deploy actions залишені тільки як історична довідка. Поточний робочий процес не використовує серверні shell-команди, `composer`, `npm`, `php artisan migrate --force` або cache-команди на production.
 
-### Fallback без SSH / shell
+Для production:
 
-#### Варіант A — попросити хостинг увімкнути тільки Deploy actions
+- файли: `scripts/build-artifact.sh` → завантажити архів через Plesk File Manager/FTP;
+- база: SQL-файли з `deploy-artifacts/` → імпорт через phpMyAdmin;
+- `.env`: створюється і редагується вручну в Plesk File Manager;
+- `APP_KEY`: генерується локально один раз і вставляється вручну в production `.env`.
 
-Найкращий варіант, якщо SSH як інтерактивний доступ не дають, але можуть дозволити Plesk Git additional deployment actions або Plesk Terminal для subscription user.
-
-Текст для хостингу:
-
-```text
-Plesk Git deployment copies files successfully, but additional deployment actions fail with:
-execv("/bin/bash") failed system error: Permission denied
-
-Please enable shell execution for the subscription user only for Plesk Git additional deployment actions, or provide Plesk Terminal for this domain.
-Interactive SSH access is not required if deployment actions can run.
-Domain: mitglied.ditib-ahlen-projekte.de
-```
-
-#### Варіант B — використати Plesk UI-інструменти замість shell
-
-Перевірити, чи доступні в Plesk:
-
-- **PHP Composer**: може виконати `composer install` через UI.
-- **Node.js**: може виконати `npm ci` / `npm run build` через UI.
-- **Scheduled Tasks**: іноді дозволяє запускати PHP-команди навіть без SSH.
-- **phpMyAdmin**: можна імпортувати SQL для структури БД, якщо `php artisan migrate` неможливий.
-
-Цей варіант залежить від конкретного тарифу/розширень Plesk.
-
-#### Варіант C — artifact deploy через Git/File Manager/FTP
-
-Якщо на сервері не можна запускати жодні команди, збирати все локально або в GitHub Actions:
-
-1. Локально/CI виконати `composer install --no-dev`, `npm ci`, `npm run build`.
-2. Завантажити/доставити на сервер уже готові `vendor/` і `public/build/`.
-3. Для БД не запускати міграції на сервері, а імпортувати SQL через phpMyAdmin.
-
-Мінуси:
-
-- `vendor/` великий і зазвичай не комітиться.
-- Deploy стає повільнішим і менш чистим.
-- Кожна зміна міграцій потребує SQL-експорту/імпорту.
-
-#### Варіант D — тимчасовий захищений web-deploy endpoint
-
-Можна зробити тимчасовий route/controller з секретним токеном, який запускає потрібні Artisan-команди через HTTP. Це технічно можливо, але ризиковано.
-
-Використовувати тільки як тимчасовий аварійний інструмент:
-
-- обмежити секретним токеном;
-- бажано обмежити IP;
-- не логувати секрети;
-- видалити route одразу після першого деплою.
-
-Для production це не рекомендований постійний процес.
-
-#### Варіант E — інший тариф/хостинг/VPS
-
-Найчистіший довгостроковий варіант для Laravel: тариф або VPS із SSH/Terminal, Composer, Node і cron/queue support. Для Filament/Livewire/Laravel це значно зменшить ризики при майбутніх оновленнях.
-
-### Deploy actions на Plesk
-
-Якщо SSH/Terminal на хостингу недоступні, усі регулярні команди виконуються через **Plesk Git → Deploy actions**.
-
-Перед першим автодеплоєм створити `.env` на сервері та налаштувати MySQL. `APP_KEY` можна:
-
-- згенерувати локально командою `php artisan key:generate --show` і вставити значення вручну в серверний `.env`;
-- або тимчасово додати `php artisan key:generate --force` у Deploy actions тільки для першого запуску, а після успіху одразу прибрати.
-
-Переважний варіант без SSH: **згенерувати APP_KEY локально і вставити вручну**. Так немає ризику випадково змінити ключ на наступному деплої.
+`APP_KEY` можна згенерувати локально:
 
 ```bash
 php artisan key:generate --show
@@ -450,37 +390,7 @@ php artisan key:generate --show
 
 Після першого production-деплою `APP_KEY` не міняти, бо IBAN/BIC шифруються Laravel encrypted cast через цей ключ.
 
-У поле **Deploy actions** у Plesk вставити команди, кожну з нового рядка:
-
-```bash
-composer install --optimize-autoloader --no-dev
-npm ci
-npm run build
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-`npm ci` використовується, бо в репозиторії є `package-lock.json`; це стабільніше для production, ніж `npm install`.
-
-Якщо Plesk не знаходить `composer`, `npm` або потрібну версію `php`, треба вказати повні шляхи з Plesk/PHP settings або виконувати ці команди через Plesk Terminal у правильному PHP/Node середовищі.
-
-Повторні ручні деплої виконують той самий набір команд:
-```bash
-composer install --optimize-autoloader --no-dev
-npm ci
-npm run build
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-Після першого деплою створити адміна:
-```bash
-php artisan make:filament-user
-```
+Admin-користувачі на production створюються через підготовлений SQL для phpMyAdmin або через Filament/адмін-інтерфейс, якщо він уже доступний. `php artisan make:filament-user` не є стандартним production-кроком для цього хостингу.
 
 ### `.env` на сервері
 

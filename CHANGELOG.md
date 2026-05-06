@@ -383,6 +383,16 @@
 - Додано regression tests для послідовної видачі номерів, невикористання номера після delete і захисту від sequence drift.
 - Оновлено `AGENTS.md` і `PROJECT.md` з новим правилом: `member_number` ніколи не перевикористовується.
 
+### [2026-05-06 15:03] Production stack зафіксовано як artifact + SQL/phpMyAdmin — Codex
+- Зафіксовано в `AGENTS.md` і `PROJECT.md`, що стандартний production deploy stack: artifact upload через Plesk File Manager/FTP і SQL import через phpMyAdmin.
+- Прибрано двозначність навколо SSH/Terminal/Deploy actions: агентам більше не потрібно щоразу питати про SSH, якщо користувач явно не змінить це рішення.
+- Підготовлено SQL для production-міграції member number sequence + soft deletes: `deploy-artifacts/production-member-number-sequence-soft-deletes-20260506-150252.sql`.
+- Оновлено `scripts/export-production-sql.php`, щоб повний SQL schema export містив `members.deleted_at` і `member_number_sequences`.
+
+### [2026-05-06 15:05] Фікс collation у production SQL міграції — Codex
+- Оновлено `deploy-artifacts/production-member-number-sequence-soft-deletes-20260506-150252.sql`, щоб порівняння `migrations.migration` з `@migration_name` явно використовувало `utf8mb4_unicode_ci`.
+- Додано явний collation також для перевірки `member_number_sequences.name`, щоб повторний імпорт через phpMyAdmin був стабільним на БД з іншим default collation.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*
