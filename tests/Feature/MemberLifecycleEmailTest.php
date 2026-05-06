@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Mail\MemberApprovedNotification;
 use App\Mail\MemberDeletedAdminNotification;
+use App\Mail\MemberDeletedNotification;
 use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -60,6 +61,23 @@ class MemberLifecycleEmailTest extends TestCase
         Mail::assertNothingQueued();
     }
 
+    public function test_it_emails_member_when_member_is_deleted(): void
+    {
+        Mail::fake();
+
+        $member = $this->createMember([
+            'full_name' => 'Delete Client Test',
+            'email' => 'deleted-client@example.com',
+            'status' => 'active',
+        ]);
+
+        $member->delete();
+
+        Mail::assertSent(MemberDeletedNotification::class, 1);
+        Mail::assertSent(MemberDeletedNotification::class, fn (MemberDeletedNotification $mail) => $mail->hasTo('deleted-client@example.com'));
+        Mail::assertNothingQueued();
+    }
+
     public function test_lifecycle_email_templates_render_member_details(): void
     {
         $member = $this->createMember([
@@ -70,6 +88,19 @@ class MemberLifecycleEmailTest extends TestCase
 
         $this->assertStringContainsString('Template Test', (new MemberApprovedNotification($member))->render());
         $this->assertStringContainsString('Template Test', (new MemberDeletedAdminNotification($member))->render());
+        $this->assertStringContainsString('Template Test', (new MemberDeletedNotification($member))->render());
+    }
+
+    public function test_mail_header_contains_public_logo_url(): void
+    {
+        $member = $this->createMember([
+            'full_name' => 'Logo Test',
+            'email' => 'logo@example.com',
+        ]);
+
+        $html = (new MemberApprovedNotification($member))->render();
+
+        $this->assertStringContainsString('https://mitglied.ditib-ahlen-projekte.de/images/ditib_ahlen_logo.png', $html);
     }
 
     /**

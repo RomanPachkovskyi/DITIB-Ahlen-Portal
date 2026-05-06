@@ -345,6 +345,13 @@
 - Додано regression tests для approval email, deletion email і рендерингу нових email-шаблонів.
 - Зафіксовано майбутню задачу глобального audit-log у `Правки і зміни на сайті.md`.
 
+### [2026-05-06 13:18] Email клієнту при видаленні та фікс логотипу листів — Codex
+- Додано `MemberDeletedNotification`: при видаленні запису клієнт теж отримує email-повідомлення.
+- Оновлено delete lifecycle: адміну і клієнту листи відправляються окремо, з окремим логуванням SMTP-помилок.
+- Додано `MAIL_LOGO_URL` у `.env.example` і `config/mail.php`; email header тепер використовує стабільний production HTTPS URL логотипу.
+- Додано regression tests для клієнтського delete email і присутності logo URL у rendered email HTML.
+- Оновлено `PROJECT.md` і `Правки і зміни на сайті.md`.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

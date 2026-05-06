@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Mail\MemberApprovedNotification;
 use App\Mail\MemberDeletedAdminNotification;
+use App\Mail\MemberDeletedNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Log;
@@ -91,6 +92,18 @@ class Member extends Model
                 Mail::to('info@ditib-ahlen-projekte.de')->send(new MemberDeletedAdminNotification($member));
             } catch (Throwable $exception) {
                 Log::error('Member deletion admin email delivery failed.', [
+                    'member_id' => $member->id,
+                    'member_number' => $member->member_number,
+                    'email' => $member->email,
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+
+            try {
+                Mail::to($member->email)->send(new MemberDeletedNotification($member));
+            } catch (Throwable $exception) {
+                Log::error('Member deletion email delivery failed.', [
                     'member_id' => $member->id,
                     'member_number' => $member->member_number,
                     'email' => $member->email,
