@@ -20,6 +20,14 @@ class User extends Authenticatable implements FilamentUser
     use HasFactory, Notifiable;
 
     /**
+     * @var array<int, string>
+     */
+    private const ADMIN_EMAILS = [
+        'rpachkovskyi@gmail.com',
+        'info@ditib-ahlen-projekte.de',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -35,7 +43,7 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         return match ($panel->getId()) {
-            'admin' => $this->email === 'rpachkovskyi@gmail.com',
+            'admin' => in_array($this->email, self::ADMIN_EMAILS, true),
             'member' => true,
             default => false,
         };

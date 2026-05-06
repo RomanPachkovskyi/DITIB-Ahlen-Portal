@@ -10,41 +10,30 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class NewMemberNotification extends Mailable
+class MemberApprovedNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     */
     public function __construct(public Member $member)
     {
         //
     }
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Neuer Mitgliedsantrag: ' . $this->member->full_name,
+            subject: 'Ihr Mitgliedsantrag wurde angenommen',
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.new-member-notification',
+            markdown: 'emails.member-approved-notification',
         );
     }
 
     /**
-     * Get the attachments for the message.
-     *
      * @return array<int, Attachment>
      */
     public function attachments(): array

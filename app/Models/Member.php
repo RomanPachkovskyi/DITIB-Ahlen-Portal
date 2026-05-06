@@ -2,8 +2,13 @@
 
 namespace App\Models;
 
+use App\Mail\MemberApprovedNotification;
+use App\Mail\MemberDeletedAdminNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class Member extends Model
 {
@@ -60,6 +65,38 @@ class Member extends Model
         static::creating(function (Member $member) {
             if (empty($member->member_number)) {
                 $member->member_number = static::generateMemberNumber();
+            }
+        });
+
+        static::updated(function (Member $member) {
+            if (! $member->wasChanged('status') || $member->status !== 'active' || $member->getOriginal('status') === 'active') {
+                return;
+            }
+
+            try {
+                Mail::to($member->email)->send(new MemberApprovedNotification($member));
+            } catch (Throwable $exception) {
+                Log::error('Member approval email delivery failed.', [
+                    'member_id' => $member->id,
+                    'member_number' => $member->member_number,
+                    'email' => $member->email,
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        });
+
+        static::deleting(function (Member $member) {
+            try {
+                Mail::to('info@ditib-ahlen-projekte.de')->send(new MemberDeletedAdminNotification($member));
+            } catch (Throwable $exception) {
+                Log::error('Member deletion admin email delivery failed.', [
+                    'member_id' => $member->id,
+                    'member_number' => $member->member_number,
+                    'email' => $member->email,
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
             }
         });
     }

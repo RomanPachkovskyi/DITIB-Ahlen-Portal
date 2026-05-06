@@ -45,11 +45,11 @@
 | Стилі | Tailwind CSS | v4 |
 | База даних (local) | SQLite | — |
 | База даних (production) | MySQL | Plesk |
-| Email | Laravel Mail → SMTP + Queues | — |
+| Email | Laravel Mail → SMTP, синхронно при реєстрації | — |
 | PDF | barryvdh/laravel-dompdf | встановлено |
 | Підпис | Alpine.js canvas | вбудований |
 | Налаштування адміна | spatie/laravel-settings | Етап 3 |
-| Черги (email/PDF) | Laravel Queue (database driver) | Етап 2–3 |
+| Черги (майбутні jobs/PDF) | Laravel Queue (database driver), без production worker зараз | Етап 3+ |
 
 > **Важливо для Filament v5:** `Section` знаходиться в `Filament\Schemas\Components\Section`, НЕ в `Filament\Forms\Components`.
 
@@ -75,6 +75,8 @@
 - Список членів з пошуком, фільтром по статусу, badge-кольорами
 - Перегляд і редагування кожного запису (секції: Дані, Банк, Статус)
 - Схвалення / відхилення заявок (статуси: `pending` → `active` / `inactive`)
+- При зміні статусу на `active` член отримує email про прийняття
+- При видаленні запису адміністратор отримує email-фіксацію видалення
 - Обробка запитів на зміну даних
 
 ---
@@ -158,6 +160,7 @@
 | Admin | http://localhost:8000/admin |
 | Konto | http://localhost:8000/konto |
 | Admin login | rpachkovskyi@gmail.com / Admin1234! |
+| Admin login | info@ditib-ahlen-projekte.de / AhlenDitib2026! |
 
 **Запуск:**
 ```bash
@@ -522,7 +525,7 @@ DB_PASSWORD=...
 MAIL_HOST=...
 ```
 
-Для першого тесту можна тимчасово залишити mail налаштування мінімальними, але перед перевіркою реєстраційних листів потрібно прописати реальний SMTP і перевірити черги (`QUEUE_CONNECTION=database`).
+Для першого тесту можна тимчасово залишити mail налаштування мінімальними, але перед перевіркою реєстраційних листів потрібно прописати реальний SMTP. Реєстраційні листи відправляються синхронно під час submit, бо на поточному Plesk artifact-deploy немає стабільного queue worker-а.
 
 ---
 
@@ -539,13 +542,14 @@ MAIL_HOST=...
 
 ### Етап 2 ✅ ВИКОНАНО
 - [x] Автовизначення PLZ → місто і федеральна земля (OpenPLZ API)
-- [x] Email клієнту після відправки форми (через Queue)
+- [x] Email клієнту після відправки форми (синхронно через SMTP, без queue worker)
 - [x] Email адміну про нову заявку
 
 ### Етап 3 ✅ ВИКОНАНО
 - [x] Dashboard адмінки зі статистикою (widgets)
 - [x] Іконки навігації + логотип DITIB в адмінці
-- [x] Email клієнту при підтвердженні реєстрації (Event + Job)
+- [x] Email клієнту при підтвердженні реєстрації (Event + synchronous listener)
+- [x] Email адміну при видаленні запису члена
 - [x] DSGVO-згода та SEPA-згода перенесені на Крок 3 форми
 - [ ] spatie/laravel-settings — сторінка налаштувань (підпис, печатка)
 - [ ] PDF підтвердження членства (Base64 для зображень)

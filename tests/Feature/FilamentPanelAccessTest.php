@@ -18,6 +18,7 @@ class FilamentPanelAccessTest extends TestCase
         $panel = (new Panel())->id('admin');
 
         $this->assertTrue((new User(['email' => 'rpachkovskyi@gmail.com']))->canAccessPanel($panel));
+        $this->assertTrue((new User(['email' => 'info@ditib-ahlen-projekte.de']))->canAccessPanel($panel));
         $this->assertFalse((new User(['email' => 'member@example.com']))->canAccessPanel($panel));
     }
 

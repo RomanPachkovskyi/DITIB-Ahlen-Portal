@@ -321,6 +321,30 @@
 - Публічна анкета тепер приймає IBAN з пробілами та малими літерами, показує його як `DE 42 4005 0150 0068 0009 59`, а в БД зберігає canonical IBAN без пробілів.
 - Filament admin form отримав такий самий формат відображення та dehydrate до canonical IBAN.
 
+### [2026-05-06 11:02] Додано другого адміністратора — Codex
+- Додано `info@ditib-ahlen-projekte.de` до allow-list для доступу в Filament AdminPanel (`/admin`).
+- Створено локального admin-користувача `info@ditib-ahlen-projekte.de` з паролем `AhlenDitib2026!`.
+- Підготовлено ignored SQL-файл для phpMyAdmin production import: `deploy-artifacts/add-admin-info-ditib-ahlen-projekte-20260506-1102.sql`.
+- Оновлено regression test для доступу до admin panel двома дозволеними email-адресами.
+
+### [2026-05-06 11:10] Фікс production email без queue worker — Codex
+- Прибрано `ShouldQueue` з registration email listener-а та mailables, щоб листи не зависали в таблиці `jobs` на Plesk без queue worker-а.
+- Явно зареєстровано `MemberRegistered` → `SendRegistrationEmails` у `AppServiceProvider`.
+- Додано логування SMTP-помилок у listener, щоб збій пошти не ламав збереження анкети.
+- Додано regression test: після submit лист члену та лист адміну відправляються синхронно і нічого не queue-иться.
+- Оновлено `PROJECT.md`: реєстраційні листи тепер описані як synchronous SMTP, не Queue.
+
+### [2026-05-06 11:21] Фікс дублювання registration email — Codex
+- Прибрано зайву явну реєстрацію `MemberRegistered` listener-а з `AppServiceProvider`, бо Laravel event discovery уже знаходить `SendRegistrationEmails`.
+- Оновлено regression test: після submit має відправлятись рівно один лист члену і рівно один лист адміну.
+
+### [2026-05-06 11:29] Email при підтвердженні та видаленні — Codex
+- Додано email члену при зміні статусу заявки на `active`.
+- Додано email адміну при видаленні запису члена як мінімальну фіксацію дії до повного audit-log.
+- Додано Markdown-шаблони та Mailable-класи для approval/deletion повідомлень.
+- Додано regression tests для approval email, deletion email і рендерингу нових email-шаблонів.
+- Зафіксовано майбутню задачу глобального audit-log у `Правки і зміни на сайті.md`.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

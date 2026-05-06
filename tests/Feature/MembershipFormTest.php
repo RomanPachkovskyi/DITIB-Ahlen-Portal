@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Events\MemberRegistered;
 use App\Livewire\MembershipForm;
+use App\Mail\MemberRegistrationConfirmation;
+use App\Mail\NewMemberNotification;
 use App\Support\Iban;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -87,5 +90,34 @@ class MembershipFormTest extends TestCase
         $this->assertSame('DE42400501500068000959', \App\Models\Member::where('email', 'erika@example.com')->value('iban'));
 
         Event::assertDispatched(MemberRegistered::class);
+    }
+
+    public function test_it_sends_registration_emails_without_queue_worker(): void
+    {
+        Mail::fake();
+
+        Livewire::test(MembershipForm::class)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Ali Mustermann')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 3')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'ali@example.com')
+            ->set('phone', '+49 2382 123456')
+            ->set('monatsbeitrag', 25)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->call('submit')
+            ->assertHasNoErrors()
+            ->assertSet('submitted', true);
+
+        Mail::assertSent(MemberRegistrationConfirmation::class, 1);
+        Mail::assertSent(NewMemberNotification::class, 1);
+        Mail::assertSent(MemberRegistrationConfirmation::class, fn (MemberRegistrationConfirmation $mail) => $mail->hasTo('ali@example.com'));
+        Mail::assertSent(NewMemberNotification::class, fn (NewMemberNotification $mail) => $mail->hasTo('info@ditib-ahlen-projekte.de'));
+        Mail::assertNothingQueued();
     }
 }
