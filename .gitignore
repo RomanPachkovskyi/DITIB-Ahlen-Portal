@@ -1,5 +1,7 @@
 *.log
 .DS_Store
+==logs/
+Правки і зміни на сайті.md
 .env
 .env.backup
 .env.production
@@ -14,6 +16,7 @@
 /.zed
 /auth.json
 /node_modules
+/deploy-artifacts
 /public/build
 /public/hot
 /public/storage

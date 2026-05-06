@@ -181,11 +181,74 @@ npm run build
 | Домен | `mitglied.ditib-ahlen-projekte.de` |
 | Server folder | `mitglied.ditib-ahlen-projekte.de/` (окремо від `httpdocs`) |
 | Document Root | `mitglied.ditib-ahlen-projekte.de/public` |
-| PHP | 8.3+ (`composer.json` вимагає `^8.3`) |
+| PHP | 8.4+ (`composer.json` вимагає `^8.4`) |
 | DB | MySQL (Plesk) |
-| Deploy | git push main → Plesk Git → auto-deploy |
+| Deploy | Artifact deploy через File Manager/FTP |
+
+**Обраний робочий процес з 2026-05-06:** artifact deploy. Причина: Plesk Git успішно копіює файли, але additional deployment actions не можуть запускати shell-команди через `execv("/bin/bash") failed system error: Permission denied`. Тому production-артефакт збирається локально або в GitHub Actions і завантажується на сервер уже з `vendor/` та `public/build/`.
+
+### Artifact deploy — поточний процес
+
+Локально зібрати архів:
+
+```bash
+cd ~/Project/DITIB-Ahlen/portal
+scripts/build-artifact.sh
+```
+
+Скрипт виконує:
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm ci
+npm run build
+```
+
+Після цього створюється архів у `deploy-artifacts/ditib-ahlen-portal-YYYYMMDD-HHMMSS.tar.gz`.
+
+Архів містить:
+
+- весь Laravel-код (`app/`, `bootstrap/`, `config/`, `database/`, `resources/`, `routes/`, `public/`, `storage/` тощо);
+- готовий `vendor/`;
+- готовий `public/build/`;
+- `.env.example` для довідки.
+
+Архів НЕ містить:
+
+- `.env` та локальні `.env.*`;
+- `node_modules/`;
+- `database/database.sqlite`;
+- локальні `storage/logs/*.log`, sessions, compiled views і cache data;
+- `.git/`.
+
+Завантаження на Plesk:
+
+1. Відкрити Plesk → `mitglied.ditib-ahlen-projekte.de` → File Manager або FTP.
+2. Перейти в корінь Laravel-проєкту: `mitglied.ditib-ahlen-projekte.de/`.
+3. Завантажити архів.
+4. Розпакувати архів у цю папку з перезаписом файлів.
+5. Перевірити, що серверний `.env` залишився на місці і не був замінений.
+6. Перевірити, що Document Root досі `mitglied.ditib-ahlen-projekte.de/public`.
+
+Після artifact deploy без shell-команд Laravel працює без `config:cache`, `route:cache` і `view:cache`. Це повільніше за optimized deploy, але прийнятно для поточного масштабу порталу.
+
+### Міграції БД при artifact deploy
+
+Оскільки `php artisan migrate --force` на сервері недоступний, зміни БД потрібно виконувати окремо через phpMyAdmin.
+
+Для першого production-деплою імпортувати SQL-схему з міграцій у MySQL. Для наступних деплоїв:
+
+1. Перед деплоєм перевірити, чи додалися нові файли в `database/migrations/`.
+2. Якщо міграцій немає, SQL-дії не потрібні.
+3. Якщо міграції є, підготувати відповідний SQL вручну або згенерувати на тестовій MySQL-базі.
+4. Імпортувати SQL через phpMyAdmin.
+5. Перевірити таблицю `migrations`, щоб production не вважав міграцію невиконаною, якщо Artisan колись стане доступним.
+
+Важливо: локальний SQLite (`database/database.sqlite`) ніколи не переносити на production.
 
 ### Plesk Git settings
+
+Цей варіант поки не є основним через помилку shell execution. Залишено як довідку, якщо хостинг пізніше увімкне Deploy actions/Terminal.
 
 У Plesk обирати **Install from remote repository**, не `Install Skeleton`.
 
@@ -488,6 +551,6 @@ MAIL_HOST=...
 - [ ] Unterschrift canvas у формі реєстрації (Крок 4)
 - [ ] Кабінет члена — перегляд даних, Änderungsantrag
 - [ ] Двомовність (DE + TR): Middleware SetLocale, lang/de.json, lang/tr.json
-- [x] Plesk Git deploy налаштований: DB створена, `.env` створено, Document Root = `mitglied.ditib-ahlen-projekte.de/public`; перший manual deploy очікує запуску
+- [x] Artifact deploy обрано як поточний процес: локальна збірка `vendor/` + `public/build/` + Laravel-код, завантаження через File Manager/FTP; міграції БД виконуються окремо через SQL/phpMyAdmin
 
 > Зміни в статусі — оновлювати тут і писати в `CHANGELOG.md`

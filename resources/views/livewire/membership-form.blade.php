@@ -325,7 +325,7 @@
                 <div class="sm:col-span-2 space-y-3 mt-2">
                     @if (in_array($zahlungsart, ['lastschrift', 'dauerauftrag']))
                         <label class="flex items-start gap-3 cursor-pointer">
-                            <input wire:model.blur="sepa_zustimmung" type="checkbox"
+                            <input wire:model.live="sepa_zustimmung" type="checkbox"
                                 class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('sepa_zustimmung') border-red-400 @enderror">
                             <span class="text-sm text-gray-700">
                                 Ich erteile das <strong>SEPA-Lastschriftmandat</strong> und ermächtige DITIB Ahlen,
@@ -336,7 +336,7 @@
                     @endif
 
                     <label class="flex items-start gap-3 cursor-pointer">
-                        <input wire:model.blur="dsgvo_zustimmung" type="checkbox"
+                        <input wire:model.live="dsgvo_zustimmung" type="checkbox"
                             class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('dsgvo_zustimmung') border-red-400 @enderror">
                         <span class="text-sm text-gray-700">
                             Ich habe die <strong>Datenschutzerklärung</strong> gelesen und stimme der

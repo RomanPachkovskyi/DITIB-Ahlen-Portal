@@ -261,6 +261,42 @@
 - Додано в `PROJECT.md` варіанти роботи, якщо хостинг не дозволить SSH/shell: дозвіл тільки для Plesk Deploy actions, Plesk Composer/Node/Scheduled Tasks/phpMyAdmin, artifact deploy із готовими `vendor/` і `public/build/`, тимчасовий захищений web-deploy endpoint або перехід на тариф/VPS із SSH.
 - Зафіксовано, що artifact/web endpoint варіанти можливі, але менш бажані для Laravel production і потребують контрольованого процесу для міграцій БД.
 
+### [2026-05-06 08:29] Artifact deploy обрано як процес деплою — Codex
+- Зафіксовано в `PROJECT.md`, що поточний робочий спосіб деплою — artifact deploy через File Manager/FTP, бо Plesk Git deploy actions не можуть запускати shell-команди.
+- Додано `scripts/build-artifact.sh`: локально встановлює production `vendor/`, збирає `public/build/` і створює архів `deploy-artifacts/ditib-ahlen-portal-*.tar.gz`.
+- Додано `/deploy-artifacts` у `.gitignore`, щоб готові архіви не потрапляли в репозиторій.
+- Описано, що artifact не містить `.env`, локальний SQLite, `node_modules`, логи і локальні cache/session/view файли; production `.env` лишається тільки на сервері.
+- Додано порядок роботи з міграціями БД при artifact deploy: SQL/phpMyAdmin окремо від завантаження файлів.
+
+### [2026-05-06 09:15] SQL export для artifact deploy — Codex
+- Додано `scripts/export-production-sql.php` для створення MySQL SQL-файлів у `deploy-artifacts/`.
+- Скрипт генерує окремо production-схему, PLZ-дані з локальної SQLite-бази та admin-користувача для імпорту через phpMyAdmin.
+- Локальні тестові `members` не експортуються автоматично, щоб не переносити encrypted IBAN/BIC із залежністю від локального `APP_KEY`.
+
+### [2026-05-06 09:40] Фікс DSGVO checkbox у формі — Codex
+- Змінено binding для DSGVO та SEPA checkbox-ів з `wire:model.blur` на `wire:model.live`, щоб згода одразу потрапляла в Livewire перед submit.
+- Додано регресійний тест, який перевіряє успішне відправлення анкети з Barzahlung і прийнятою Datenschutzerklärung.
+
+### [2026-05-06 09:53] Оновлення PHP requirement і очищення git — Codex
+- Оновлено актуальну вимогу production PHP до `8.4+` у `AGENTS.md`, `PROJECT.md` і `composer.json`.
+- Видалено з git локальні робочі файли `==logs/` та `Правки і зміни на сайті.md`.
+- Додано ці локальні файли/папки в `.gitignore`, щоб вони не повертались у репозиторій.
+
+### [2026-05-06 09:55] Фікс 403 після входу в Filament admin — Codex
+- Додано `FilamentUser::canAccessPanel()` у модель `User`, бо Filament на production вимагає явний дозвіл доступу до панелей.
+- Обмежено доступ до `/admin` тільки користувачем `rpachkovskyi@gmail.com`; `/konto` лишено доступним для authenticated users.
+- Додано тест доступу до Filament панелей для admin і member сценаріїв.
+
+### [2026-05-06 10:15] Фікс dashboard chart для MySQL production — Codex
+- Прибрано SQLite-only `strftime()` з віджета `MembersChart`, через який admin dashboard міг падати на production MySQL.
+- Підрахунок реєстрацій по місяцях перенесено в PHP, щоб графік працював однаково на SQLite і MySQL.
+- Додано regression test для графіка реєстрацій по місяцях.
+
+### [2026-05-06 10:21] Artifact exclude для Markdown документації — Codex
+- Оновлено `scripts/build-artifact.sh`, щоб production artifact не містив жодних `*.md` файлів.
+- З artifact тепер виключаються `AGENTS.md`, `PROJECT.md`, `CHANGELOG.md`, `README.md` та markdown-файли в підпапках.
+- Додатково виключено локальну папку `==logs/` з production artifact.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

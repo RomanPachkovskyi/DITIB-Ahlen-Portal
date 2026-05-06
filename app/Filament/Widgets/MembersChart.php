@@ -3,9 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Member;
-use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Facades\DB;
 
 class MembersChart extends ChartWidget
 {
@@ -33,21 +31,14 @@ class MembersChart extends ChartWidget
     {
         $activeFilter = $this->filter;
 
-        $data = Member::select(
-            DB::raw('count(id) as total'),
-            DB::raw("strftime('%m', created_at) as month")
-        )
-        ->whereYear('created_at', $activeFilter)
-        ->groupBy('month')
-        ->orderBy('month')
-        ->pluck('total', 'month')
-        ->toArray();
+        $countsByMonth = Member::query()
+            ->whereYear('created_at', $activeFilter)
+            ->get(['created_at'])
+            ->countBy(fn (Member $member) => $member->created_at?->format('m'));
 
-        $counts = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $key = str_pad($m, 2, '0', STR_PAD_LEFT);
-            $counts[] = $data[$key] ?? 0;
-        }
+        $counts = collect(range(1, 12))
+            ->map(fn (int $month) => $countsByMonth->get(str_pad((string) $month, 2, '0', STR_PAD_LEFT), 0))
+            ->all();
 
         return [
             'datasets' => [

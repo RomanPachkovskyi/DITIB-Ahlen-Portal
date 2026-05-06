@@ -47,7 +47,7 @@ Laravel 13 + Filament v5 портал членів громади DITIB Ahlen.
 | Admin | http://localhost:8000/admin | https://mitglied.ditib-ahlen-projekte.de/admin |
 | Konto | http://localhost:8000/konto | https://mitglied.ditib-ahlen-projekte.de/konto |
 | DB | SQLite (`database/database.sqlite`) | MySQL (Plesk) |
-| PHP | 8.5 (Homebrew, не Docker) | 8.3+ |
+| PHP | 8.5 (Homebrew, не Docker) | 8.4+ |
 
 ---
 
