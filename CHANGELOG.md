@@ -297,6 +297,16 @@
 - З artifact тепер виключаються `AGENTS.md`, `PROJECT.md`, `CHANGELOG.md`, `README.md` та markdown-файли в підпапках.
 - Додатково виключено локальну папку `==logs/` з production artifact.
 
+### [2026-05-06 10:28] Staging build без ламання локальних залежностей — Codex
+- Перероблено `scripts/build-artifact.sh`: production artifact тепер збирається в тимчасовій staging-папці в `/tmp`.
+- `composer install --no-dev`, `npm ci` і `npm run build` виконуються тільки в staging, тому локальні `vendor/`, `node_modules/` і `public/build/` не змінюються.
+- Оновлено `PROJECT.md` з новим стабільним циклом локальна робота → artifact build → production deploy → локальні правки.
+
+### [2026-05-06 10:32] Документація artifact-процесу для агентів — Codex
+- Додано в `AGENTS.md` окремий розділ про staging artifact build.
+- Зафіксовано заборону запускати `composer install --no-dev` і `npm ci` у робочій папці для production-збірки.
+- Описано стабільний цикл: локальні тести → `scripts/build-artifact.sh` → deploy archive на Plesk → подальші локальні правки без відновлення залежностей.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

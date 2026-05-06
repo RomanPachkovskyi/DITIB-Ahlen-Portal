@@ -196,7 +196,7 @@ cd ~/Project/DITIB-Ahlen/portal
 scripts/build-artifact.sh
 ```
 
-Скрипт виконує:
+Скрипт працює через тимчасову staging-папку в `/tmp`, тому не змінює локальні `vendor/`, `node_modules/` і `public/build/` у робочому проекті. Всередині staging він виконує:
 
 ```bash
 composer install --no-dev --optimize-autoloader
@@ -216,8 +216,10 @@ npm run build
 Архів НЕ містить:
 
 - `.env` та локальні `.env.*`;
+- усі `*.md` файли документації;
 - `node_modules/`;
 - `database/database.sqlite`;
+- локальну папку `==logs/`;
 - локальні `storage/logs/*.log`, sessions, compiled views і cache data;
 - `.git/`.
 
@@ -551,6 +553,6 @@ MAIL_HOST=...
 - [ ] Unterschrift canvas у формі реєстрації (Крок 4)
 - [ ] Кабінет члена — перегляд даних, Änderungsantrag
 - [ ] Двомовність (DE + TR): Middleware SetLocale, lang/de.json, lang/tr.json
-- [x] Artifact deploy обрано як поточний процес: локальна збірка `vendor/` + `public/build/` + Laravel-код, завантаження через File Manager/FTP; міграції БД виконуються окремо через SQL/phpMyAdmin
+- [x] Artifact deploy обрано як поточний процес: staging-збірка `vendor/` + `public/build/` + Laravel-код без зміни локальних dev-залежностей, завантаження через File Manager/FTP; міграції БД виконуються окремо через SQL/phpMyAdmin
 
 > Зміни в статусі — оновлювати тут і писати в `CHANGELOG.md`

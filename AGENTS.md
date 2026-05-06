@@ -119,6 +119,35 @@ database/migrations/
 
 ---
 
+## Artifact deploy — стабільний локальний процес
+
+Production-архів збирається тільки командою:
+
+```bash
+cd ~/Project/DITIB-Ahlen/portal
+scripts/build-artifact.sh
+```
+
+Скрипт працює через тимчасову staging-папку в `/tmp`:
+- копіює туди проект без `.env`, `*.md`, `==logs/`, `node_modules/`, локальної SQLite та локальних runtime/cache файлів;
+- у staging виконує `composer install --no-dev --optimize-autoloader`;
+- у staging виконує `npm ci` і `npm run build`;
+- пакує готовий Laravel artifact із production `vendor/` та `public/build/`;
+- видаляє staging-папку.
+
+**Важливо для агентів:** не запускати `composer install --no-dev` і `npm ci` у робочій папці проекту для production-збірки. Це ламає локальний dev-цикл, бо прибирає dev-залежності на кшталт PHPUnit. Після `scripts/build-artifact.sh` локальні `vendor/`, `node_modules/` і `public/build/` мають залишатись недоторканими.
+
+Стабільний цикл:
+
+```bash
+./vendor/bin/phpunit
+scripts/build-artifact.sh
+# завантажити deploy-artifacts/ditib-ahlen-portal-*.tar.gz на Plesk
+# продовжувати локальні правки без відновлення залежностей
+```
+
+---
+
 ## CHANGELOG — обов'язково після кожної сесії
 
 **Файл:** `CHANGELOG.md`
