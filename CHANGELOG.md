@@ -415,6 +415,13 @@
 - Додано вузький admin CSS hook, щоб Filament не перебивав колір тексту та іконок у dropdown actions.
 - Усі видимі `Bearbeiten` actions залишено в сірому стилі як `Abbrechen`.
 
+### [2026-05-06 19:35] Root cause production email logo — Codex
+- Встановлено реальну причину відсутності логотипу в production листах: `scripts/build-artifact.sh` через `tar --exclude='./vendor'` виключав не тільки root `vendor/`, а й вкладену папку `resources/views/vendor/mail/` з Laravel Markdown mail overrides.
+- Пояснено різницю з локальним тестом: локально `resources/views/vendor/mail/` існує, тому листи рендеряться брендовано; production artifact приходив без цієї папки, тому Laravel використовував стандартні mail templates.
+- Оновлено `scripts/build-artifact.sh`: після staging-copy mail override templates явно копіюються назад у `resources/views/vendor/mail/`.
+- Dry-run перевірка підтвердила, що `resources/views/vendor/mail/html/header.blade.php`, `themes/default.css` і `text/message.blade.php` потрапляють у staging-копію.
+- Оновлено `PROJECT.md` і `Правки і зміни на сайті.md` з правильним діагнозом і перевіркою після наступного artifact deploy.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

@@ -179,7 +179,7 @@
 
 Логотип у листах зараз використовується як стабільний HTTPS URL з `MAIL_LOGO_URL`. Inline/CID images не використовуються як основний механізм, щоб branding layer залишався простим, стандартним і передбачуваним для Laravel Markdown Mail.
 
-**Відкрито станом на 2026-05-06:** production branding листів досі не підтверджений як вирішений. Історично перші листи вже приходили з логотипом, але останні спроби з `MAIL_LOGO_URL`, inline/CID image і централізованим `mail.brand.*` не дали очікуваного результату в реальному поштовому клієнті. Питання залишене відкритим через пріоритет часу; поточний код лишається структурним mail-layer, але не вважати logo rendering production-fixed.
+**Діагноз 2026-05-06:** локальні листи рендеряться з логотипом, але production artifact не містив `resources/views/vendor/mail/`. Причина: `scripts/build-artifact.sh` копіював проект через `tar --exclude='./vendor'`, а на локальному tar цей exclude також прибирав вкладену папку `resources/views/vendor/mail/`. Через це production використовував стандартні Laravel Markdown mail templates без нашого header/logo. Скрипт виправлено: після staging-copy mail override templates явно повертаються в `resources/views/vendor/mail/`. Після наступного artifact deploy потрібно перевірити, що ця папка є на сервері.
 
 Майбутнє оновлення: якщо Gmail/Outlook/Apple Mail покажуть, що Markdown theme недостатньо контролює вигляд, можна перейти з `markdown:` на власний `view:` HTML email template. Це буде окремий етап, не змішаний із поточним SMTP/Mailable layer.
 

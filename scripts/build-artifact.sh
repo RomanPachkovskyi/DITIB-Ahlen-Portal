@@ -47,6 +47,11 @@ COPYFILE_DISABLE=1 tar -cf - \
   --exclude='./.DS_Store' \
   . | tar -xf - -C "${STAGING_DIR}"
 
+if [ -d "${ROOT_DIR}/resources/views/vendor/mail" ]; then
+  mkdir -p "${STAGING_DIR}/resources/views/vendor"
+  cp -R "${ROOT_DIR}/resources/views/vendor/mail" "${STAGING_DIR}/resources/views/vendor/"
+fi
+
 cd "${STAGING_DIR}"
 
 echo "Installing production PHP dependencies in staging..."
