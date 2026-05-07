@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Member;
 use App\Support\Iban;
+use App\Support\PhoneNumber;
 use Carbon\Carbon;
 use Livewire\Component;
 
@@ -78,7 +79,11 @@ class MembershipForm extends Component
             'city'        => ['required', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
             'state'       => ['required', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
             'email'       => 'required|email', // unique не застосовується: один email може використовуватись для кількох членів (діти реєструють батьків)
-            'phone'       => ['required', 'string', 'max:30', 'regex:/^[+\(\)\-\s0-9]+$/'],
+            'phone'       => ['required', 'string', 'max:50', function ($attribute, $value, $fail) {
+                if (! PhoneNumber::isValid($value)) {
+                    $fail(PhoneNumber::validationMessage());
+                }
+            }],
         ];
     }
 
@@ -117,7 +122,6 @@ class MembershipForm extends Component
             'email.required'                  => 'Bitte geben Sie Ihre E-Mail-Adresse ein.',
             'email.email'                     => 'Ungültige E-Mail-Adresse.',
             'phone.required'                  => 'Bitte geben Sie Ihre Telefonnummer ein.',
-            'phone.regex'                     => 'Ungültige Telefonnummer.',
 
             // Schritt 3
             'monatsbeitrag.required'          => 'Bitte geben Sie Ihren Monatsbeitrag ein.',
@@ -228,6 +232,12 @@ class MembershipForm extends Component
         $this->resetValidation('iban');
     }
 
+    public function updatedPhone(string $value): void
+    {
+        $this->phone = PhoneNumber::format($value);
+        $this->resetValidation('phone');
+    }
+
     public function updated($propertyName): void
     {
         $rules = match ($this->step) {
@@ -244,6 +254,10 @@ class MembershipForm extends Component
 
     public function nextStep(): void
     {
+        if ($this->step === 2) {
+            $this->phone = PhoneNumber::format($this->phone);
+        }
+
         match ($this->step) {
             1 => $this->validate($this->rulesStep1(), $this->messages()),
             2 => $this->validate($this->rulesStep2(), $this->messages()),
@@ -284,7 +298,7 @@ class MembershipForm extends Component
             'city'                 => $this->city,
             'state'                => $this->state,
             'email'                => $this->email,
-            'phone'                => preg_replace('/[^\+0-9]/', '', $this->phone),
+            'phone'                => PhoneNumber::normalize($this->phone),
             'monatsbeitrag'        => $this->monatsbeitrag,
             'zahlungsart'          => $this->zahlungsart,
             'kontoinhaber'         => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? $this->kontoinhaber : null,

@@ -7,6 +7,7 @@ use App\Livewire\MembershipForm;
 use App\Mail\MemberRegistrationConfirmation;
 use App\Mail\NewMemberNotification;
 use App\Support\Iban;
+use App\Support\PhoneNumber;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
@@ -30,6 +31,56 @@ class MembershipFormTest extends TestCase
         }
     }
 
+    public function test_it_formats_and_normalizes_phone_input(): void
+    {
+        $cases = [
+            '0176 12345678' => ['+49 176 1234 5678', '+4917612345678'],
+            '176 12345678' => ['+49 176 1234 5678', '+4917612345678'],
+            '0049 (2382) 123-456' => ['+49 2382 123456', '+492382123456'],
+            '02382/123456' => ['+49 2382 123456', '+492382123456'],
+            '2382 123456' => ['+49 2382 123456', '+492382123456'],
+            '+90 532 123 45 67' => ['+90 532 123 4567', '+905321234567'],
+        ];
+
+        foreach ($cases as $input => [$formatted, $normalized]) {
+            $this->assertSame($formatted, PhoneNumber::format($input));
+            $this->assertSame($normalized, PhoneNumber::normalize($input));
+            $this->assertTrue(PhoneNumber::isValid($input));
+        }
+    }
+
+    public function test_it_rejects_invalid_phone_input(): void
+    {
+        foreach (['abc', '123', '+49', '492382123456'] as $input) {
+            $this->assertFalse(PhoneNumber::isValid($input));
+        }
+    }
+
+    public function test_it_accepts_phone_number_with_area_code_without_leading_zero(): void
+    {
+        Livewire::test(MembershipForm::class)
+            ->set('step', 2)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Max Mustermann')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'max@example.com')
+            ->set('phone', '2382 123456')
+            ->call('nextStep')
+            ->assertHasNoErrors(['phone'])
+            ->assertSet('phone', '+49 2382 123456');
+    }
+
+    public function test_it_keeps_incomplete_phone_input_visible_for_validation(): void
+    {
+        $this->assertSame('123456', PhoneNumber::format('123456'));
+        $this->assertSame('', PhoneNumber::normalize('123456'));
+    }
+
     public function test_it_submits_cash_payment_when_dsgvo_is_accepted(): void
     {
         Event::fake([MemberRegistered::class]);
@@ -44,7 +95,7 @@ class MembershipFormTest extends TestCase
             ->set('city', 'Ahlen')
             ->set('state', 'Nordrhein-Westfalen')
             ->set('email', 'max@example.com')
-            ->set('phone', '+49 2382 123456')
+            ->set('phone', '02382/123456')
             ->set('monatsbeitrag', 25)
             ->set('zahlungsart', 'barzahlung')
             ->set('dsgvo_zustimmung', true)
@@ -54,6 +105,7 @@ class MembershipFormTest extends TestCase
 
         $this->assertDatabaseHas('members', [
             'full_name' => 'Max Mustermann',
+            'phone' => '+492382123456',
             'zahlungsart' => 'barzahlung',
             'dsgvo_zustimmung' => true,
         ]);

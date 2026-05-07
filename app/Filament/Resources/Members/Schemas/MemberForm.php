@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Members\Schemas;
 
 use App\Support\Iban;
+use App\Support\PhoneNumber;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -103,11 +104,15 @@ class MemberForm
                         TextInput::make('phone')
                             ->label('Telefon')
                             ->tel()
-                            ->regex('/^[+\(\)\-\s0-9]+$/')
                             ->required()
-                            ->extraInputAttributes([
-                                'oninput' => "this.value = this.value.replace(/[a-zA-ZäöüÄÖÜа-яА-Я]/g, '')",
-                            ])
+                            ->maxLength(50)
+                            ->formatStateUsing(fn (?string $state): string => PhoneNumber::format($state))
+                            ->dehydrateStateUsing(fn (?string $state): string => PhoneNumber::normalize($state))
+                            ->rule(fn () => function (string $attribute, ?string $value, \Closure $fail): void {
+                                if (! PhoneNumber::isValid($value)) {
+                                    $fail(PhoneNumber::validationMessage());
+                                }
+                            })
                             ->live(onBlur: true),
                         TextInput::make('email')
                             ->label('E-Mail')

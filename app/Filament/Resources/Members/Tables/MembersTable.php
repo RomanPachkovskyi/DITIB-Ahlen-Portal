@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Members\Tables;
 
 use App\Filament\Resources\Members\MemberResource;
 use App\Models\Member;
+use App\Support\PhoneNumber;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\BulkAction;
@@ -89,6 +90,7 @@ class MembersTable
                 // Додаткові колонки — приховані за замовчуванням
                 TextColumn::make('phone')
                     ->label('Telefon')
+                    ->formatStateUsing(fn (?string $state): string => PhoneNumber::format($state))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
