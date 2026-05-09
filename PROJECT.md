@@ -61,7 +61,7 @@
 - 4-крокова форма Mitgliedsantrag (тільки DE, TR — Етап 4)
 - Крок 1: Persönliche Daten (ПІБ, народження, громадянство, сім'я, Cenaze Fonu, Gemeinderegister, берuf, Heimatstadt)
 - Крок 2: Adresse & Kontakt
-- Крок 3: Beitrag & Zahlungsweise (мін. €25, умовні SEPA-поля, SEPA-згода, DSGVO-згода)
+- Крок 3: Beitrag & Zahlungsweise (мін. €10, пресети 10/15/20/25 € як компактні pill-кнопки, ручний ввід кроком 1 €, стандартна Zahlungsweise `Dauerauftrag`, умовні SEPA-поля, SEPA-згода, DSGVO-згода)
 - ~~Крок 4: Unterschrift~~ → перенесено в Етап 4 разом із фото профілю
 - Після відправки → сторінка підтвердження з member_number, статус `pending`
 
@@ -109,7 +109,7 @@
 | email | string | **не unique** — один email дозволений для кількох членів (сім'я) |
 | phone | string | |
 | zahlungsart | enum | barzahlung / lastschrift / dauerauftrag |
-| monatsbeitrag | decimal | мін. €25 |
+| monatsbeitrag | decimal | мін. €10 |
 | kontoinhaber | string | nullable (тільки при SEPA) |
 | iban | text | **encrypted**, nullable |
 | bic | text | **encrypted**, nullable |

@@ -38,8 +38,8 @@ class MembershipForm extends Component
     public bool $showPlzDropdown = false;
 
     // Step 3 — Beitrag & Bankverbindung
-    public float $monatsbeitrag = 25.00;
-    public string $zahlungsart = 'barzahlung';
+    public float $monatsbeitrag = 10.00;
+    public string $zahlungsart = 'dauerauftrag';
     public string $kontoinhaber = '';
     public string $iban = '';
     public string $bic = '';
@@ -126,7 +126,7 @@ class MembershipForm extends Component
             // Schritt 3
             'monatsbeitrag.required'          => 'Bitte geben Sie Ihren Monatsbeitrag ein.',
             'monatsbeitrag.numeric'           => 'Der Beitrag muss eine Zahl sein.',
-            'monatsbeitrag.min'               => 'Der Mindestbeitrag beträgt 25,00 €.',
+            'monatsbeitrag.min'               => 'Der Mindestbeitrag beträgt 10,00 €.',
             'zahlungsart.required'            => 'Bitte wählen Sie eine Zahlungsweise.',
             'zahlungsart.in'                  => 'Ungültige Zahlungsweise.',
             'kontoinhaber.required'           => 'Bitte geben Sie den Kontoinhaber ein.',
@@ -143,7 +143,7 @@ class MembershipForm extends Component
     protected function rulesStep3(): array
     {
         $rules = [
-            'monatsbeitrag'    => 'required|numeric|min:25',
+            'monatsbeitrag'    => 'required|numeric|min:10',
             'zahlungsart'      => 'required|in:barzahlung,lastschrift,dauerauftrag',
             'dsgvo_zustimmung' => 'accepted',
         ];
@@ -236,6 +236,12 @@ class MembershipForm extends Component
     {
         $this->phone = PhoneNumber::format($value);
         $this->resetValidation('phone');
+    }
+
+    public function selectMonatsbeitrag(float $amount): void
+    {
+        $this->monatsbeitrag = $amount;
+        $this->resetValidation('monatsbeitrag');
     }
 
     public function updated($propertyName): void

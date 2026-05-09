@@ -265,13 +265,30 @@
             <h2 class="text-lg font-semibold text-gray-800 mb-5">Beitrag & Zahlungsweise</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Monatlicher Mitgliedsbeitrag (€) *</label>
-                    <input wire:model.blur="monatsbeitrag" type="number" min="25" step="0.01"
-                        x-on:input="if(parseFloat(this.value) < 25 && this.value !== '') this.setCustomValidity('Mindestbetrag 25 €'); else this.setCustomValidity('');"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('monatsbeitrag') border-red-400 @enderror">
-                    <p class="text-xs text-gray-400 mt-1">Mindestbetrag: 25,00 €</p>
-                    @error('monatsbeitrag') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Monatlicher Mitgliedsbeitrag (€) *</label>
+
+                    <div class="mb-4 flex max-w-[16rem] flex-wrap gap-4">
+                        @foreach ([10, 15, 20, 25] as $amount)
+                            @php($isSelectedAmount = abs((float) $monatsbeitrag - $amount) < 0.01)
+                            <button type="button"
+                                wire:click="selectMonatsbeitrag({{ $amount }})"
+                                aria-pressed="{{ $isSelectedAmount ? 'true' : 'false' }}"
+                                style="width: 7rem; min-height: 2.75rem; border-radius: 9999px; border: 1px solid {{ $isSelectedAmount ? '#0d9488' : '#cbd5e1' }}; background: {{ $isSelectedAmount ? '#0d9488' : '#ffffff' }}; color: {{ $isSelectedAmount ? '#ffffff' : '#334155' }};"
+                                class="px-4 py-2 text-base font-semibold shadow-sm transition hover:border-teal-500 hover:bg-teal-50 hover:text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                {{ $amount }} €
+                            </button>
+                        @endforeach
+                    </div>
+
+                    <div class="max-w-sm">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Eigener Betrag</label>
+                        <input wire:model.blur="monatsbeitrag" type="number" min="10" step="1" inputmode="numeric"
+                            x-on:input="if(parseFloat(this.value) < 10 && this.value !== '') this.setCustomValidity('Mindestbetrag 10 €'); else this.setCustomValidity('');"
+                            class="w-full min-h-[42px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('monatsbeitrag') border-red-400 @enderror">
+                        <p class="text-xs text-gray-400 mt-1">Mindestbetrag: 10,00 €</p>
+                        @error('monatsbeitrag') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
                 </div>
 
                 <div>

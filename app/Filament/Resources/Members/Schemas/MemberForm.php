@@ -175,13 +175,13 @@ class MemberForm
                         TextInput::make('monatsbeitrag')
                             ->label('Monatlicher Mitgliedsbeitrag (€)')
                             ->numeric()
-                            ->default(25.00)
-                            ->minValue(25)
+                            ->default(10.00)
+                            ->minValue(10)
                             ->prefix('€')
                             ->required()
                             ->extraInputAttributes([
-                                'min' => '25',
-                                'x-on:input' => "if(parseFloat(this.value) < 25 && this.value !== '') this.classList.add('border-red-400'); else this.classList.remove('border-red-400');",
+                                'min' => '10',
+                                'x-on:input' => "if(parseFloat(this.value) < 10 && this.value !== '') this.classList.add('border-red-400'); else this.classList.remove('border-red-400');",
                             ])
                             ->live(onBlur: true),
                         Select::make('zahlungsart')

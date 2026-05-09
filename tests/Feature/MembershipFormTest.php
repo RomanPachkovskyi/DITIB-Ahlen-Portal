@@ -56,6 +56,12 @@ class MembershipFormTest extends TestCase
         }
     }
 
+    public function test_bank_transfer_payment_is_selected_by_default(): void
+    {
+        Livewire::test(MembershipForm::class)
+            ->assertSet('zahlungsart', 'dauerauftrag');
+    }
+
     public function test_it_accepts_phone_number_with_area_code_without_leading_zero(): void
     {
         Livewire::test(MembershipForm::class)
@@ -111,6 +117,57 @@ class MembershipFormTest extends TestCase
         ]);
 
         Event::assertDispatched(MemberRegistered::class);
+    }
+
+    public function test_it_accepts_ten_euro_as_minimum_monthly_contribution(): void
+    {
+        Event::fake([MemberRegistered::class]);
+
+        Livewire::test(MembershipForm::class)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Max Mustermann')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'min@example.com')
+            ->set('phone', '02382/123456')
+            ->call('selectMonatsbeitrag', 10)
+            ->assertSet('monatsbeitrag', 10.0)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->call('submit')
+            ->assertHasNoErrors()
+            ->assertSet('submitted', true);
+
+        $this->assertDatabaseHas('members', [
+            'email' => 'min@example.com',
+            'monatsbeitrag' => 10,
+        ]);
+
+        Event::assertDispatched(MemberRegistered::class);
+    }
+
+    public function test_it_rejects_monthly_contribution_below_ten_euro(): void
+    {
+        Livewire::test(MembershipForm::class)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Max Mustermann')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'below-min@example.com')
+            ->set('phone', '02382/123456')
+            ->set('monatsbeitrag', 9.99)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->call('submit')
+            ->assertHasErrors(['monatsbeitrag' => 'min']);
     }
 
     public function test_it_submits_direct_debit_with_messy_iban_input(): void
