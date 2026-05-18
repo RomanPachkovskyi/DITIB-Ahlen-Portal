@@ -491,6 +491,29 @@
 - Зафіксовано поточний UX для `Monatlicher Mitgliedsbeitrag`: desktop/tablet в один ряд, mobile у 2x2.
 - Зафіксовано ризик по legal content: поточна Datenschutzerklärung на лендінгу ще потребує доповнення під Mitgliedsantrag, SEPA/IBAN, членські дані й портал.
 
+### [2026-05-18 16:23] Фікс inline-помилок адреси — Codex
+- Прибрано очищення validation errors з `closePlzDropdown()`, яке спрацьовувало через `click.outside` при натисканні `Weiter` і ховало помилки `Postleitzahl`, `Ort`, `Bundesland`.
+- Повернуто попередній вигляд summary без списку `Offene Felder`; помилки мають показуватись inline під відповідними полями на кроці адреси.
+- Додано regression test: закриття PLZ dropdown більше не очищає помилки адресних полів.
+
+### [2026-05-18 16:32] Відступи validation summary — Codex
+- Додано додаткові 5px внутрішнього відступу зверху і знизу в сірому validation summary, щоб текст не притискався до рамки.
+
+### [2026-05-18 16:33] Уточнення padding validation summary — Codex
+- Встановлено точні inline-значення `padding-top: calc(0.75rem)` і `padding-bottom: calc(0.75rem)` для сірого validation summary.
+
+### [2026-05-18 16:36] Фікс Alpine input handlers — Codex
+- Виправлено `x-on:input` handlers у публічній формі: замість Alpine `this.value` використовується `$event.target.value`, щоб прибрати console errors `Cannot read properties of undefined`.
+- Оновлено custom validity handler для ручного внеску на `$event.target.setCustomValidity(...)`.
+- Перевірено, що в Blade більше немає Alpine `x-on:input` з `this.*`; нативні `oninput` handlers для PLZ і Telefon лишаються без змін.
+
+### [2026-05-18 16:41] Підсумкова документація етапу правок форми — Codex
+- Оновлено `PROJECT.md` як джерело поточного стану публічної форми після великого етапу UX/validation/legal правок.
+- Зафіксовано стабільний сценарій soft validation: `Weiter` показує inline-помилки, не блокує рух далі, а `Antrag absenden` повертає до першої помилки.
+- Зафіксовано правила для step indicators, validation summary, inline-помилок адреси й поведінки PLZ dropdown.
+- Зафіксовано frontend-рішення для Alpine input handlers: у `x-on:input` використовувати `$event.target`, щоб уникати runtime errors у консолі.
+- Підсумовано, що цей етап охопив legal links/DSGVO-посилання, phone UX, contribution presets, адресні помилки, summary spacing і JS console cleanup.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

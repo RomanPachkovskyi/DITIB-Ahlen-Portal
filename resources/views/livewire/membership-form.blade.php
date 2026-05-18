@@ -87,7 +87,7 @@
 
     @php($hasPreviousStepErrors = collect(array_keys($stepsWithErrors))->contains(fn ($errorStep) => (int) $errorStep < $step))
     @if ($showValidationSummary && $hasPreviousStepErrors)
-        <div class="mb-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+        <div class="mb-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" style="padding-top: calc(0.75rem); padding-bottom: calc(0.75rem);">
             <p class="font-semibold text-gray-900">Bitte prüfen Sie die markierten Angaben.</p>
             <p class="mt-1">Sie können die nächsten Schritte weiter ausfüllen. Beim Absenden führen wir Sie automatisch zum ersten Feld mit Fehlern zurück.</p>
         </div>
@@ -104,7 +104,7 @@
                     <div class="w-full sm:w-4/5">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vor- und Nachname *</label>
                         <input wire:model.live="full_name" type="text" placeholder="Max Mustermann"
-                            x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                            x-on:input="$event.target.value = $event.target.value.replace(/[0-9]/g, '')"
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('full_name') border-red-400 @enderror">
                         @error('full_name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -130,7 +130,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Geburtsort</label>
                     <input wire:model.live.debounce.500ms="birth_place" type="text" placeholder="Berlin"
-                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                        x-on:input="$event.target.value = $event.target.value.replace(/[0-9]/g, '')"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('birth_place') border-red-400 @enderror">
                     @error('birth_place') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -138,7 +138,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Staatsangehörigkeit</label>
                     <input wire:model.live.debounce.500ms="staatsangehoerigkeit" type="text" placeholder="Deutsch"
-                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                        x-on:input="$event.target.value = $event.target.value.replace(/[0-9]/g, '')"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('staatsangehoerigkeit') border-red-400 @enderror">
                     @error('staatsangehoerigkeit') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -153,7 +153,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Beruf</label>
                     <input wire:model.live.debounce.500ms="beruf" type="text" placeholder="Ingenieur"
-                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                        x-on:input="$event.target.value = $event.target.value.replace(/[0-9]/g, '')"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('beruf') border-red-400 @enderror">
                     @error('beruf') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -161,7 +161,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Heimatstadt</label>
                     <input wire:model.live.debounce.500ms="heimatstadt" type="text" placeholder="Ankara"
-                        x-on:input="this.value = this.value.replace(/[0-9]/g, '')"
+                        x-on:input="$event.target.value = $event.target.value.replace(/[0-9]/g, '')"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('heimatstadt') border-red-400 @enderror">
                     @error('heimatstadt') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -315,7 +315,7 @@
                     <div class="max-w-sm">
                         <label class="block text-xs font-medium text-gray-500 mb-1">Eigener Betrag</label>
                         <input wire:model.blur="monatsbeitrag" type="number" min="10" step="1" inputmode="numeric"
-                            x-on:input="if(parseFloat(this.value) < 10 && this.value !== '') this.setCustomValidity('Mindestbetrag 10 €'); else this.setCustomValidity('');"
+                            x-on:input="if(parseFloat($event.target.value) < 10 && $event.target.value !== '') $event.target.setCustomValidity('Mindestbetrag 10 €'); else $event.target.setCustomValidity('');"
                             class="w-full min-h-[42px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('monatsbeitrag') border-red-400 @enderror">
                         <p class="text-xs text-gray-400 mt-1">Mindestbetrag: 10,00 €</p>
                         @error('monatsbeitrag') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror

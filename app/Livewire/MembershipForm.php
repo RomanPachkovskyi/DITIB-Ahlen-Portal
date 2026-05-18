@@ -279,7 +279,6 @@ class MembershipForm extends Component
     {
         $this->showPlzDropdown = false;
         $this->plzSuggestions  = [];
-        $this->resetValidation(['postal_code', 'city', 'state']);
     }
 
     public function updatedIban(string $value): void

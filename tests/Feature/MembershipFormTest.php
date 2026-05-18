@@ -111,6 +111,23 @@ class MembershipFormTest extends TestCase
             ->assertDontSee('Bitte prüfen Sie die markierten Angaben.');
     }
 
+    public function test_closing_plz_dropdown_does_not_clear_address_validation_errors(): void
+    {
+        Livewire::test(MembershipForm::class)
+            ->set('step', 2)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Max Mustermann')
+            ->set('birth_date', '1990-01-01')
+            ->call('submit')
+            ->assertSet('step', 2)
+            ->assertHasErrors(['postal_code', 'city', 'state'])
+            ->call('closePlzDropdown')
+            ->assertHasErrors(['postal_code', 'city', 'state'])
+            ->assertSee('Bitte geben Sie Ihre Postleitzahl ein.')
+            ->assertSee('Bitte geben Sie Ihren Ort ein.')
+            ->assertSee('Bitte geben Sie das Bundesland ein.');
+    }
+
     public function test_submit_returns_to_first_step_with_errors(): void
     {
         Livewire::test(MembershipForm::class)
