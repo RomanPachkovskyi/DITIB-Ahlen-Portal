@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Support\Iban;
 use App\Support\PhoneNumber;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 
 class MembershipForm extends Component
@@ -52,6 +53,8 @@ class MembershipForm extends Component
 
     public bool $submitted = false;
     public string $member_number = '';
+    public array $stepsWithErrors = [];
+    public bool $showValidationSummary = false;
 
     protected function rulesStep1(): array
     {
@@ -163,6 +166,59 @@ class MembershipForm extends Component
         return $rules;
     }
 
+    protected function rulesForStep(int $step): array
+    {
+        return match ($step) {
+            1 => $this->rulesStep1(),
+            2 => $this->rulesStep2(),
+            3 => $this->rulesStep3(),
+            default => [],
+        };
+    }
+
+    protected function validateStep(int $step): bool
+    {
+        if ($step === 2) {
+            $this->phone = PhoneNumber::format($this->phone);
+        }
+
+        if ($step === 3 && $this->zahlungsart === 'lastschrift') {
+            $this->iban = Iban::format($this->iban);
+        }
+
+        $rules = $this->rulesForStep($step);
+        $fields = array_keys($rules);
+        $data = [];
+
+        foreach ($fields as $field) {
+            $data[$field] = $this->{$field};
+        }
+
+        $validator = Validator::make($data, $rules, $this->messages());
+        $this->resetValidation($fields);
+
+        if ($validator->fails()) {
+            foreach ($validator->errors()->messages() as $field => $messages) {
+                foreach ($messages as $message) {
+                    $this->addError($field, $message);
+                }
+            }
+
+            $this->stepsWithErrors[$step] = true;
+            $this->showValidationSummary = true;
+
+            return false;
+        }
+
+        unset($this->stepsWithErrors[$step]);
+
+        if ($this->stepsWithErrors === []) {
+            $this->showValidationSummary = false;
+        }
+
+        return true;
+    }
+
     public function updatedPostalCode(string $value): void
     {
         $value = preg_replace('/[^0-9]/', '', $value);
@@ -246,12 +302,7 @@ class MembershipForm extends Component
 
     public function updated($propertyName): void
     {
-        $rules = match ($this->step) {
-            1 => $this->rulesStep1(),
-            2 => $this->rulesStep2(),
-            3 => $this->rulesStep3(),
-            default => [],
-        };
+        $rules = $this->rulesForStep($this->step);
 
         if (array_key_exists($propertyName, $rules)) {
             $this->validateOnly($propertyName, $rules, $this->messages());
@@ -260,18 +311,8 @@ class MembershipForm extends Component
 
     public function nextStep(): void
     {
-        if ($this->step === 2) {
-            $this->phone = PhoneNumber::format($this->phone);
-        }
-
-        match ($this->step) {
-            1 => $this->validate($this->rulesStep1(), $this->messages()),
-            2 => $this->validate($this->rulesStep2(), $this->messages()),
-            default => null,
-        };
-
+        $this->validateStep($this->step);
         $this->step = min(3, $this->step + 1);
-        $this->resetValidation();
     }
 
     public function prevStep(): void
@@ -281,11 +322,20 @@ class MembershipForm extends Component
 
     public function submit(): void
     {
-        if ($this->zahlungsart === 'lastschrift') {
-            $this->iban = Iban::format($this->iban);
+        $firstInvalidStep = null;
+
+        foreach ([1, 2, 3] as $step) {
+            if (! $this->validateStep($step) && $firstInvalidStep === null) {
+                $firstInvalidStep = $step;
+            }
         }
 
-        $this->validate($this->rulesStep3(), $this->messages());
+        if ($firstInvalidStep !== null) {
+            $this->step = $firstInvalidStep;
+            $this->showValidationSummary = true;
+
+            return;
+        }
 
         $member = Member::create([
             'anrede'               => $this->anrede,

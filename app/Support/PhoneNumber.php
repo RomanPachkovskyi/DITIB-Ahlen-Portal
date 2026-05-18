@@ -6,7 +6,7 @@ class PhoneNumber
 {
     public static function validationMessage(): string
     {
-        return 'Bitte geben Sie die Telefonnummer mit Vorwahl ein, z.B. 02382 123456, 2382 123456 oder +49 2382 123456.';
+        return 'Bitte geben Sie die Telefonnummer ein, z.B. +49 151 888 777 66 oder 0151 888 777 66.';
     }
 
     public static function normalize(?string $value): string
@@ -35,6 +35,10 @@ class PhoneNumber
 
         if (self::looksLikeGermanNumberWithoutLeadingZero($digits)) {
             return '+49' . $digits;
+        }
+
+        if (self::looksLikeAhlenLocalNumber($digits)) {
+            return '+492382' . $digits;
         }
 
         return '';
@@ -81,6 +85,7 @@ class PhoneNumber
         }
 
         $areaLength = match (true) {
+            str_starts_with($national, '2382') => 4,
             str_starts_with($national, '30'),
             str_starts_with($national, '40'),
             str_starts_with($national, '69'),
@@ -135,6 +140,11 @@ class PhoneNumber
         }
 
         return preg_match('/^[2-9][0-9]{1,5}[0-9]{4,10}$/', $digits) === 1;
+    }
+
+    private static function looksLikeAhlenLocalNumber(string $digits): bool
+    {
+        return preg_match('/^[1-9][0-9]{3,6}$/', $digits) === 1;
     }
 
     private static function chunkSubscriber(string $subscriber): string

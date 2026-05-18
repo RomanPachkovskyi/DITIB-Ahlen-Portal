@@ -1,4 +1,27 @@
 <div>
+<style>
+    .contribution-presets {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 9rem));
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .contribution-preset-button {
+        width: 100%;
+        min-height: 2.75rem;
+        border-radius: 9999px;
+    }
+
+    @media (min-width: 768px) {
+        .contribution-presets {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 2.5rem;
+        }
+    }
+</style>
+
 @if ($submitted)
     <div class="text-center py-16">
         <div class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -32,11 +55,14 @@
 
             <nav class="relative flex justify-between items-start">
                 @foreach ([1 => 'Persönliche Daten', 2 => 'Adresse & Kontakt', 3 => 'Beitrag & Zahlung'] as $n => $label)
+                    @php($hasStepError = $stepsWithErrors[$n] ?? false)
                     <div class="flex flex-col items-center group flex-1">
                         {{-- Circle --}}
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold z-10 transition-all duration-300 shadow-sm
-                            {{ $step > $n ? 'bg-teal-600 text-white' : ($step === $n ? 'bg-teal-600 text-white ring-4 ring-teal-100' : 'bg-white border-2 border-gray-200 text-gray-400') }}">
-                            @if ($step > $n)
+                        <div class="relative z-20 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 shadow-sm
+                            {{ $hasStepError ? 'bg-white border-2 border-red-400 text-gray-900' : ($step > $n ? 'bg-teal-600 text-white' : ($step === $n ? 'bg-teal-600 text-white ring-4 ring-teal-100' : 'bg-white border-2 border-gray-200 text-gray-400')) }}">
+                            @if ($hasStepError)
+                                !
+                            @elseif ($step > $n)
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                                 </svg>
@@ -48,12 +74,9 @@
                         {{-- Label --}}
                         <div class="mt-3 text-center px-1">
                             <span class="block text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wider transition-colors duration-300
-                                {{ $step >= $n ? 'text-teal-800' : 'text-gray-400' }}">
-                                @php
-                                    $mobileLabels = [1 => 'Daten', 2 => 'Kontakt', 3 => 'Zahlung'];
-                                @endphp
+                                {{ $hasStepError ? 'text-gray-900' : ($step >= $n ? 'text-teal-800' : 'text-gray-400') }}">
                                 <span class="hidden sm:inline">{{ $label }}</span>
-                                <span class="sm:hidden">{{ $mobileLabels[$n] }}</span>
+                                <span class="sm:hidden">{{ [1 => 'Daten', 2 => 'Kontakt', 3 => 'Zahlung'][$n] }}</span>
                             </span>
                         </div>
                     </div>
@@ -61,6 +84,14 @@
             </nav>
         </div>
     </div>
+
+    @php($hasPreviousStepErrors = collect(array_keys($stepsWithErrors))->contains(fn ($errorStep) => (int) $errorStep < $step))
+    @if ($showValidationSummary && $hasPreviousStepErrors)
+        <div class="mb-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            <p class="font-semibold text-gray-900">Bitte prüfen Sie die markierten Angaben.</p>
+            <p class="mt-1">Sie können die nächsten Schritte weiter ausfüllen. Beim Absenden führen wir Sie automatisch zum ersten Feld mit Fehlern zurück.</p>
+        </div>
+    @endif
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
 
@@ -252,7 +283,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
-                    <input wire:model.blur="phone" type="tel" placeholder="02382 123456, 2382 123456 oder +49 2382 123456"
+                    <input wire:model.blur="phone" type="tel" placeholder="+49 151 888 777 66 oder 0151 888 777 66"
                         oninput="this.value = this.value.replace(/[a-zA-ZäöüÄÖÜа-яА-Я]/g, '')"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('phone') border-red-400 @enderror">
                     @error('phone') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -268,14 +299,14 @@
                 <div class="sm:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Monatlicher Mitgliedsbeitrag (€) *</label>
 
-                    <div class="mb-4 flex max-w-[16rem] flex-wrap gap-4">
+                    <div class="contribution-presets">
                         @foreach ([10, 15, 20, 25] as $amount)
                             @php($isSelectedAmount = abs((float) $monatsbeitrag - $amount) < 0.01)
                             <button type="button"
                                 wire:click="selectMonatsbeitrag({{ $amount }})"
                                 aria-pressed="{{ $isSelectedAmount ? 'true' : 'false' }}"
-                                style="width: 7rem; min-height: 2.75rem; border-radius: 9999px; border: 1px solid {{ $isSelectedAmount ? '#0d9488' : '#cbd5e1' }}; background: {{ $isSelectedAmount ? '#0d9488' : '#ffffff' }}; color: {{ $isSelectedAmount ? '#ffffff' : '#334155' }};"
-                                class="px-4 py-2 text-base font-semibold shadow-sm transition hover:border-teal-500 hover:bg-teal-50 hover:text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                style="border: 1px solid {{ $isSelectedAmount ? '#0d9488' : '#cbd5e1' }}; background: {{ $isSelectedAmount ? '#0d9488' : '#ffffff' }}; color: {{ $isSelectedAmount ? '#ffffff' : '#334155' }};"
+                                class="contribution-preset-button px-4 py-2 text-base font-semibold shadow-sm transition hover:border-teal-500 hover:bg-teal-50 hover:text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500">
                                 {{ $amount }} €
                             </button>
                         @endforeach

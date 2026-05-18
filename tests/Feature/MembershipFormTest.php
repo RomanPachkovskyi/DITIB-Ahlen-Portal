@@ -39,6 +39,8 @@ class MembershipFormTest extends TestCase
             '0049 (2382) 123-456' => ['+49 2382 123456', '+492382123456'],
             '02382/123456' => ['+49 2382 123456', '+492382123456'],
             '2382 123456' => ['+49 2382 123456', '+492382123456'],
+            '61599' => ['+49 2382 61599', '+49238261599'],
+            '2382' => ['+49 2382 2382', '+4923822382'],
             '+90 532 123 45 67' => ['+90 532 123 4567', '+905321234567'],
         ];
 
@@ -81,10 +83,54 @@ class MembershipFormTest extends TestCase
             ->assertSet('phone', '+49 2382 123456');
     }
 
-    public function test_it_keeps_incomplete_phone_input_visible_for_validation(): void
+    public function test_it_allows_moving_forward_while_showing_step_errors(): void
     {
-        $this->assertSame('123456', PhoneNumber::format('123456'));
-        $this->assertSame('', PhoneNumber::normalize('123456'));
+        Livewire::test(MembershipForm::class)
+            ->call('nextStep')
+            ->assertSet('step', 2)
+            ->assertSet('showValidationSummary', true)
+            ->assertSet('stepsWithErrors.1', true)
+            ->assertSee('Bitte prüfen Sie die markierten Angaben.')
+            ->assertHasErrors(['anrede', 'full_name', 'birth_date']);
+    }
+
+    public function test_validation_summary_disappears_after_previous_step_is_fixed(): void
+    {
+        Livewire::test(MembershipForm::class)
+            ->call('nextStep')
+            ->assertSet('step', 2)
+            ->assertSee('Bitte prüfen Sie die markierten Angaben.')
+            ->call('prevStep')
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Max Mustermann')
+            ->set('birth_date', '1990-01-01')
+            ->call('nextStep')
+            ->assertSet('step', 2)
+            ->assertSet('stepsWithErrors', [])
+            ->assertSet('showValidationSummary', false)
+            ->assertDontSee('Bitte prüfen Sie die markierten Angaben.');
+    }
+
+    public function test_submit_returns_to_first_step_with_errors(): void
+    {
+        Livewire::test(MembershipForm::class)
+            ->set('step', 3)
+            ->set('monatsbeitrag', 10)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->call('submit')
+            ->assertSet('step', 1)
+            ->assertSet('showValidationSummary', true)
+            ->assertSet('submitted', false)
+            ->assertSet('stepsWithErrors.1', true)
+            ->assertDontSee('Bitte prüfen Sie die markierten Angaben.')
+            ->assertHasErrors(['anrede', 'full_name', 'birth_date']);
+    }
+
+    public function test_it_keeps_too_short_phone_input_visible_for_validation(): void
+    {
+        $this->assertSame('123', PhoneNumber::format('123'));
+        $this->assertSame('', PhoneNumber::normalize('123'));
     }
 
     public function test_it_submits_cash_payment_when_dsgvo_is_accepted(): void
@@ -201,7 +247,7 @@ class MembershipFormTest extends TestCase
             ->set('zahlungsart', 'barzahlung')
             ->set('dsgvo_zustimmung', true)
             ->call('submit')
-            ->assertHasErrors(['monatsbeitrag' => 'min']);
+            ->assertHasErrors(['monatsbeitrag']);
     }
 
     public function test_it_submits_direct_debit_with_messy_iban_input(): void
