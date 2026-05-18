@@ -196,14 +196,14 @@ class MemberForm
                             ->live(),
                         TextInput::make('kontoinhaber')
                             ->label('Kontoinhaber')
-                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
-                            ->required(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->visible(fn ($get) => $get('zahlungsart') === 'lastschrift')
+                            ->required(fn ($get) => $get('zahlungsart') === 'lastschrift')
                             ->regex('/^[\pL\s\-]+$/u')
                             ->live(onBlur: true),
                         TextInput::make('iban')
                             ->label('IBAN')
-                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
-                            ->required(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->visible(fn ($get) => $get('zahlungsart') === 'lastschrift')
+                            ->required(fn ($get) => $get('zahlungsart') === 'lastschrift')
                             ->formatStateUsing(fn (?string $state): string => Iban::format($state))
                             ->dehydrateStateUsing(fn (?string $state): string => Iban::normalize($state))
                             ->rule(fn () => function (string $attribute, ?string $value, \Closure $fail): void {
@@ -215,11 +215,11 @@ class MemberForm
                             ->columnSpanFull(),
                         TextInput::make('bic')
                             ->label('BIC')
-                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->visible(fn ($get) => $get('zahlungsart') === 'lastschrift')
                             ->live(onBlur: true),
                         TextInput::make('kreditinstitut')
                             ->label('Kreditinstitut')
-                            ->visible(fn ($get) => in_array($get('zahlungsart'), ['lastschrift', 'dauerauftrag']))
+                            ->visible(fn ($get) => $get('zahlungsart') === 'lastschrift')
                             ->regex('/^[\pL\s\-]+$/u')
                             ->live(onBlur: true),
                     ]),

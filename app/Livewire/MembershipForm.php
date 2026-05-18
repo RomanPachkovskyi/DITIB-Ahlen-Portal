@@ -148,7 +148,7 @@ class MembershipForm extends Component
             'dsgvo_zustimmung' => 'accepted',
         ];
 
-        if (in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag'])) {
+        if ($this->zahlungsart === 'lastschrift') {
             $rules['sepa_zustimmung'] = 'accepted';
             $rules['kontoinhaber']    = ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
             $rules['iban']            = ['required', 'string', function ($attribute, $value, $fail) {
@@ -281,7 +281,7 @@ class MembershipForm extends Component
 
     public function submit(): void
     {
-        if (in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag'])) {
+        if ($this->zahlungsart === 'lastschrift') {
             $this->iban = Iban::format($this->iban);
         }
 
@@ -307,12 +307,12 @@ class MembershipForm extends Component
             'phone'                => PhoneNumber::normalize($this->phone),
             'monatsbeitrag'        => $this->monatsbeitrag,
             'zahlungsart'          => $this->zahlungsart,
-            'kontoinhaber'         => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? $this->kontoinhaber : null,
-            'iban'                 => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? Iban::normalize($this->iban) : null,
-            'bic'                  => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? ($this->bic ?: null) : null,
-            'kreditinstitut'       => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? ($this->kreditinstitut ?: null) : null,
+            'kontoinhaber'         => $this->zahlungsart === 'lastschrift' ? $this->kontoinhaber : null,
+            'iban'                 => $this->zahlungsart === 'lastschrift' ? Iban::normalize($this->iban) : null,
+            'bic'                  => $this->zahlungsart === 'lastschrift' ? ($this->bic ?: null) : null,
+            'kreditinstitut'       => $this->zahlungsart === 'lastschrift' ? ($this->kreditinstitut ?: null) : null,
             'unterschrift'         => '', // TODO: Etap 4 — canvas підпис
-            'sepa_zustimmung'      => in_array($this->zahlungsart, ['lastschrift', 'dauerauftrag']) ? true : false,
+            'sepa_zustimmung'      => $this->zahlungsart === 'lastschrift',
             'dsgvo_zustimmung'     => $this->dsgvo_zustimmung,
             'zustimmung_at'        => now(),
             'status'               => 'pending',

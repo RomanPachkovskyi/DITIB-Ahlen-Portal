@@ -204,7 +204,7 @@
 | Папка | `~/Project/DITIB-Ahlen/portal/` |
 | PHP | 8.5 (Homebrew, не Docker) |
 | DB | SQLite → `database/database.sqlite` |
-| Порт | **8000** (Docker на 8080 — не конфліктує) |
+| Порт | **8000** (портал запускається через Homebrew PHP, не через Docker) |
 | Форма | http://localhost:8000 |
 | Admin | http://localhost:8000/admin |
 | Konto | http://localhost:8000/konto |
@@ -215,6 +215,8 @@
 ```bash
 cd ~/Project/DITIB-Ahlen/portal && php artisan serve --port=8000
 ```
+
+**Фіксовані локальні порти DITIB Ahlen:** лендінг `../main` працює через Docker на `http://localhost:8082`, портал `../portal` працює через Homebrew PHP на `http://localhost:8000`. Портал не переносити в Docker Desktop і не запускати на `8083`, `5173` або `8383`.
 
 **Build локально:**
 ```bash

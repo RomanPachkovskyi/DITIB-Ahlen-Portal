@@ -34,8 +34,10 @@ Laravel 13 + Filament v5 портал членів громади DITIB Ahlen.
 
 | Порт | Проект | Запуск |
 |------|--------|--------|
-| **8080** | Лендінг `main/` | Docker |
-| **8000** | Портал `portal/` | `php artisan serve --port=8000` |
+| **8082** | Лендінг `main/` | Docker (`docker compose up` у `../main`) |
+| **8000** | Портал `portal/` | Homebrew PHP: `php artisan serve --port=8000` |
+
+> ⛔ Не переналаштовувати ці порти. Портал не запускати через Docker Desktop на 8083/5173/8383. Для порталу істина — тільки `http://localhost:8000`.
 
 ---
 

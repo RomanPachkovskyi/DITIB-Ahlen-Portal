@@ -119,6 +119,40 @@ class MembershipFormTest extends TestCase
         Event::assertDispatched(MemberRegistered::class);
     }
 
+    public function test_it_submits_standing_order_without_sepa_mandate_or_bank_details(): void
+    {
+        Event::fake([MemberRegistered::class]);
+
+        Livewire::test(MembershipForm::class)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Dauerauftrag Nutzer')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 4')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'dauerauftrag@example.com')
+            ->set('phone', '02382/123456')
+            ->set('monatsbeitrag', 10)
+            ->set('zahlungsart', 'dauerauftrag')
+            ->set('dsgvo_zustimmung', true)
+            ->call('submit')
+            ->assertHasNoErrors()
+            ->assertSet('submitted', true);
+
+        $this->assertDatabaseHas('members', [
+            'email' => 'dauerauftrag@example.com',
+            'zahlungsart' => 'dauerauftrag',
+            'kontoinhaber' => null,
+            'iban' => null,
+            'sepa_zustimmung' => false,
+            'dsgvo_zustimmung' => true,
+        ]);
+
+        Event::assertDispatched(MemberRegistered::class);
+    }
+
     public function test_it_accepts_ten_euro_as_minimum_monthly_contribution(): void
     {
         Event::fake([MemberRegistered::class]);

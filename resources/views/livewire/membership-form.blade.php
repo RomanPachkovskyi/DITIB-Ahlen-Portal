@@ -302,7 +302,7 @@
                     @error('zahlungsart') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
-                @if (in_array($zahlungsart, ['lastschrift', 'dauerauftrag']))
+                @if ($zahlungsart === 'lastschrift')
                     <div class="sm:col-span-2">
                         <div class="border-t border-gray-100 pt-4 mt-2">
                             <p class="text-sm font-medium text-gray-700 mb-3">Kontodaten</p>
@@ -340,13 +340,15 @@
 
                 {{-- Zustimmung --}}
                 <div class="sm:col-span-2 space-y-3 mt-2">
-                    @if (in_array($zahlungsart, ['lastschrift', 'dauerauftrag']))
+                    @if ($zahlungsart === 'lastschrift')
                         <label class="flex items-start gap-3 cursor-pointer">
                             <input wire:model.live="sepa_zustimmung" type="checkbox"
                                 class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('sepa_zustimmung') border-red-400 @enderror">
                             <span class="text-sm text-gray-700">
                                 Ich erteile das <strong>SEPA-Lastschriftmandat</strong> und ermächtige DITIB Ahlen,
-                                den monatlichen Mitgliedsbeitrag von meinem Konto einzuziehen.
+                                den monatlichen Mitgliedsbeitrag von meinem Konto einzuziehen. Hinweise zur Verarbeitung
+                                meiner Kontodaten finde ich in der
+                                <a href="https://ditib-ahlen-projekte.de/datenschutz" target="_blank" rel="noopener noreferrer" class="font-semibold text-teal-700 underline hover:text-teal-900">Datenschutzerklärung</a>.
                             </span>
                         </label>
                         @error('sepa_zustimmung') <p class="text-red-500 text-xs ml-7">{{ $message }}</p> @enderror
@@ -356,8 +358,9 @@
                         <input wire:model.live="dsgvo_zustimmung" type="checkbox"
                             class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('dsgvo_zustimmung') border-red-400 @enderror">
                         <span class="text-sm text-gray-700">
-                            Ich habe die <strong>Datenschutzerklärung</strong> gelesen und stimme der
-                            Verarbeitung meiner Daten gemäß DSGVO zu. *
+                            Ich habe die
+                            <a href="https://ditib-ahlen-projekte.de/datenschutz" target="_blank" rel="noopener noreferrer" class="font-semibold text-teal-700 underline hover:text-teal-900">Datenschutzerklärung</a>
+                            gelesen und stimme der Verarbeitung meiner Daten gemäß DSGVO zu. *
                         </span>
                     </label>
                     @error('dsgvo_zustimmung') <p class="text-red-500 text-xs ml-7">{{ $message }}</p> @enderror
