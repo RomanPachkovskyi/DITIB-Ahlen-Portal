@@ -33,6 +33,10 @@
 
     <main class="max-w-3xl mx-auto px-4 py-8">
         {{ $slot }}
+
+        <div class="mt-4">
+            <x-system-info align="center" />
+        </div>
     </main>
 
     <footer class="max-w-3xl mx-auto px-4 py-8">

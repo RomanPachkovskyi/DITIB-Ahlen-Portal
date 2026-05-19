@@ -17,6 +17,8 @@ cd "${ROOT_DIR}"
 
 mkdir -p "${ARTIFACT_DIR}"
 
+php scripts/update-system-version.php
+
 echo "Preparing staging directory: ${STAGING_DIR}"
 COPYFILE_DISABLE=1 tar -cf - \
   --exclude='./.git' \

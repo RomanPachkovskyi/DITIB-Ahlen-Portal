@@ -16,6 +16,12 @@ if (! is_dir($outputDir) && ! mkdir($outputDir, 0775, true) && ! is_dir($outputD
     exit(1);
 }
 
+passthru(PHP_BINARY . ' ' . escapeshellarg($root . '/scripts/update-system-version.php'), $versionExitCode);
+
+if ($versionExitCode !== 0) {
+    exit($versionExitCode);
+}
+
 $pdo = new PDO('sqlite:' . $sqlitePath);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 

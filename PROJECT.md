@@ -69,6 +69,7 @@
 - Сіре summary-повідомлення над формою показується тільки тоді, коли помилки лишились у попередніх кроках
 - PLZ dropdown не має очищати validation errors для `postal_code`, `city`, `state`; інакше inline-помилки адреси зникають при кліку на `Weiter`
 - У Blade/Alpine `x-on:input` handlers використовують `$event.target`, не `this`, бо Alpine `this` не є DOM input і дає console errors
+- Одразу під формою по центру показується технічний system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`, де `Munas-Print` веде на `https://munas.online/`
 - У футері публічної форми є `Impressum` і `Datenschutz` із відкриттям у нових вкладках
 - Radio/checkbox controls у публічній формі використовують reusable class `ditib-choice-input`; колір береться з brand CSS variable `--ditib-brand-primary`, який прокидається з `App\Support\BrandColors`
 - ~~Крок 4: Unterschrift~~ → перенесено в Етап 4 разом із фото профілю
@@ -92,6 +93,7 @@
 - Global search у header адмін-панелі вимкнено; замість нього показується кнопка `Neue Registrierung`, яка відкриває production-форму `https://mitglied.ditib-ahlen-projekte.de/` у новій вкладці
 - Header-кнопка `Erstellen` на сторінці Mitglieder не показується; нові члени мають реєструватись через публічну форму
 - Пошук над таблицею Mitglieder розширено до `24rem`
+- Під таблицею Mitglieder справа показується технічний system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`, де `Munas-Print` веде на `https://munas.online/`
 - У footer адмін-панелі є `Impressum` і `Datenschutz` із відкриттям у нових вкладках
 - При зміні статусу на `active` член отримує email про прийняття
 - Звичайний адмін-процес для завершення членства: перевести запис у `inactive`, не видаляти
@@ -308,7 +310,7 @@ npm ci
 npm run build
 ```
 
-Після цього створюється архів у `deploy-artifacts/ditib-ahlen-portal-YYYYMMDD-HHMMSS.tar.gz`.
+Перед staging-copy скрипт автоматично піднімає технічну версію в `config/system-version.json` через `scripts/update-system-version.php`. Після цього створюється архів у `deploy-artifacts/ditib-ahlen-portal-YYYYMMDD-HHMMSS.tar.gz`.
 
 Архів містить:
 
@@ -361,6 +363,8 @@ npm run build
 3. Якщо міграції є, підготувати відповідний SQL-файл у `deploy-artifacts/`.
 4. Імпортувати SQL через phpMyAdmin.
 5. Перевірити таблицю `migrations`, щоб production не вважав міграцію невиконаною, якщо Artisan колись стане доступним.
+
+Повний SQL export через `scripts/export-production-sql.php` автоматично піднімає технічну версію в `config/system-version.json`.
 
 Важливо: локальний SQLite (`database/database.sqlite`) ніколи не переносити на production.
 

@@ -64,4 +64,8 @@
     .fi-ta-search-field {
         width: min(24rem, calc(100vw - 2rem));
     }
+
+    .fi-sc.fi-sc-has-gap {
+        gap: calc(var(--spacing) * 3);
+    }
 </style>

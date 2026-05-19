@@ -560,6 +560,13 @@
 - Додано MySQL-міграцію для enum `members.status` без зміни існуючих `pending` записів і підготовлено SQL-файл для phpMyAdmin у `deploy-artifacts/`.
 - Перевірено повним PHPUnit-набором, включно з lifecycle email tests.
 
+### [2026-05-19 10:34] Технічний system label і автооновлення версії — Codex
+- Додано `v1.035 - Update: 19.05.2026 - by Munas-Print` як єдиний system label на базі `config/system-version.json` і `App\Support\SystemInfo`; `Munas-Print` відкриває `https://munas.online/` у новій вкладці.
+- Публічна форма показує label одразу під формою по центру; адмінка показує label після таблиці списку Mitglieder справа, у стилі реквізитів футера.
+- Для адмінки зменшено верхній відступ system label до `0px` і compact gap Filament stack до `calc(var(--spacing) * 3)`.
+- Додано `scripts/update-system-version.php`; `scripts/build-artifact.sh` і `scripts/export-production-sql.php` автоматично піднімають patch-номер і дату перед build/DB export.
+- Оновлено `PROJECT.md` і перевірено повним PHPUnit-набором.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*
