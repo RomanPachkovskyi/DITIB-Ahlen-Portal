@@ -25,7 +25,8 @@ class EditMember extends EditRecord
         return [
             Action::make('saveHeader')
                 ->label('Änderungen speichern')
-                ->color('success')
+                ->color('primary')
+                ->extraAttributes(['class' => 'ditib-brand-primary-button'], merge: true)
                 ->action(function (): void {
                     $this->save();
                 }),
@@ -40,7 +41,8 @@ class EditMember extends EditRecord
     {
         return parent::getSaveFormAction()
             ->label('Änderungen speichern')
-            ->color('success');
+            ->color('primary')
+            ->extraAttributes(['class' => 'ditib-brand-primary-button'], merge: true);
     }
 
     protected function getCancelFormAction(): Action

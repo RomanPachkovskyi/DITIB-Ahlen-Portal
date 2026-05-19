@@ -172,12 +172,12 @@
                     <div class="flex gap-6">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input wire:model.live="cenaze_fonu" type="radio" value="1"
-                                class="text-teal-600">
+                                class="ditib-choice-input">
                             <span class="text-sm">Ja</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input wire:model.live="cenaze_fonu" type="radio" value="0"
-                                class="text-teal-600">
+                                class="ditib-choice-input">
                             <span class="text-sm">Nein</span>
                         </label>
                     </div>
@@ -196,12 +196,12 @@
                     <div class="flex gap-6">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input wire:model.live="gemeinderegister" type="radio" value="1"
-                                class="text-teal-600">
+                                class="ditib-choice-input">
                             <span class="text-sm">Ja</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input wire:model.live="gemeinderegister" type="radio" value="0"
-                                class="text-teal-600">
+                                class="ditib-choice-input">
                             <span class="text-sm">Nein</span>
                         </label>
                     </div>
@@ -374,7 +374,7 @@
                     @if ($zahlungsart === 'lastschrift')
                         <label class="flex items-start gap-3 cursor-pointer">
                             <input wire:model.live="sepa_zustimmung" type="checkbox"
-                                class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('sepa_zustimmung') border-red-400 @enderror">
+                                class="ditib-choice-input mt-0.5 w-4 h-4 border-gray-300 rounded @error('sepa_zustimmung') border-red-400 @enderror">
                             <span class="text-sm text-gray-700">
                                 Ich erteile das <strong>SEPA-Lastschriftmandat</strong> und ermächtige DITIB Ahlen,
                                 den monatlichen Mitgliedsbeitrag von meinem Konto einzuziehen. Hinweise zur Verarbeitung
@@ -387,7 +387,7 @@
 
                     <label class="flex items-start gap-3 cursor-pointer">
                         <input wire:model.live="dsgvo_zustimmung" type="checkbox"
-                            class="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded @error('dsgvo_zustimmung') border-red-400 @enderror">
+                            class="ditib-choice-input mt-0.5 w-4 h-4 border-gray-300 rounded @error('dsgvo_zustimmung') border-red-400 @enderror">
                         <span class="text-sm text-gray-700">
                             Ich habe die
                             <a href="https://ditib-ahlen-projekte.de/datenschutz" target="_blank" rel="noopener noreferrer" class="font-semibold text-teal-700 underline hover:text-teal-900">Datenschutzerklärung</a>

@@ -514,6 +514,45 @@
 - Зафіксовано frontend-рішення для Alpine input handlers: у `x-on:input` використовувати `$event.target`, щоб уникати runtime errors у консолі.
 - Підсумовано, що цей етап охопив legal links/DSGVO-посилання, phone UX, contribution presets, адресні помилки, summary spacing і JS console cleanup.
 
+### [2026-05-18 16:50] Production redeploy checklist для існуючої БД — Codex
+- Додано в `PROJECT.md` короткий Plesk redeploy-чекліст для ситуації, коли production БД уже містить реєстрації.
+- Зафіксовано: перед deploy зробити backup MySQL через phpMyAdmin, на сервері не видаляти `.env`, не міняти `APP_KEY`, не чіпати БД без нових міграцій.
+- Зафіксовано сценарій file-only deploy: видалити старі файли Laravel-порталу, залишити `.env`, завантажити й розпакувати artifact у `mitglied.ditib-ahlen-projekte.de/`, потім перевірити форму, `/admin` і старі реєстрації.
+
+### [2026-05-19 08:22] Admin Mitglieder header actions — Codex
+- Вимкнено глобальний пошук у header адмін-панелі та замінено його кнопкою переходу до публічної форми реєстрації в новій вкладці.
+- На сторінці Mitglieder прибрано header-кнопку `Erstellen`.
+- Поле пошуку над таблицею Mitglieder розширено до 24rem, приблизно на 50% від стандартної ширини.
+
+### [2026-05-19 08:36] Admin footer links і pagination default — Codex
+- Додано `Impressum` і `Datenschutz` у footer адмін-панелі з відкриттям у новій вкладці.
+- Для таблиці Mitglieder встановлено стандартний показ 25 записів на сторінку.
+
+### [2026-05-19 08:47] Єдине джерело brand color для Filament — Codex
+- Додано `App\Support\BrandColors` як PHP-джерело основного brand color `#009689`.
+- Admin panel і Member panel переведено на спільний `BrandColors::primary()` замість окремих `Color::Amber` / `Color::Teal`.
+- Admin primary controls тепер використовують бірюзову Filament palette у стилі публічної форми.
+
+### [2026-05-19 08:55] Brand style для primary кнопок адмінки — Codex
+- Додано CSS variables для brand primary button у Filament style hook на базі `App\Support\BrandColors`.
+- Кнопки `Neue Registrierung` і `Änderungen speichern` отримали однаковий brand style: фон `#009689`, hover `teal-700`, білий текст та іконки.
+- Save actions на edit page переведено з semantic `success` на brand `primary`, щоб не розходились зі стилем публічної форми.
+
+### [2026-05-19 08:59] Глобальний brand стиль для primary Filament buttons — Codex
+- Розширено admin CSS: усі Filament-кнопки з `fi-color-primary` автоматично отримують brand style `#009689`, hover `teal-700`, білий текст та іконки.
+- Майбутні кнопки з `color('primary')` або `color="primary"` тепер не потребують окремого класу для базового brand вигляду.
+- Це покриває системні Filament-кнопки на кшталт `Filter anwenden` і `Spalten anwenden`.
+
+### [2026-05-19 09:07] Brand style для radio і checkbox публічної форми — Codex
+- Публічний layout тепер прокидає CSS variables `--ditib-brand-*` з `App\Support\BrandColors`.
+- Додано reusable CSS-клас `ditib-choice-input` для radio/checkbox з явним `accent-color: #009689`.
+- Radio-поля `Cenaze Fonu`, `Gemeinderegister` і checkbox-згоди SEPA/DSGVO переведено на спільний brand-клас.
+
+### [2026-05-19 09:10] Документація brand styling і admin UX — Codex
+- Оновлено `PROJECT.md` з актуальним описом brand source of truth: `App\Support\BrandColors`, Filament primary palette і CSS variables.
+- Задокументовано глобальне правило для Filament primary buttons: `#009689`, hover `teal-700`, білий текст/іконки.
+- Задокументовано reusable `ditib-choice-input` для radio/checkbox у публічній формі та актуальні admin UX зміни: header button, без `Erstellen`, пошук 24rem, default pagination 25, footer legal links.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

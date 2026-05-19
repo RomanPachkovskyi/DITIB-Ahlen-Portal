@@ -5,6 +5,11 @@
         <p>DITIB Listennr.: 1005 · Bankverbindung Sparkasse Münsterland Ost · IBAN: DE 42 4005 0150 0068 0009 59</p>
     </div>
     <div style="font-size: 12px; color: #9ca3af; border-top: 1px solid #f3f4f6; pt-6; padding-top: 16px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 1rem; row-gap: 0.25rem; margin-bottom: 8px;">
+            <a href="https://ditib-ahlen-projekte.de/impressum" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #9ca3af;">Impressum</a>
+            <span aria-hidden="true">·</span>
+            <a href="https://ditib-ahlen-projekte.de/datenschutz" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #9ca3af;">Datenschutz</a>
+        </div>
         © {{ date('Y') }} DITIB Ahlen — <a href="https://ditib-ahlen-projekte.de" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #9ca3af;">ditib-ahlen-projekte.de</a>
     </div>
 </footer>

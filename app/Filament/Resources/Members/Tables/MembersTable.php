@@ -117,6 +117,7 @@ class MembersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
             ->recordUrl(fn (Member $record): string => MemberResource::getUrl('view', ['record' => $record]))
             ->recordAction(null)
             ->filters([

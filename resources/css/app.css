@@ -8,3 +8,14 @@
 @theme {
     --font-sans: 'Albert Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+@layer components {
+    .ditib-choice-input {
+        accent-color: var(--ditib-brand-primary);
+        color: var(--ditib-brand-primary);
+    }
+
+    .ditib-choice-input:focus {
+        --tw-ring-color: var(--ditib-brand-primary);
+    }
+}

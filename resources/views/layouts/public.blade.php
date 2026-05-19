@@ -1,9 +1,19 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
+    @php
+        use App\Support\BrandColors;
+    @endphp
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mitgliedsantrag — DITIB Ahlen</title>
+    <style>
+        :root {
+            --ditib-brand-primary: {{ BrandColors::PRIMARY_HEX }};
+            --ditib-brand-primary-hover: {{ BrandColors::PRIMARY_HOVER_CSS_VAR }};
+            --ditib-brand-on-primary: {{ BrandColors::ON_PRIMARY_HEX }};
+        }
+    </style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     <link rel="preconnect" href="https://fonts.googleapis.com">

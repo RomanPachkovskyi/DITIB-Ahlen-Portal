@@ -70,6 +70,7 @@
 - PLZ dropdown не має очищати validation errors для `postal_code`, `city`, `state`; інакше inline-помилки адреси зникають при кліку на `Weiter`
 - У Blade/Alpine `x-on:input` handlers використовують `$event.target`, не `this`, бо Alpine `this` не є DOM input і дає console errors
 - У футері публічної форми є `Impressum` і `Datenschutz` із відкриттям у нових вкладках
+- Radio/checkbox controls у публічній формі використовують reusable class `ditib-choice-input`; колір береться з brand CSS variable `--ditib-brand-primary`, який прокидається з `App\Support\BrandColors`
 - ~~Крок 4: Unterschrift~~ → перенесено в Етап 4 разом із фото профілю
 - Після відправки → сторінка підтвердження з member_number, статус `pending`
 
@@ -81,12 +82,17 @@
 
 ### Адмін-панель (`/admin`) — Filament AdminPanel
 - Список членів з пошуком, фільтром по статусу, badge-кольорами
+- Таблиця Mitglieder за замовчуванням показує 25 записів на сторінку
 - Перегляд і редагування кожного запису (секції: Дані, Банк, Статус)
 - Схвалення / відхилення заявок (статуси: `pending` → `active` / `inactive`)
 - Клік по рядку таблиці відкриває перегляд запису; редагування доступне тільки через `Bearbeiten`
 - У таблиці швидкі дії: `Bearbeiten` і окремо зміна статусу; `Anzeigen` і `Löschen` не показуються в row actions
 - Масові дії в таблиці використовуються тільки для зміни статусу вибраних записів; масове видалення не показується
-- На сторінці редагування кнопки `Änderungen speichern` і `Abbrechen` доступні зверху і знизу форми; save-кнопки зелені
+- На сторінці редагування кнопки `Änderungen speichern` і `Abbrechen` доступні зверху і знизу форми; save-кнопки мають brand primary style `#009689`, hover `teal-700`, білий текст
+- Global search у header адмін-панелі вимкнено; замість нього показується кнопка `Neue Registrierung`, яка відкриває production-форму `https://mitglied.ditib-ahlen-projekte.de/` у новій вкладці
+- Header-кнопка `Erstellen` на сторінці Mitglieder не показується; нові члени мають реєструватись через публічну форму
+- Пошук над таблицею Mitglieder розширено до `24rem`
+- У footer адмін-панелі є `Impressum` і `Datenschutz` із відкриттям у нових вкладках
 - При зміні статусу на `active` член отримує email про прийняття
 - Звичайний адмін-процес для завершення членства: перевести запис у `inactive`, не видаляти
 - Soft delete лишається технічно в системі, але не є адмінською UI-дією; номер не звільняється навіть для inactive або soft-deleted записів
@@ -168,6 +174,36 @@
 ---
 
 ## Архітектурні рішення
+
+### UI branding і стилі
+
+Основний brand color проекту: `#009689`. Він відповідає бірюзовому стилю публічної форми (`teal-600`) і має бути єдиною основою для primary controls у порталі.
+
+Джерело правди для brand tokens у PHP:
+
+- `app/Support/BrandColors.php`
+- `BrandColors::PRIMARY_HEX` → `#009689`
+- `BrandColors::ON_PRIMARY_HEX` → `#ffffff`
+- `BrandColors::PRIMARY_HOVER_CSS_VAR` → `var(--color-teal-700, var(--primary-700))`
+- `BrandColors::primary()` → Filament teal palette для `->colors(['primary' => ...])`
+
+Filament panels:
+
+- `AdminPanelProvider` і `MemberPanelProvider` використовують `BrandColors::primary()` для `primary`
+- Не повертати `Color::Amber` в admin panel; жовтий `#ffb900` більше не є primary стилем
+- `resources/views/filament/admin-style.blade.php` прокидає CSS variables `--ditib-brand-*`
+- Усі Filament-кнопки `.fi-btn.fi-color-primary` глобально отримують brand style: фон `#009689`, hover `teal-700`, білий текст та білі іконки
+- Майбутні Filament actions/buttons, які мають бути основними CTA, треба робити через `->color('primary')` або `color="primary"`; окремий custom class для базового brand button не потрібен
+- Semantic status colors не змішувати з brand: `active` лишається `success`, `pending` лишається `warning`, `inactive` лишається `danger`, бо це статуси, а не CTA
+
+Публічна форма:
+
+- `resources/views/layouts/public.blade.php` прокидає ті самі CSS variables `--ditib-brand-*` з `BrandColors`
+- `resources/css/app.css` містить reusable class `ditib-choice-input` для native radio/checkbox controls
+- Radio/checkbox у формі мають використовувати `ditib-choice-input`, а не випадкові `text-blue-*` або ручні inline colors
+- Існуючі Tailwind-класи `teal-*` у формі історично відповідають brand color; при подальшому впорядкуванні їх можна поступово переводити на reusable brand classes/CSS variables
+
+Важливо: публічна форма і адмінка не є однією UI-системою. Форма — Blade/Tailwind/Vite, адмінка — Filament. Спільність стилю забезпечується через `BrandColors` і CSS variables, а не через спільні компоненти.
 
 ### Email — не унікальний (v1.0)
 Один email може використовуватись для кількох членів. Причина: літні члени громади не мають власної пошти — діти або родичі реєструють їх на свій email.
@@ -299,6 +335,18 @@ npm run build
 4. Розпакувати архів у цю папку з перезаписом файлів.
 5. Перевірити, що серверний `.env` залишився на місці і не був замінений.
 6. Перевірити, що Document Root досі `mitglied.ditib-ahlen-projekte.de/public`.
+
+Короткий production redeploy, коли БД уже містить реєстрації і міграцій немає:
+
+1. Зробити backup production MySQL через phpMyAdmin.
+2. У Plesk File Manager зайти в `mitglied.ditib-ahlen-projekte.de/`.
+3. Видалити старі файли Laravel-порталу, але **не видаляти `.env`**.
+4. Якщо на production є користувацькі uploads у `storage/app/public`, їх також не видаляти; для поточної форми таких uploads ще немає.
+5. Завантажити новий `deploy-artifacts/ditib-ahlen-portal-*.tar.gz`.
+6. Розпакувати архів у `mitglied.ditib-ahlen-projekte.de/`.
+7. Перевірити, що `.env` залишився серверним, `APP_KEY` не змінився, Document Root досі `.../public`.
+8. Якщо нових файлів у `database/migrations/` немає, **БД не чіпати**: не імпортувати SQL і не запускати migrate.
+9. Перевірити форму, `/admin`, старі реєстрації в адмінці і одну тестову валідаційну помилку у формі.
 
 Після artifact deploy без shell-команд Laravel працює без `config:cache`, `route:cache` і `view:cache`. Це повільніше за optimized deploy, але прийнятно для поточного масштабу порталу.
 
