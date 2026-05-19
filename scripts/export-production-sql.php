@@ -179,6 +179,7 @@ CREATE TABLE IF NOT EXISTS `members` (
   `zahlungsart` enum('barzahlung','lastschrift','dauerauftrag') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'barzahlung',
   `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `phone` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `instagram` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `monatsbeitrag` decimal(8,2) NOT NULL DEFAULT '25.00',
   `kontoinhaber` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `iban` text COLLATE utf8mb4_unicode_ci,

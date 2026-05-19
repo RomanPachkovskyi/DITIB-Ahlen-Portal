@@ -572,6 +572,12 @@
 - Прибрано активний план legacy Excel-імпорту: видалено `LEGACY_IMPORT.md` і секцію legacy import з `PROJECT.md`.
 - Додано в Етап 4 майбутню функцію експорту таблиці членів громади в Excel-файл (`.xlsx`) із завантаженням на ПК.
 
+### [2026-05-19 11:48] Instagram поле в Mitgliedsantrag — Codex
+- Додано необов'язкове поле `instagram` у `members` із міграцією та production SQL для phpMyAdmin.
+- Публічна форма приймає Instagram username, `@username` або Instagram URL і зберігає нормалізований username без `@`.
+- Додано поле Instagram у Filament edit/view form і приховану за замовчуванням колонку таблиці з клікабельним посиланням.
+- Додано regression tests для нормалізації, валідації та збереження Instagram input.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

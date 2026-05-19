@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Members\Tables;
 
 use App\Filament\Resources\Members\MemberResource;
 use App\Models\Member;
+use App\Support\Instagram;
 use App\Support\MemberStatus;
 use App\Support\PhoneNumber;
 use Filament\Actions\Action;
@@ -80,6 +81,14 @@ class MembersTable
                 TextColumn::make('phone')
                     ->label('Telefon')
                     ->formatStateUsing(fn (?string $state): string => PhoneNumber::format($state))
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('instagram')
+                    ->label('Instagram')
+                    ->formatStateUsing(fn (?string $state): string => Instagram::display($state))
+                    ->url(fn (?string $state): ?string => Instagram::url($state))
+                    ->openUrlInNewTab()
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 

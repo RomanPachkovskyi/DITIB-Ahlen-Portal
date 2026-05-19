@@ -35,6 +35,7 @@ class Member extends Model
         'heimatstadt',
         'email',
         'phone',
+        'instagram',
         'zahlungsart',
         'monatsbeitrag',
         'kontoinhaber',

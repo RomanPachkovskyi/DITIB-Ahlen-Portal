@@ -7,6 +7,7 @@ use App\Livewire\MembershipForm;
 use App\Mail\MemberRegistrationConfirmation;
 use App\Mail\NewMemberNotification;
 use App\Support\Iban;
+use App\Support\Instagram;
 use App\Support\PhoneNumber;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -51,6 +52,27 @@ class MembershipFormTest extends TestCase
         }
     }
 
+    public function test_it_normalizes_instagram_input(): void
+    {
+        $cases = [
+            'ditibahlen' => 'ditibahlen',
+            '@ditibahlen' => 'ditibahlen',
+            'https://www.instagram.com/ditibahlen/' => 'ditibahlen',
+            'instagram.com/ditibahlen?igsh=test' => 'ditibahlen',
+        ];
+
+        foreach ($cases as $input => $normalized) {
+            $this->assertSame($normalized, Instagram::normalize($input));
+            $this->assertSame('@' . $normalized, Instagram::display($input));
+            $this->assertTrue(Instagram::isValid($input));
+        }
+
+        $this->assertNull(Instagram::normalize('https://example.com/ditibahlen'));
+        $this->assertFalse(Instagram::isValid('https://example.com/ditibahlen'));
+        $this->assertNull(Instagram::normalize('https://fakeinstagram.com/ditibahlen'));
+        $this->assertFalse(Instagram::isValid('https://fakeinstagram.com/ditibahlen'));
+    }
+
     public function test_it_rejects_invalid_phone_input(): void
     {
         foreach (['abc', '123', '+49', '492382123456'] as $input) {
@@ -81,6 +103,46 @@ class MembershipFormTest extends TestCase
             ->call('nextStep')
             ->assertHasNoErrors(['phone'])
             ->assertSet('phone', '+49 2382 123456');
+    }
+
+    public function test_it_rejects_invalid_instagram_input(): void
+    {
+        Livewire::test(MembershipForm::class)
+            ->set('step', 2)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Max Mustermann')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'max@example.com')
+            ->set('phone', '2382 123456')
+            ->set('instagram', 'https://example.com/ditibahlen')
+            ->call('nextStep')
+            ->assertHasErrors(['instagram'])
+            ->assertSet('instagram', 'https://example.com/ditibahlen');
+    }
+
+    public function test_it_formats_valid_instagram_input_on_step_validation(): void
+    {
+        Livewire::test(MembershipForm::class)
+            ->set('step', 2)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Max Mustermann')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'max@example.com')
+            ->set('phone', '2382 123456')
+            ->set('instagram', '@ditibahlen')
+            ->call('nextStep')
+            ->assertHasNoErrors(['instagram'])
+            ->assertSet('instagram', 'ditibahlen');
     }
 
     public function test_it_allows_moving_forward_while_showing_step_errors(): void
@@ -165,6 +227,7 @@ class MembershipFormTest extends TestCase
             ->set('state', 'Nordrhein-Westfalen')
             ->set('email', 'max@example.com')
             ->set('phone', '02382/123456')
+            ->set('instagram', 'https://www.instagram.com/ditibahlen/')
             ->set('monatsbeitrag', 25)
             ->set('zahlungsart', 'barzahlung')
             ->set('dsgvo_zustimmung', true)
@@ -175,6 +238,7 @@ class MembershipFormTest extends TestCase
         $this->assertDatabaseHas('members', [
             'full_name' => 'Max Mustermann',
             'phone' => '+492382123456',
+            'instagram' => 'ditibahlen',
             'zahlungsart' => 'barzahlung',
             'dsgvo_zustimmung' => true,
         ]);

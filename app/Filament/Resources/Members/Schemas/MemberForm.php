@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Members\Schemas;
 
 use App\Models\Member;
 use App\Support\Iban;
+use App\Support\Instagram;
 use App\Support\MemberStatus;
 use App\Support\PhoneNumber;
 use Filament\Forms\Components\DatePicker;
@@ -113,6 +114,18 @@ class MemberForm
                             ->rule(fn () => function (string $attribute, ?string $value, \Closure $fail): void {
                                 if (! PhoneNumber::isValid($value)) {
                                     $fail(PhoneNumber::validationMessage());
+                                }
+                            })
+                            ->live(onBlur: true),
+                        TextInput::make('instagram')
+                            ->label('Instagram')
+                            ->placeholder('@benutzername')
+                            ->maxLength(255)
+                            ->formatStateUsing(fn (?string $state): string => Instagram::display($state))
+                            ->dehydrateStateUsing(fn (?string $state): ?string => Instagram::normalize($state))
+                            ->rule(fn () => function (string $attribute, ?string $value, \Closure $fail): void {
+                                if (! Instagram::isValid($value)) {
+                                    $fail('Bitte geben Sie einen Instagram-Namen oder Instagram-Link ein.');
                                 }
                             })
                             ->live(onBlur: true),

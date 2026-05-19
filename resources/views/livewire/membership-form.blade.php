@@ -288,6 +288,17 @@
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('phone') border-red-400 @enderror">
                     @error('phone') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+                    <input wire:model.blur="instagram" type="text" placeholder="@benutzername oder Instagram-Link"
+                        inputmode="text"
+                        autocomplete="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 @error('instagram') border-red-400 @enderror">
+                    @error('instagram') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
             </div>
         @endif
 

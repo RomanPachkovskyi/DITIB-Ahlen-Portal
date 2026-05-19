@@ -61,6 +61,7 @@
 - 4-крокова форма Mitgliedsantrag (тільки DE, TR — Етап 4)
 - Крок 1: Persönliche Daten (ПІБ, народження, громадянство, сім'я, Cenaze Fonu, Gemeinderegister, берuf, Heimatstadt)
 - Крок 2: Adresse & Kontakt; телефон приймає міжнародний формат `+49...`, німецький формат із `0...`, німецький формат без першого `0` для номерів із Vorwahl, а також короткі місцеві Ahlen-номери, які нормалізуються з Vorwahl `02382`
+- Крок 2: необов'язкове поле Instagram приймає `username`, `@username` або Instagram URL; у БД зберігається нормалізований username без `@`
 - Крок 3: Beitrag & Zahlungsweise (мін. €10, пресети 10/15/20/25 € як компактні pill-кнопки, ручний ввід кроком 1 €, стандартна Zahlungsweise `Dauerauftrag`, умовні SEPA-поля тільки для `Lastschrift`, SEPA-згода, DSGVO-згода)
 - Пресети внеску на desktop/tablet показуються в один ряд на ширину блоку; на mobile — 2x2 з центруванням
 - `Weiter` виконує м'яку валідацію: помилки поточного кроку показуються, але користувач може перейти далі й дозаповнити форму
@@ -124,6 +125,7 @@
 | city, state, postal_code | string | |
 | email | string | **не unique** — один email дозволений для кількох членів (сім'я) |
 | phone | string | |
+| instagram | string | nullable, зберігається нормалізований username без `@`; форма приймає username, `@username` або Instagram URL |
 | zahlungsart | enum | barzahlung / lastschrift / dauerauftrag |
 | monatsbeitrag | decimal | мін. €10 |
 | kontoinhaber | string | nullable (тільки при SEPA) |

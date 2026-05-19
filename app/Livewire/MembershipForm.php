@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Member;
 use App\Support\Iban;
+use App\Support\Instagram;
 use App\Support\PhoneNumber;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
@@ -33,6 +34,7 @@ class MembershipForm extends Component
     public string $state = '';
     public string $email = '';
     public string $phone = '';
+    public string $instagram = '';
 
     // PLZ Autocomplete
     public array $plzSuggestions = [];
@@ -87,6 +89,11 @@ class MembershipForm extends Component
                     $fail(PhoneNumber::validationMessage());
                 }
             }],
+            'instagram'   => ['nullable', 'string', 'max:255', function ($attribute, $value, $fail) {
+                if (! Instagram::isValid($value)) {
+                    $fail('Bitte geben Sie einen Instagram-Namen oder Instagram-Link ein.');
+                }
+            }],
         ];
     }
 
@@ -125,6 +132,7 @@ class MembershipForm extends Component
             'email.required'                  => 'Bitte geben Sie Ihre E-Mail-Adresse ein.',
             'email.email'                     => 'Ungültige E-Mail-Adresse.',
             'phone.required'                  => 'Bitte geben Sie Ihre Telefonnummer ein.',
+            'instagram.max'                   => 'Der Instagram-Eintrag ist zu lang.',
 
             // Schritt 3
             'monatsbeitrag.required'          => 'Bitte geben Sie Ihren Monatsbeitrag ein.',
@@ -180,6 +188,10 @@ class MembershipForm extends Component
     {
         if ($step === 2) {
             $this->phone = PhoneNumber::format($this->phone);
+            $instagram = Instagram::normalize($this->instagram);
+            if ($instagram !== null || trim($this->instagram) === '') {
+                $this->instagram = $instagram ?? '';
+            }
         }
 
         if ($step === 3 && $this->zahlungsart === 'lastschrift') {
@@ -293,6 +305,12 @@ class MembershipForm extends Component
         $this->resetValidation('phone');
     }
 
+    public function updatedInstagram(string $value): void
+    {
+        $this->instagram = Instagram::normalize($value) ?? $value;
+        $this->resetValidation('instagram');
+    }
+
     public function selectMonatsbeitrag(float $amount): void
     {
         $this->monatsbeitrag = $amount;
@@ -354,6 +372,7 @@ class MembershipForm extends Component
             'state'                => $this->state,
             'email'                => $this->email,
             'phone'                => PhoneNumber::normalize($this->phone),
+            'instagram'            => Instagram::normalize($this->instagram),
             'monatsbeitrag'        => $this->monatsbeitrag,
             'zahlungsart'          => $this->zahlungsart,
             'kontoinhaber'         => $this->zahlungsart === 'lastschrift' ? $this->kontoinhaber : null,
