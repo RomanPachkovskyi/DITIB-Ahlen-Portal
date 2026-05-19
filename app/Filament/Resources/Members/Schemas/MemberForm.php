@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Members\Schemas;
 
+use App\Models\Member;
 use App\Support\Iban;
+use App\Support\MemberStatus;
 use App\Support\PhoneNumber;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -138,21 +140,11 @@ class MemberForm
                     ->schema([
                         ToggleButtons::make('status')
                             ->label('Status')
-                            ->options([
-                                'pending'  => 'Ausstehend',
-                                'active'   => 'Aktiv',
-                                'inactive' => 'Inaktiv',
-                            ])
-                            ->icons([
-                                'pending'  => 'heroicon-m-sparkles',
-                                'active'   => 'heroicon-m-check-circle',
-                                'inactive' => 'heroicon-m-x-circle',
-                            ])
-                            ->colors([
-                                'pending'  => 'warning',
-                                'active'   => 'success',
-                                'inactive' => 'danger',
-                            ])
+                            ->options(MemberStatus::labels())
+                            ->icons(MemberStatus::icons())
+                            ->colors(MemberStatus::colors())
+                            ->disableOptionWhen(fn (string $value, ?Member $record = null): bool => in_array($value, MemberStatus::openStatuses(), true)
+                                && $record?->status !== $value)
                             ->inline()
                             ->default('pending')
                             ->required(),

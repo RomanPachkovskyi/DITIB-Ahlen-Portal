@@ -2,12 +2,7 @@
 # Mitgliedsdatensatz gelöscht
 
 @php
-    $statusLabel = match ($member->status) {
-        'pending' => 'Ausstehend',
-        'active' => 'Aktiv',
-        'inactive' => 'Inaktiv',
-        default => $member->status,
-    };
+    $statusLabel = \App\Support\MemberStatus::label($member->status);
 @endphp
 
 Ein Mitgliedsdatensatz wurde im Portal gelöscht.

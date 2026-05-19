@@ -553,6 +553,13 @@
 - Задокументовано глобальне правило для Filament primary buttons: `#009689`, hover `teal-700`, білий текст/іконки.
 - Задокументовано reusable `ditib-choice-input` для radio/checkbox у публічній формі та актуальні admin UX зміни: header button, без `Erstellen`, пошук 24rem, default pagination 25, footer legal links.
 
+### [2026-05-19 09:36] Оновлення логіки статусів членів — Codex
+- Додано централізований `MemberStatus` helper: `pending` тепер показується як `Neu`, новий `processing` як `Verarbeitung`, обидва з warning-кольором.
+- Оновлено Filament таблицю, фільтр, форму редагування, status chart і dashboard: `Offene Anträge` рахує `Neu + Verarbeitung`.
+- Швидкі й масові admin actions для статусів обмежено переходами в `Aktiv` або `Inaktiv`; системні стани лишаються видимими в edit form.
+- Додано MySQL-міграцію для enum `members.status` без зміни існуючих `pending` записів і підготовлено SQL-файл для phpMyAdmin у `deploy-artifacts/`.
+- Перевірено повним PHPUnit-набором, включно з lifecycle email tests.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

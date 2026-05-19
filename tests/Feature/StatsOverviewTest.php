@@ -41,6 +41,31 @@ class StatsOverviewTest extends TestCase
         $this->assertSame('Nur aktive Mitglieder', $stats[2]->getDescription());
     }
 
+    public function test_open_applications_count_new_and_processing_members(): void
+    {
+        Mail::fake();
+
+        $this->createMember([
+            'email' => 'pending@example.com',
+            'status' => 'pending',
+        ]);
+
+        $this->createMember([
+            'email' => 'processing@example.com',
+            'status' => 'processing',
+        ]);
+
+        $this->createMember([
+            'email' => 'active@example.com',
+            'status' => 'active',
+        ]);
+
+        $stats = $this->stats();
+
+        $this->assertSame(2, $stats[0]->getValue());
+        $this->assertSame('Neu und in Verarbeitung', $stats[0]->getDescription());
+    }
+
     /**
      * @return array<int, \Filament\Widgets\StatsOverviewWidget\Stat>
      */

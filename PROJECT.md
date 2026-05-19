@@ -72,7 +72,7 @@
 - У футері публічної форми є `Impressum` і `Datenschutz` із відкриттям у нових вкладках
 - Radio/checkbox controls у публічній формі використовують reusable class `ditib-choice-input`; колір береться з brand CSS variable `--ditib-brand-primary`, який прокидається з `App\Support\BrandColors`
 - ~~Крок 4: Unterschrift~~ → перенесено в Етап 4 разом із фото профілю
-- Після відправки → сторінка підтвердження з member_number, статус `pending`
+- Після відправки → сторінка підтвердження з member_number, технічний статус `pending`, який в адмінці показується як `Neu`
 
 ### Кабінет члена (`/konto`) — Filament MemberPanel
 - Вхід через email (Filament auth)
@@ -84,10 +84,10 @@
 - Список членів з пошуком, фільтром по статусу, badge-кольорами
 - Таблиця Mitglieder за замовчуванням показує 25 записів на сторінку
 - Перегляд і редагування кожного запису (секції: Дані, Банк, Статус)
-- Схвалення / відхилення заявок (статуси: `pending` → `active` / `inactive`)
+- Схвалення / відхилення заявок: системні відкриті стани `pending` (`Neu`) і `processing` (`Verarbeitung`), адмін переводить запис у `active` або `inactive`
 - Клік по рядку таблиці відкриває перегляд запису; редагування доступне тільки через `Bearbeiten`
-- У таблиці швидкі дії: `Bearbeiten` і окремо зміна статусу; `Anzeigen` і `Löschen` не показуються в row actions
-- Масові дії в таблиці використовуються тільки для зміни статусу вибраних записів; масове видалення не показується
+- У таблиці швидкі дії: `Bearbeiten` і окремо зміна статусу тільки на `Aktiv` або `Inaktiv`; `Anzeigen` і `Löschen` не показуються в row actions
+- Масові дії в таблиці використовуються тільки для зміни статусу вибраних записів на `Aktiv` або `Inaktiv`; масове видалення не показується
 - На сторінці редагування кнопки `Änderungen speichern` і `Abbrechen` доступні зверху і знизу форми; save-кнопки мають brand primary style `#009689`, hover `teal-700`, білий текст
 - Global search у header адмін-панелі вимкнено; замість нього показується кнопка `Neue Registrierung`, яка відкриває production-форму `https://mitglied.ditib-ahlen-projekte.de/` у новій вкладці
 - Header-кнопка `Erstellen` на сторінці Mitglieder не показується; нові члени мають реєструватись через публічну форму
@@ -132,7 +132,7 @@
 | sepa_zustimmung | boolean | |
 | dsgvo_zustimmung | boolean | |
 | zustimmung_at | timestamp | |
-| status | enum | pending / active / inactive |
+| status | enum | pending / processing / active / inactive; `pending` показується як `Neu`, `processing` як `Verarbeitung` |
 | admin_notiz | text | nullable |
 | deleted_at | timestamp | nullable, soft delete для історії номерів |
 
@@ -194,7 +194,7 @@ Filament panels:
 - `resources/views/filament/admin-style.blade.php` прокидає CSS variables `--ditib-brand-*`
 - Усі Filament-кнопки `.fi-btn.fi-color-primary` глобально отримують brand style: фон `#009689`, hover `teal-700`, білий текст та білі іконки
 - Майбутні Filament actions/buttons, які мають бути основними CTA, треба робити через `->color('primary')` або `color="primary"`; окремий custom class для базового brand button не потрібен
-- Semantic status colors не змішувати з brand: `active` лишається `success`, `pending` лишається `warning`, `inactive` лишається `danger`, бо це статуси, а не CTA
+- Semantic status colors не змішувати з brand: `active` лишається `success`, `pending`/`processing` лишаються `warning`, `inactive` лишається `danger`, бо це статуси, а не CTA
 
 Публічна форма:
 

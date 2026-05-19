@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Member;
+use App\Support\MemberStatus;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -15,8 +16,8 @@ class StatsOverview extends BaseWidget
     protected function getStats(): array
     {
         return [
-            Stat::make('Offene Anträge', Member::where('status', 'pending')->count())
-                ->description('Warten auf Überprüfung')
+            Stat::make('Offene Anträge', Member::whereIn('status', MemberStatus::openStatuses())->count())
+                ->description('Neu und in Verarbeitung')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('warning'),
             Stat::make('Mitglieder Gesamt', Member::count())

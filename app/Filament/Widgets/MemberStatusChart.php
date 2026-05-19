@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Member;
+use App\Support\MemberStatus;
 use Filament\Widgets\ChartWidget;
 
 class MemberStatusChart extends ChartWidget
@@ -18,15 +19,17 @@ class MemberStatusChart extends ChartWidget
     {
         $active = Member::where('status', 'active')->count();
         $pending = Member::where('status', 'pending')->count();
+        $processing = Member::where('status', 'processing')->count();
         $inactive = Member::where('status', 'inactive')->count();
 
         return [
             'datasets' => [
                 [
                     'label' => 'Status',
-                    'data' => [$active, $pending, $inactive],
+                    'data' => [$active, $pending, $processing, $inactive],
                     'backgroundColor' => [
                         '#10b981', // green
+                        '#f59e0b', // amber
                         '#f59e0b', // amber
                         '#ef4444', // red
                     ],
@@ -34,7 +37,8 @@ class MemberStatusChart extends ChartWidget
             ],
             'labels' => [
                 "Aktiv ({$active})",
-                "Ausstehend ({$pending})",
+                MemberStatus::label('pending') . " ({$pending})",
+                MemberStatus::label('processing') . " ({$processing})",
                 "Inaktiv ({$inactive})",
             ],
         ];

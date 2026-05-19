@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Members\Tables;
 
 use App\Filament\Resources\Members\MemberResource;
 use App\Models\Member;
+use App\Support\MemberStatus;
 use App\Support\PhoneNumber;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -37,21 +38,9 @@ class MembersTable
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->icon(fn (string $state): string => match ($state) {
-                        'pending'  => 'heroicon-m-sparkles',
-                        'active'   => 'heroicon-m-check-circle',
-                        'inactive' => 'heroicon-m-x-circle',
-                    })
-                    ->color(fn (string $state): string => match ($state) {
-                        'pending'  => 'warning',
-                        'active'   => 'success',
-                        'inactive' => 'danger',
-                    })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pending'  => 'Ausstehend',
-                        'active'   => 'Aktiv',
-                        'inactive' => 'Inaktiv',
-                    })
+                    ->icon(fn (string $state): string => MemberStatus::icon($state))
+                    ->color(fn (string $state): string => MemberStatus::color($state))
+                    ->formatStateUsing(fn (string $state): string => MemberStatus::label($state))
                     ->sortable()
                     ->grow(false),
 
@@ -123,11 +112,7 @@ class MembersTable
             ->filters([
                 SelectFilter::make('status')
                     ->label('Status')
-                    ->options([
-                        'pending'  => 'Ausstehend',
-                        'active'   => 'Aktiv',
-                        'inactive' => 'Inaktiv',
-                    ]),
+                    ->options(MemberStatus::labels()),
                 SelectFilter::make('zahlungsart')
                     ->label('Zahlungsart')
                     ->options([
@@ -158,11 +143,14 @@ class MembersTable
      */
     private static function statusRecordActions(): array
     {
-        return [
-            self::statusRecordAction('pending', 'Als Ausstehend markieren', 'heroicon-m-sparkles', 'warning'),
-            self::statusRecordAction('active', 'Als Aktiv markieren', 'heroicon-m-check-circle', 'success'),
-            self::statusRecordAction('inactive', 'Als Inaktiv markieren', 'heroicon-m-x-circle', 'danger'),
-        ];
+        return collect(MemberStatus::adminActionLabels())
+            ->map(fn (string $label, string $status): Action => self::statusRecordAction(
+                $status,
+                $label,
+                MemberStatus::icon($status),
+                MemberStatus::color($status),
+            ))
+            ->all();
     }
 
     private static function statusRecordAction(string $status, string $label, string $icon, string $color): Action
@@ -182,11 +170,14 @@ class MembersTable
      */
     private static function statusBulkActions(): array
     {
-        return [
-            self::statusBulkAction('pending', 'Auf Ausstehend setzen', 'heroicon-m-sparkles', 'warning'),
-            self::statusBulkAction('active', 'Auf Aktiv setzen', 'heroicon-m-check-circle', 'success'),
-            self::statusBulkAction('inactive', 'Auf Inaktiv setzen', 'heroicon-m-x-circle', 'danger'),
-        ];
+        return collect(MemberStatus::adminBulkActionLabels())
+            ->map(fn (string $label, string $status): BulkAction => self::statusBulkAction(
+                $status,
+                $label,
+                MemberStatus::icon($status),
+                MemberStatus::color($status),
+            ))
+            ->all();
     }
 
     private static function statusBulkAction(string $status, string $label, string $icon, string $color): BulkAction
@@ -209,7 +200,7 @@ class MembersTable
     {
         $color = match ($status) {
             'active' => 'oklch(0.527 0.154 150.069)',
-            'pending' => 'oklch(0.555 0.163 48.998)',
+            'pending', 'processing' => 'oklch(0.555 0.163 48.998)',
             default => null,
         };
 

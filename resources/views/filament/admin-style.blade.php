@@ -48,8 +48,16 @@
         color: oklch(0.555 0.163 48.998) !important;
     }
 
+    .ditib-status-action-processing {
+        --color-700: oklch(0.555 0.163 48.998);
+        --text: oklch(0.555 0.163 48.998);
+        --hover-text: oklch(0.555 0.163 48.998);
+        color: oklch(0.555 0.163 48.998) !important;
+    }
+
     .ditib-status-action-active :is(svg, span),
-    .ditib-status-action-pending :is(svg, span) {
+    .ditib-status-action-pending :is(svg, span),
+    .ditib-status-action-processing :is(svg, span) {
         color: inherit !important;
     }
 
