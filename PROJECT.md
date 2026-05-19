@@ -145,7 +145,7 @@
 | name | string(50) | unique, зараз `members` |
 | next_number | unsigned big integer | наступний кандидат для `member_number` |
 
-Номери членів видаються тільки через `MemberNumberSequence` у DB transaction з `lockForUpdate()`. Allocator додатково перевіряє `members` разом із soft-deleted записами й переступає вже зайняті номери, якщо sequence колись відстане після імпорту або ручної правки.
+Номери членів видаються тільки через `MemberNumberSequence` у DB transaction з `lockForUpdate()`. Allocator додатково перевіряє `members` разом із soft-deleted записами й переступає вже зайняті номери, якщо sequence колись відстане після ручної правки.
 
 ### Таблиця `change_requests`
 
@@ -229,20 +229,6 @@ Filament panels:
 **Діагноз 2026-05-06:** локальні листи рендеряться з логотипом, але production artifact не містив `resources/views/vendor/mail/`. Причина: `scripts/build-artifact.sh` копіював проект через `tar --exclude='./vendor'`, а на локальному tar цей exclude також прибирав вкладену папку `resources/views/vendor/mail/`. Через це production використовував стандартні Laravel Markdown mail templates без нашого header/logo. Скрипт виправлено: після staging-copy mail override templates явно повертаються в `resources/views/vendor/mail/`. Після наступного artifact deploy потрібно перевірити, що ця папка є на сервері.
 
 Майбутнє оновлення: якщо Gmail/Outlook/Apple Mail покажуть, що Markdown theme недостатньо контролює вигляд, можна перейти з `markdown:` на власний `view:` HTML email template. Це буде окремий етап, не змішаний із поточним SMTP/Mailable layer.
-
-### Legacy import зі старого Excel (план)
-Стара база членів існує як Excel-файл на 743 записи, а не як SQL-база. Для неї прийнято рішення **не змішувати історичний номер зі системним `member_number`**.
-
-Рекомендований підхід:
-
-- поточний `member_number` лишається новим системним номером у форматі `DA-YYYY-NNNN`
-- старий номер з Excel зберігається окремо як `legacy_member_number`
-- мобільний номер мапиться в `phone`
-- звичайний номер рекомендується зберігати окремо як `phone_landline`
-
-Детальний план міграції та підготовки імпорту описаний у `LEGACY_IMPORT.md`.
-
----
 
 ## Локальна розробка
 
@@ -590,6 +576,7 @@ MAIL_LOGO_URL=...
 - [ ] Unterschrift canvas у формі реєстрації (Крок 4)
 - [ ] Кабінет члена — перегляд даних, Änderungsantrag
 - [ ] Двомовність (DE + TR): Middleware SetLocale, lang/de.json, lang/tr.json
+- [ ] Експорт таблиці членів громади з адмінки в Excel-файл (`.xlsx`) із завантаженням на ПК
 - [x] Artifact deploy обрано як поточний процес: staging-збірка `vendor/` + `public/build/` + Laravel-код без зміни локальних dev-залежностей, завантаження через File Manager/FTP; міграції БД виконуються окремо через SQL/phpMyAdmin
 
 > Зміни в статусі — оновлювати тут і писати в `CHANGELOG.md`

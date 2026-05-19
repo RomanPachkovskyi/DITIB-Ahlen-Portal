@@ -567,6 +567,11 @@
 - Додано `scripts/update-system-version.php`; `scripts/build-artifact.sh` і `scripts/export-production-sql.php` автоматично піднімають patch-номер і дату перед build/DB export.
 - Оновлено `PROJECT.md` і перевірено повним PHPUnit-набором.
 
+### [2026-05-19 11:23] Актуалізація roadmap-документації — Codex
+- Оновлено `Правки і зміни на сайті.md`: позначено явно виконані пункти форми, email branding, admin UX, footer/header, статуси й branding адмінки.
+- Прибрано активний план legacy Excel-імпорту: видалено `LEGACY_IMPORT.md` і секцію legacy import з `PROJECT.md`.
+- Додано в Етап 4 майбутню функцію експорту таблиці членів громади в Excel-файл (`.xlsx`) із завантаженням на ПК.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*
