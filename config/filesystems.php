@@ -38,6 +38,14 @@ return [
             'report' => false,
         ],
 
+        'member_photos' => [
+            'driver' => 'local',
+            'root' => env('MEMBER_PHOTOS_ROOT') ?: storage_path('app/private'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

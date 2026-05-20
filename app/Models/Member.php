@@ -36,6 +36,10 @@ class Member extends Model
         'email',
         'phone',
         'instagram',
+        'profile_photo_path',
+        'profile_photo_uploaded_at',
+        'profile_photo_zustimmung',
+        'profile_photo_zustimmung_at',
         'zahlungsart',
         'monatsbeitrag',
         'kontoinhaber',
@@ -51,19 +55,27 @@ class Member extends Model
     ];
 
     protected $casts = [
-        'birth_date'          => 'date',
-        'zustimmung_at'       => 'datetime',
-        'sepa_zustimmung'     => 'boolean',
-        'dsgvo_zustimmung'    => 'boolean',
-        'monatsbeitrag'       => 'decimal:2',
-        'cenaze_fonu'         => 'boolean',
-        'gemeinderegister'    => 'boolean',
+        'birth_date' => 'date',
+        'zustimmung_at' => 'datetime',
+        'sepa_zustimmung' => 'boolean',
+        'dsgvo_zustimmung' => 'boolean',
+        'monatsbeitrag' => 'decimal:2',
+        'cenaze_fonu' => 'boolean',
+        'gemeinderegister' => 'boolean',
         'familienangehoerige' => 'integer',
-        'iban'                => 'encrypted',
-        'bic'                 => 'encrypted',
+        'profile_photo_uploaded_at' => 'datetime',
+        'profile_photo_zustimmung' => 'boolean',
+        'profile_photo_zustimmung_at' => 'datetime',
+        'iban' => 'encrypted',
+        'bic' => 'encrypted',
     ];
 
     protected $hidden = ['unterschrift'];
+
+    public function getRouteKeyName(): string
+    {
+        return 'member_number';
+    }
 
     protected static function booted(): void
     {

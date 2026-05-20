@@ -51,10 +51,10 @@
             
             {{-- Connecting Line (Progress) --}}
             <div class="absolute top-5 left-0 h-1 bg-teal-600 rounded-full transition-all duration-500 ease-in-out" 
-            style="width: {{ ($step - 1) / 2 * 100 }}%"></div>
+            style="width: {{ ($step - 1) / 3 * 100 }}%"></div>
 
             <nav class="relative flex justify-between items-start">
-                @foreach ([1 => 'Persönliche Daten', 2 => 'Adresse & Kontakt', 3 => 'Beitrag & Zahlung'] as $n => $label)
+                @foreach ([1 => 'Persönliche Daten', 2 => 'Adresse & Kontakt', 3 => 'Beitrag & Zahlung', 4 => 'Foto'] as $n => $label)
                     @php($hasStepError = $stepsWithErrors[$n] ?? false)
                     <div class="flex flex-col items-center group flex-1">
                         {{-- Circle --}}
@@ -76,7 +76,7 @@
                             <span class="block text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wider transition-colors duration-300
                                 {{ $hasStepError ? 'text-gray-900' : ($step >= $n ? 'text-teal-800' : 'text-gray-400') }}">
                                 <span class="hidden sm:inline">{{ $label }}</span>
-                                <span class="sm:hidden">{{ [1 => 'Daten', 2 => 'Kontakt', 3 => 'Zahlung'][$n] }}</span>
+                                <span class="sm:hidden">{{ [1 => 'Daten', 2 => 'Kontakt', 3 => 'Zahlung', 4 => 'Foto'][$n] }}</span>
                             </span>
                         </div>
                     </div>
@@ -410,12 +410,156 @@
             </div>
         @endif
 
-        {{-- STEP 4 (Etap 4 — ausgeblendet): Unterschrift & Foto
         @if ($step === 4)
-            <h2 class="text-lg font-semibold text-gray-800 mb-5">Unterschrift & Zustimmung</h2>
-            ... canvas Unterschrift ...
+            @php($temporaryPhotoUrl = $croppedPhoto ? $croppedPhoto->temporaryUrl() : '')
+            <div
+                x-data="profilePhotoPoc(@js(['mode' => $photoResult ? 'preview' : 'idle', 'previewUrl' => $temporaryPhotoUrl]))"
+                x-on:livewire-upload-error.window="handleUploadError()"
+            >
+                <div class="mb-5">
+                    <h2 class="text-lg font-semibold text-gray-800">Foto</h2>
+                    <p class="mt-2 text-sm text-gray-500">Bitte laden Sie ein aktuelles Porträtfoto hoch, keine Ausweise oder Dokumente.</p>
+                    <p class="mt-1 text-sm text-gray-500">Das Foto wird nicht veröffentlicht und dient ausschließlich der internen Mitgliederverwaltung.</p>
+                    <p class="mt-1 text-xs text-gray-400">Dieser Schritt ist optional. Sie können den Antrag auch ohne Foto absenden.</p>
+                </div>
+
+                <input
+                    x-ref="cameraInput"
+                    x-on:change="handleFileSelect($event)"
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    class="hidden"
+                >
+
+                <input
+                    x-ref="galleryInput"
+                    x-on:change="handleFileSelect($event)"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/*"
+                    class="hidden"
+                >
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                        type="button"
+                        x-on:click="$refs.cameraInput.click()"
+                        class="min-h-12 rounded-lg bg-teal-600 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                        Mit Kamera aufnehmen
+                    </button>
+                    <button
+                        type="button"
+                        x-on:click="$refs.galleryInput.click()"
+                        class="min-h-12 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                        Foto auswählen
+                    </button>
+                </div>
+
+                <template x-if="error">
+                    <div class="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" x-text="error"></div>
+                </template>
+
+                <template x-if="mode === 'crop'">
+                    <div class="mt-6 space-y-4">
+                        <div class="rounded-xl border border-gray-200 bg-gray-950 overflow-hidden">
+                            <div x-ref="cropperHost" class="photo-poc-cropper-host">
+                                <img
+                                    x-ref="sourceImage"
+                                    x-bind:src="sourceUrl"
+                                    x-on:load="initCropper()"
+                                    x-on:error="setError('Das Foto konnte im Browser nicht angezeigt werden. Sie können ohne Foto fortfahren oder eine andere Datei wählen.')"
+                                    alt=""
+                                    class="max-w-full"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <button
+                                type="button"
+                                x-on:click="applyCrop()"
+                                x-bind:disabled="isUploading"
+                                class="min-h-11 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+                            >
+                                <span x-show="!isUploading">Übernehmen</span>
+                                <span x-show="isUploading">Upload <span x-text="uploadProgress"></span>%</span>
+                            </button>
+                            <button
+                                type="button"
+                                x-on:click="$refs.galleryInput.click()"
+                                x-bind:disabled="isUploading"
+                                class="min-h-11 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Anderes Foto
+                            </button>
+                            <button
+                                type="button"
+                                x-on:click="removePhoto()"
+                                x-bind:disabled="isUploading"
+                                class="min-h-11 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                            >
+                                Foto entfernen
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <div x-show="mode === 'preview'" x-cloak class="mt-6">
+                    <div class="flex flex-col sm:flex-row gap-5 sm:items-center">
+                        <img x-bind:src="previewUrl" alt="" class="h-40 w-40 rounded-xl object-cover border border-gray-200 shadow-sm">
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-gray-900">Foto wurde übernommen.</p>
+                            <p class="text-xs text-gray-500 mt-1">Das Foto wird erst beim Absenden des Antrags gespeichert.</p>
+
+                            @if ($photoResult)
+                                <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+                                    <dt class="font-medium">MIME</dt>
+                                    <dd>{{ $photoResult['mime'] }}</dd>
+                                    <dt class="font-medium">Größe</dt>
+                                    <dd>{{ number_format($photoResult['size'] / 1024, 1, ',', '.') }} KB</dd>
+                                    <dt class="font-medium">Pixel</dt>
+                                    <dd>{{ $photoResult['width'] }} x {{ $photoResult['height'] }}</dd>
+                                </dl>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            x-on:click="$refs.galleryInput.click()"
+                            class="min-h-11 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                            Anderes Foto
+                        </button>
+                        <button
+                            type="button"
+                            x-on:click="removePhoto()"
+                            class="min-h-11 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+                        >
+                            Foto entfernen
+                        </button>
+                    </div>
+                </div>
+
+                <div x-show="mode === 'preview'" x-cloak class="mt-5">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input wire:model.live="profile_photo_zustimmung" type="checkbox"
+                            class="ditib-choice-input mt-0.5 w-4 h-4 border-gray-300 rounded @error('profile_photo_zustimmung') border-red-400 @enderror">
+                        <span class="text-sm text-gray-700">
+                            Ich willige ein, dass mein freiwillig hochgeladenes Profilbild für die interne Mitgliederverwaltung gespeichert und von berechtigten Vereinsvertretern eingesehen werden darf. Diese Einwilligung kann ich jederzeit widerrufen. *
+                        </span>
+                    </label>
+                    @error('profile_photo_zustimmung') <p class="text-red-500 text-xs ml-7 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                @error('croppedPhoto')
+                    <p class="mt-4 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
         @endif
-        --}}
 
         {{-- Navigation --}}
         <div class="flex justify-between items-center mt-6 pt-5 border-t border-gray-100">
@@ -428,7 +572,7 @@
                 <div></div>
             @endif
 
-            @if ($step < 3)
+            @if ($step < 4)
                 <button wire:click="nextStep" type="button"
                     class="px-6 py-2 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700">
                     Weiter →

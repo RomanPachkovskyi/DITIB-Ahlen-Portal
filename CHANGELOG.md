@@ -578,6 +578,166 @@
 - Додано поле Instagram у Filament edit/view form і приховану за замовчуванням колонку таблиці з клікабельним посиланням.
 - Додано regression tests для нормалізації, валідації та збереження Instagram input.
 
+### [2026-05-19 12:15] ТЗ для фото профілю в реєстрації — Codex
+- Створено робочий документ `FOTO_UPLOAD_TZ.md` для планування optional фото профілю в Mitgliedsantrag.
+- Зафіксовано рішення: фото 1:1, optional, mobile-first upload з камери/галереї, crop перед збереженням, private storage, 800x800 оптимізація, доступ тільки для адміна і самого члена.
+- Описано backend-ризики: HEIC/HEIF, великі файли, private file access, production backup/storage, DSGVO і admin correction workflow.
+- Додано список відкритих питань перед реалізацією.
+
+### [2026-05-19 12:20] Аналіз Filament FileUpload для фото профілю — Codex
+- Доповнено `FOTO_UPLOAD_TZ.md` розділом про використання Filament/FilePond для фото.
+- Зафіксовано, що Filament суттєво спрощує admin upload/display: `FileUpload`, image editor/crop, private visibility, `ImageEntry` і `ImageColumn`.
+- Зафіксовано обмеження: публічна форма зараз custom Livewire/Blade, тому mobile upload/crop може потребувати окремої реалізації або proof-of-concept з Filament Form component.
+
+### [2026-05-19 12:28] Технічне рішення для public photo upload — Codex
+- Оновлено `FOTO_UPLOAD_TZ.md` під рекомендовану архітектуру: admin через Filament, public form через Cropper.js + Alpine + Livewire `WithFileUploads`, backend normalization через Intervention Image.
+- Зафіксовано private storage pattern `storage/app/private/member-photos/{member_number}/{member_number}-profile.jpg`.
+- Вирішено не додавати ім'я людини у filename, щоб не дублювати персональні дані в шляху файлу й уникнути проблем зі спецсимволами.
+- Зафіксовано baseline output для v1: optimized JPEG 800x800.
+
+### [2026-05-19 13:30] Локальний Laravel storage symlink — Codex
+- Перевірено symlink-и в `portal` після проблеми з індексацією workspace.
+- Перебудовано локальний `public/storage`: замість Docker-шляху `/var/www/storage/app/public` він тепер веде на локальний `storage/app/public`.
+- Підтверджено, що `public/storage` не є частиною git і лишається runtime-лінком, ігнорованим через `.gitignore`.
+
+### [2026-05-19 13:37] Antigravity ignore для portal workspace — Codex
+- Додано `.antigravityignore`, щоб Antigravity не індексував Laravel runtime/dependency папки: `vendor`, `node_modules`, `storage/framework`, `storage/logs`, `public/build`, `deploy-artifacts` і локальну SQLite DB.
+- Мета: полегшити старт індексації при відкритті саме папки `portal` як окремого workspace.
+
+### [2026-05-19 13:41] Git worktreeConfig fix для Antigravity — Codex
+- Перевірено Antigravity logs: language server падав на `core.repositoryformatversion does not support extension: worktreeconfig` і `workspace infos is nil`.
+- Прибрано локальний git config `extensions.worktreeConfig=true` з `.git/config`, бо репозиторій `portal` не використовує додаткові worktree.
+- Це локальна зміна git metadata, не зміна коду проекту і не частина commit.
+
+### [2026-05-19 13:43] Прибрано зайвий Antigravity ignore — Codex
+- Видалено `.antigravityignore`, бо після підтвердження фіксу він не потрібен: причина збою була в локальному git metadata `extensions.worktreeConfig=true`.
+
+### [2026-05-19 14:03] Версія в назві production artifact — Codex
+- Оновлено `scripts/build-artifact.sh`: production-архів тепер отримує назву у форматі `ditib-ahlen-portal-vX.XXX-YYYYMMDD-HHMMSS.tar.gz`.
+- Назва бере версію з `config/system-version.json` після автоматичного підняття patch-номера перед build.
+- Оновлено `PROJECT.md` з новим форматом імені архіву.
+
+### [2026-05-19 16:26] Перебудова ТЗ для фото профілю — Codex
+- Переписано `FOTO_UPLOAD_TZ.md` як поетапне технічне завдання з чіткими етапами реалізації, acceptance criteria і release verification.
+- Зафіксовано прийняті рекомендації: mobile-first public upload через Cropper.js + Alpine + Livewire, client-side JPEG 800x800, server-side validation/normalization і admin integration через Filament.
+- Уточнено ризики HEIC/HEIF: browser-side crop зменшує ризик, але не гарантує підтримку; для v1 потрібен fallback із можливістю продовжити без optional фото.
+
+### [2026-05-19 16:49] Фото профілю — Етап 1 backend foundation — Codex
+- Додано `intervention/image` і backend service `ProfilePhotoService` для private JPEG 800x800 у `storage/app/private/member-photos/{member_number}/`.
+- Додано міграцію `add_profile_photo_fields_to_members_table`, поля `profile_photo_path` і `profile_photo_uploaded_at`, оновлено `Member` model і production SQL для phpMyAdmin.
+- Додано protected route/controller/policy для читання фото: admin має доступ до будь-якого фото, member-user до фото за email-match.
+- Оновлено `scripts/build-artifact.sh`, щоб runtime profile photos не пакувалися в artifact, і `PROJECT.md`/`FOTO_UPLOAD_TZ.md` з поточним статусом та caveat щодо duplicate email ownership.
+- Додано feature tests для збереження приватного JPEG і контролю доступу guest/admin/member.
+
+### [2026-05-19 17:16] Фото профілю — Етап 2 public mobile PoC — Codex
+- Додано `cropperjs` і local-only маршрут `/photo-upload-poc` для перевірки browser crop/upload flow без зміни основного Mitgliedsantrag.
+- Реалізовано Alpine/Cropper.js PoC із camera/gallery input, square crop UI, JPEG export 800x800 через canvas і Livewire upload cropped blob замість original file.
+- Додано fallback-помилки для non-image, too-large local input, browser render/canvas export failure і Livewire upload failure.
+- Додано Livewire tests для accepted cropped JPEG і rejected non-JPEG upload.
+- Перевірено headless Chrome scenario: file input → cropper canvas → `Übernehmen` → Livewire metadata `image/jpeg`, `800 x 800`; screenshot proof збережено в `/private/tmp/ditib-photo-poc-success.png`.
+
+### [2026-05-20 11:12] Фото профілю — mobile QA PoC — Codex
+- Підтверджено ручну перевірку `/photo-upload-poc` з телефона через Mac mini LAN IP `192.168.2.118`.
+- Mobile flow успішно повернув Livewire metadata: `image/jpeg`, `167,2 KB`, `800 x 800`.
+- Оновлено `FOTO_UPLOAD_TZ.md`: mobile QA для Етапу 2 позначено як підтверджений, LAN URL для наступних перевірок зафіксовано.
+
+### [2026-05-20 11:41] Фото профілю — Етап 3 public form integration — Codex
+- Інтегровано optional Step 4 `Foto` у реальний `MembershipForm`: progress indicators, `rulesStep4()`, `WithFileUploads`, `nextStep()`, `submit()` і nullable photo validation.
+- Перенесено підтверджений Cropper.js v2 flow з PoC у public form: camera/gallery input, square crop, JPEG 800x800 через canvas, Livewire cropped upload, replace/remove і fallback-помилки.
+- На final submit фото зберігається після створення `Member`, коли вже є `member_number`; backend storage і normalization проходять через `ProfilePhotoService`.
+- Submit без фото працює без змін; submit з фото заповнює `profile_photo_path` і `profile_photo_uploaded_at` та створює private JPEG 800x800.
+- Додано regression test для реєстрації з optional фото; перевірено browser scenario реальної форми до Step 4 з `image/jpeg`, `800 x 800`.
+- Зафіксовано, що новий SQL для Етапу 3 не потрібен; фінальний combined SQL готується тільки перед production release.
+
+### [2026-05-20 11:54] Фото профілю — Етап 4 admin Filament integration — Codex
+- Додано profile photo preview у shared `MemberForm`: фото показується у View/Edit у секції `Persönliche Daten` над `Mitgliedsnummer`, без `ImageColumn` у таблиці.
+- Preview відкриває фото через protected route `members.profile-photo`; direct public storage або Filament persistent private URL не використовуються.
+- Додано edit header actions `Foto hochladen` / `Foto ersetzen` і `Foto entfernen`; фактичне збереження та видалення виконуються через `ProfilePhotoService`.
+- Admin replace/delete не змінює SEPA/DSGVO consent facts або `zustimmung_at`, і delete photo не видаляє member record.
+- Додано tests для Filament admin upload/delete actions і service regressions для replace, delete та soft delete behavior.
+- Browser QA підтвердив розташування фото перед `Mitgliedsnummer` і відсутність upload/delete кнопок на view page.
+
+### [2026-05-20 11:59] Admin profile photo preview sizing — Codex
+- Обмежено ширину фото в `Persönliche Daten`: desktop до 30% ширини блоку, mobile до 50%, із лівим вирівнюванням.
+- Preview лишається квадратним через `aspect-square` і не розтягується на всю ширину секції.
+
+### [2026-05-20 12:02] Admin profile photo preview sizing fix — Codex
+- Виправлено sizing preview через scoped CSS у Blade partial, бо Tailwind utility-класи в Filament view не обмежили ширину стабільно.
+- Browser QA на `/admin/members/12` підтвердив: preview 128x128 px, приблизно 29% ширини блоку `Persönliche Daten`, вирівняний зліва.
+
+### [2026-05-20 12:18] Admin profile photo mobile fixes — Codex
+- Прибрано порожній photo-slot для записів без фото: у View/Edit не показується ні placeholder, ні `Kein Foto`.
+- Зроблено `Mitgliedsnummer` nowrap, щоб на mobile вона лишалась в одному рядку.
+- Для admin photo preview додано cache busting через `?v=profile_photo_uploaded_at` і змінено response header на `no-store`, щоб після replace/delete не показувалось старе фото.
+- Mobile CSS для photo preview тепер дає 50% ширини без max-width, desktop лишається 30%.
+- Browser QA підтвердив відсутність `Profilfoto`/`Hochgeladen am`, один рядок `Mitgliedsnummer`, versioned image URL і відсутність photo-slot у записі без фото.
+
+### [2026-05-20 13:06] Admin profile photo grid span fix — Codex
+- Явно задано `columnSpan(['default' => 'full', 'sm' => 'full'])` для profile photo preview і `Mitgliedsnummer`, щоб вони не потрапляли тільки в ліву колонку Filament section grid.
+- Browser DOM QA підтвердив, що grid column тепер має `--col-span-default: 1 / -1` і `--col-span-sm: 1 / -1`.
+
+### [2026-05-20 13:20] Admin profile photo separate layout — Codex
+- Перебудовано `Persönliche Daten`: фото винесено в окремий `View` layout, `Mitgliedsnummer` лишається окремим placeholder, а звичайні поля перенесено у вкладений `Grid`.
+- Фото більше не належить до двоколонкової сітки даних; DOM QA підтвердив, що nested fields grid не містить photo preview.
+- Оновлено `FOTO_UPLOAD_TZ.md` і `PROJECT.md` із поточним статусом Етапу 4 та рішенням щодо layout.
+
+### [2026-05-20 15:42] Фото профілю — Етап 5 member panel display — Codex
+- Зафіксовано `/konto` access model v1: authenticated user бачить усі `Member` записи з тим самим email, що покриває родину або фірму на одній пошті.
+- Додано read-only member-panel resource `MemberAccountResource` зі списком `Meine Mitgliedschaften` і scoped query/route binding за email поточного користувача.
+- `/konto` перенаправляє на список `Meine Mitgliedschaften`; записи з іншою поштою не рендеряться і не відкриваються через URL.
+- У view доступного запису показується profile photo через protected route; якщо фото немає, photo block не рендериться.
+- Self-service edit/replace фото не додано у v1; майбутній `Änderungsantrag` має працювати від конкретного `member_id`.
+- Додано feature tests для multi-member same-email access, заборони іншого email, redirect `/konto`, photo display і відсутності photo-slot без фото.
+
+### [2026-05-20 16:15] Änderungsantrag ownership rule — Codex
+- Зафіксовано в `PROJECT.md` і `FOTO_UPLOAD_TZ.md`: доступ у `/konto` може йти через email, але кожен майбутній `Änderungsantrag` має бути прив'язаний до конкретного `member_id` / `member_number`.
+- Додано backlog-правило: перед створенням або переглядом запиту на зміну треба перевіряти, що обраний member record належить до email authenticated user.
+
+### [2026-05-20 16:20] Änderungsantrag backend security clarification — Codex
+- Уточнено формулювання в `PROJECT.md` і `FOTO_UPLOAD_TZ.md`: перевірка `member_id` для майбутнього `Änderungsantrag` є backend security rule проти ручної підстановки URL/request payload, а не обмеженням бізнес-логіки доступу.
+- Бізнес-логіка лишається такою: користувач у `/konto` має доступ до всіх записів із email authenticated user.
+
+### [2026-05-20 16:45] Фото профілю — Етап 6 Datenschutz і deploy safety — Codex
+- Звірено `../main/docs/legal-texts.md`: optional profile photo потребує окремої Einwilligung checkbox, а не тільки загальної DSGVO-згоди.
+- Додано окрему photo consent у public Step 4: без фото submit працює без неї, з фото вона required і фіксується в `profile_photo_zustimmung` / `profile_photo_zustimmung_at`.
+- Додано міграцію `2026_05_20_144219_add_profile_photo_consent_fields_to_members_table`, production SQL для phpMyAdmin і оновлено full SQL export schema.
+- Видалення фото через `ProfilePhotoService` очищає photo consent fields; admin edit показує ці поля read-only і попереджає про необхідність Einwilligung при admin upload.
+- Додано `deploy-artifacts/check-photo-extensions.php` для ручної Plesk-перевірки `gd`, `fileinfo`, GD JPEG функцій і рекомендованого `exif`; після перевірки файл треба видалити з production.
+- Посилено `scripts/build-artifact.sh` guard: runtime `storage/app/private/member-photos` не може потрапити в production artifact.
+- Оновлено `PROJECT.md` і `FOTO_UPLOAD_TZ.md`: backup має включати MySQL і private photo folder, фінальний SQL краще об'єднати перед import, audit log для фото перенесено в майбутні покращення.
+
+### [2026-05-20 17:26] Profile photo external data disk — Codex
+- Після ручної Plesk backup-перевірки зафіксовано, що subscription backup включає `Home directory/ditib-portal-data/member-photos` поруч із `httpdocs` і папкою порталу.
+- Додано Laravel filesystem disk `member_photos`: локальний fallback пише в `storage/app/private`, production root задається через `MEMBER_PHOTOS_ROOT`.
+- `ProfilePhotoService` переведено з disk `local` на `member_photos`; DB relative paths `member-photos/...` не змінюються.
+- Оновлено `.env.example`, `PROJECT.md`, `FOTO_UPLOAD_TZ.md` і tests під новий photo disk.
+- Production `.env` має містити `MEMBER_PHOTOS_ROOT=/var/www/vhosts/ditib-ahlen-projekte.de/ditib-portal-data` або фактичний absolute path Plesk Home directory.
+
+### [2026-05-20 17:36] Member public route key — Codex
+- Додано `Member::getRouteKeyName()` з `member_number`, щоб public URLs більше не використовували auto-increment `id`.
+- `/admin/members/{record}`, `/konto/mitgliedschaften/{record}` і protected photo route тепер генерують/резолвлять записи через `DA-YYYY-NNNN`.
+- Додано regression tests для admin view URL, member-panel view URL і profile-photo route: `member_number` відкривається, numeric `id` повертає 404.
+- Зафіксовано в `PROJECT.md`, що `id` лишається внутрішнім PK і не має штучно збігатися з `member_number`.
+- Підготовлено phpMyAdmin readiness check `deploy-artifacts/production-check-member-number-route-key-readiness.sql`; production уже підтверджено без записів із порожнім `member_number`.
+
+### [2026-05-20 17:52] Фото профілю — закриття відкритих рішень — Codex
+- Закрито відкриті рішення в `FOTO_UPLOAD_TZ.md`: фото не додаємо в admin table як `ImageColumn`, а лишаємо тільки у View/Edit.
+- `Foto geprüft` не входить у v1; перенесено в майбутні покращення, якщо фото пізніше використовуватимуться для друку/PDF/карток.
+- Для майбутнього PDF v1 зафіксовано: якщо фото відсутнє, placeholder не показувати, photo block пропускати.
+
+### [2026-05-20 18:16] Фото профілю — deploy artifacts cleanup — Codex
+- У `deploy-artifacts/` залишено тільки потрібні файли для майбутнього production-підготування: `check-photo-extensions.php` і `production-photo-upload-release-20260520.sql`.
+- Об'єднано проміжні SQL для photo fields і photo consent у один phpMyAdmin import-файл із записами в `migrations`.
+- Позначено в `FOTO_UPLOAD_TZ.md`, що Datenschutz-сторінка лендінгу вже оновлена, а фінальний SQL підготовлено; актуальним лишається тільки ручний Plesk extension check.
+
+### [2026-05-20 18:26] Фото профілю — локальна release verification — Codex
+- Виконано фінальну локальну перевірку перед production deploy: `./vendor/bin/phpunit`, `npm run build`, `scripts/build-artifact.sh`.
+- Production artifact зібрано як `deploy-artifacts/ditib-ahlen-portal-v1.039-20260520-182520.tar.gz`.
+- Перевірено tar permissions: root `./` має `drwxr-xr-x`; artifact містить `vendor/autoload.php`, `public/build/manifest.json` і mail override templates.
+- Перевірено, що artifact не містить `.env`, `.phpunit.result.cache`, локальну SQLite DB або runtime photo folder.
+- Після успішної Plesk extension check і backup у `deploy-artifacts/` залишено тільки актуальний artifact і `production-photo-upload-release-20260520.sql`.
+- Оновлено `scripts/build-artifact.sh`, щоб `.phpunit.result.cache` не потрапляв у production artifact.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

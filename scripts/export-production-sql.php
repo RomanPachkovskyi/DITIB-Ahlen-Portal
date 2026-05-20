@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-$sqlitePath = $root . '/database/database.sqlite';
-$outputDir = $root . '/deploy-artifacts';
+$sqlitePath = $root.'/database/database.sqlite';
+$outputDir = $root.'/deploy-artifacts';
 
 if (! is_file($sqlitePath)) {
     fwrite(STDERR, "SQLite database not found: {$sqlitePath}\n");
@@ -16,13 +16,13 @@ if (! is_dir($outputDir) && ! mkdir($outputDir, 0775, true) && ! is_dir($outputD
     exit(1);
 }
 
-passthru(PHP_BINARY . ' ' . escapeshellarg($root . '/scripts/update-system-version.php'), $versionExitCode);
+passthru(PHP_BINARY.' '.escapeshellarg($root.'/scripts/update-system-version.php'), $versionExitCode);
 
 if ($versionExitCode !== 0) {
     exit($versionExitCode);
 }
 
-$pdo = new PDO('sqlite:' . $sqlitePath);
+$pdo = new PDO('sqlite:'.$sqlitePath);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 $timestamp = date('Ymd-His');
@@ -41,7 +41,7 @@ function sqlValue(mixed $value): string
         return (string) $value;
     }
 
-    return "'" . str_replace(["\\", "'"], ["\\\\", "''"], (string) $value) . "'";
+    return "'".str_replace(['\\', "'"], ['\\\\', "''"], (string) $value)."'";
 }
 
 function writeInsertChunk($handle, string $table, array $columns, array $rows): void
@@ -50,15 +50,15 @@ function writeInsertChunk($handle, string $table, array $columns, array $rows): 
         return;
     }
 
-    $columnSql = '`' . implode('`, `', $columns) . '`';
+    $columnSql = '`'.implode('`, `', $columns).'`';
     fwrite($handle, "INSERT INTO `{$table}` ({$columnSql}) VALUES\n");
 
     $values = [];
     foreach ($rows as $row) {
-        $values[] = '(' . implode(', ', array_map(fn ($column) => sqlValue($row[$column] ?? null), $columns)) . ')';
+        $values[] = '('.implode(', ', array_map(fn ($column) => sqlValue($row[$column] ?? null), $columns)).')';
     }
 
-    fwrite($handle, implode(",\n", $values) . ";\n\n");
+    fwrite($handle, implode(",\n", $values).";\n\n");
 }
 
 $schema = <<<'SQL'
@@ -180,6 +180,10 @@ CREATE TABLE IF NOT EXISTS `members` (
   `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `phone` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
   `instagram` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `profile_photo_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `profile_photo_uploaded_at` timestamp NULL DEFAULT NULL,
+  `profile_photo_zustimmung` tinyint(1) NOT NULL DEFAULT '0',
+  `profile_photo_zustimmung_at` timestamp NULL DEFAULT NULL,
   `monatsbeitrag` decimal(8,2) NOT NULL DEFAULT '25.00',
   `kontoinhaber` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `iban` text COLLATE utf8mb4_unicode_ci,
@@ -189,7 +193,7 @@ CREATE TABLE IF NOT EXISTS `members` (
   `sepa_zustimmung` tinyint(1) NOT NULL DEFAULT '0',
   `dsgvo_zustimmung` tinyint(1) NOT NULL DEFAULT '0',
   `zustimmung_at` timestamp NULL DEFAULT NULL,
-  `status` enum('pending','active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `status` enum('pending','processing','active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
   `admin_notiz` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -258,7 +262,7 @@ $migrations = $pdo->query('SELECT migration, batch FROM migrations ORDER BY id')
 $handle = fopen($schemaPath, 'ab');
 fwrite($handle, "\n");
 foreach ($migrations as $migration) {
-    fwrite($handle, 'INSERT IGNORE INTO `migrations` (`migration`, `batch`) VALUES (' . sqlValue($migration['migration']) . ', ' . (int) $migration['batch'] . ");\n");
+    fwrite($handle, 'INSERT IGNORE INTO `migrations` (`migration`, `batch`) VALUES ('.sqlValue($migration['migration']).', '.(int) $migration['batch'].");\n");
 }
 fclose($handle);
 

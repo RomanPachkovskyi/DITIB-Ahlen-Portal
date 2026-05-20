@@ -10,6 +10,31 @@
 }
 
 @layer components {
+    [x-cloak] {
+        display: none !important;
+    }
+
+    .photo-poc-cropper-host {
+        min-height: min(78vw, 30rem);
+        width: 100%;
+    }
+
+    .photo-poc-cropper-host > img {
+        display: block;
+        max-height: min(78vw, 30rem);
+        width: 100%;
+        object-fit: contain;
+    }
+
+    .photo-poc-cropper-host cropper-canvas {
+        height: min(78vw, 30rem);
+        width: 100%;
+    }
+
+    .photo-poc-cropper-host cropper-selection {
+        outline: 2px solid rgba(255, 255, 255, 0.9);
+    }
+
     .ditib-choice-input {
         accent-color: var(--ditib-brand-primary);
         color: var(--ditib-brand-primary);

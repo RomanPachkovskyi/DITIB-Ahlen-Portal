@@ -6,12 +6,15 @@ use App\Events\MemberRegistered;
 use App\Livewire\MembershipForm;
 use App\Mail\MemberRegistrationConfirmation;
 use App\Mail\NewMemberNotification;
+use App\Models\Member;
 use App\Support\Iban;
 use App\Support\Instagram;
 use App\Support\PhoneNumber;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -63,7 +66,7 @@ class MembershipFormTest extends TestCase
 
         foreach ($cases as $input => $normalized) {
             $this->assertSame($normalized, Instagram::normalize($input));
-            $this->assertSame('@' . $normalized, Instagram::display($input));
+            $this->assertSame('@'.$normalized, Instagram::display($input));
             $this->assertTrue(Instagram::isValid($input));
         }
 
@@ -239,11 +242,93 @@ class MembershipFormTest extends TestCase
             'full_name' => 'Max Mustermann',
             'phone' => '+492382123456',
             'instagram' => 'ditibahlen',
+            'profile_photo_path' => null,
+            'profile_photo_zustimmung' => false,
+            'profile_photo_zustimmung_at' => null,
             'zahlungsart' => 'barzahlung',
             'dsgvo_zustimmung' => true,
         ]);
 
         Event::assertDispatched(MemberRegistered::class);
+    }
+
+    public function test_it_submits_registration_with_optional_profile_photo(): void
+    {
+        Event::fake([MemberRegistered::class]);
+        Storage::fake('member_photos');
+
+        Livewire::test(MembershipForm::class)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Foto Nutzer')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'foto@example.com')
+            ->set('phone', '02382/123456')
+            ->set('monatsbeitrag', 25)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->set('croppedPhoto', UploadedFile::fake()->image('profile-photo.jpg', 800, 800)->size(180))
+            ->call('acceptCroppedPhoto')
+            ->assertHasNoErrors(['croppedPhoto'])
+            ->assertSet('photoResult.width', 800)
+            ->assertSet('photoResult.height', 800)
+            ->set('profile_photo_zustimmung', true)
+            ->call('submit')
+            ->assertHasNoErrors()
+            ->assertSet('submitted', true);
+
+        $member = Member::where('email', 'foto@example.com')->firstOrFail();
+
+        $this->assertNotNull($member->profile_photo_path);
+        $this->assertNotNull($member->profile_photo_uploaded_at);
+        $this->assertTrue($member->profile_photo_zustimmung);
+        $this->assertNotNull($member->profile_photo_zustimmung_at);
+        $this->assertSame("member-photos/{$member->member_number}/{$member->member_number}-profile.jpg", $member->profile_photo_path);
+        Storage::disk('member_photos')->assertExists($member->profile_photo_path);
+
+        $imageSize = getimagesize(Storage::disk('member_photos')->path($member->profile_photo_path));
+
+        $this->assertSame(800, $imageSize[0]);
+        $this->assertSame(800, $imageSize[1]);
+        $this->assertSame('image/jpeg', $imageSize['mime']);
+
+        Event::assertDispatched(MemberRegistered::class);
+    }
+
+    public function test_it_requires_separate_consent_when_profile_photo_is_uploaded(): void
+    {
+        Event::fake([MemberRegistered::class]);
+        Storage::fake('member_photos');
+
+        Livewire::test(MembershipForm::class)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Foto Ohne Zustimmung')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'foto-ohne-zustimmung@example.com')
+            ->set('phone', '02382/123456')
+            ->set('monatsbeitrag', 25)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->set('croppedPhoto', UploadedFile::fake()->image('profile-photo.jpg', 800, 800)->size(180))
+            ->call('acceptCroppedPhoto')
+            ->call('submit')
+            ->assertSet('step', 4)
+            ->assertHasErrors(['profile_photo_zustimmung']);
+
+        $this->assertDatabaseMissing('members', [
+            'email' => 'foto-ohne-zustimmung@example.com',
+        ]);
+
+        Event::assertNotDispatched(MemberRegistered::class);
     }
 
     public function test_it_submits_standing_order_without_sepa_mandate_or_bank_details(): void
@@ -357,7 +442,7 @@ class MembershipFormTest extends TestCase
             ->assertSet('iban', 'DE 42 4005 0150 0068 0009 59')
             ->assertSet('submitted', true);
 
-        $this->assertSame('DE42400501500068000959', \App\Models\Member::where('email', 'erika@example.com')->value('iban'));
+        $this->assertSame('DE42400501500068000959', Member::where('email', 'erika@example.com')->value('iban'));
 
         Event::assertDispatched(MemberRegistered::class);
     }

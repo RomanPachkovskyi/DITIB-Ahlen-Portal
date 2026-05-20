@@ -3,8 +3,15 @@
 namespace App\Filament\Resources\Members\Pages;
 
 use App\Filament\Resources\Members\MemberResource;
+use App\Services\ProfilePhotoService;
 use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class EditMember extends EditRecord
 {
@@ -15,14 +22,76 @@ class EditMember extends EditRecord
         return __('Bearbeiten');
     }
 
-    public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
+    public function getTitle(): string|Htmlable
     {
-        return $this->record->full_name . ' bearbeiten';
+        return $this->record->full_name.' bearbeiten';
     }
 
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('uploadProfilePhoto')
+                ->label($this->record->profile_photo_path ? 'Foto ersetzen' : 'Foto hochladen')
+                ->icon(Heroicon::OutlinedPhoto)
+                ->color('gray')
+                ->modalHeading($this->record->profile_photo_path ? 'Profilfoto ersetzen' : 'Profilfoto hochladen')
+                ->modalSubmitActionLabel('Foto speichern')
+                ->schema([
+                    FileUpload::make('profile_photo')
+                        ->label('Profilfoto')
+                        ->helperText('JPEG, PNG oder WebP bis 8 MB. Das Foto wird als privates JPEG 800 x 800 gespeichert. Nur verwenden, wenn eine Foto-Einwilligung vorliegt.')
+                        ->image()
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                        ->maxSize(8192)
+                        ->storeFiles(false)
+                        ->visibility('private')
+                        ->imageEditor()
+                        ->imageEditorAspectRatioOptions(['1:1'])
+                        ->imageResizeMode('cover')
+                        ->imageResizeTargetWidth('800')
+                        ->imageResizeTargetHeight('800')
+                        ->imageResizeUpscale(false)
+                        ->required(),
+                ])
+                ->action(function (array $data, ProfilePhotoService $profilePhotos): void {
+                    $file = $data['profile_photo'] ?? null;
+
+                    if (! $file instanceof TemporaryUploadedFile) {
+                        throw ValidationException::withMessages([
+                            'profile_photo' => 'Bitte wählen Sie ein Profilfoto aus.',
+                        ]);
+                    }
+
+                    $profilePhotos->store($this->record, $file);
+                    $this->record->refresh();
+                    $this->fillForm();
+                    $this->dispatch('$refresh');
+
+                    Notification::make()
+                        ->title('Foto wurde gespeichert.')
+                        ->success()
+                        ->send();
+                }),
+            Action::make('deleteProfilePhoto')
+                ->label('Foto entfernen')
+                ->icon(Heroicon::OutlinedTrash)
+                ->color('danger')
+                ->visible(fn (): bool => $this->record->profile_photo_path !== null)
+                ->requiresConfirmation()
+                ->modalHeading('Profilfoto entfernen')
+                ->modalDescription('Das Mitglied bleibt erhalten. Nur das gespeicherte Profilfoto wird entfernt.')
+                ->modalSubmitActionLabel('Foto entfernen')
+                ->action(function (ProfilePhotoService $profilePhotos): void {
+                    $profilePhotos->delete($this->record);
+                    $this->record->refresh();
+                    $this->fillForm();
+                    $this->dispatch('$refresh');
+
+                    Notification::make()
+                        ->title('Foto wurde entfernt.')
+                        ->success()
+                        ->send();
+                }),
             Action::make('saveHeader')
                 ->label('Änderungen speichern')
                 ->color('primary')
@@ -53,12 +122,18 @@ class EditMember extends EditRecord
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        unset($data['sepa_zustimmung'], $data['dsgvo_zustimmung'], $data['zustimmung_at']);
+        unset(
+            $data['sepa_zustimmung'],
+            $data['dsgvo_zustimmung'],
+            $data['zustimmung_at'],
+            $data['profile_photo_zustimmung'],
+            $data['profile_photo_zustimmung_at'],
+        );
 
         return $data;
     }

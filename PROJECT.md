@@ -47,6 +47,8 @@
 | База даних (production) | MySQL | Plesk |
 | Email | Laravel Mail → SMTP, Markdown Mailables + централізований branding layer | — |
 | PDF | barryvdh/laravel-dompdf | встановлено |
+| Image processing | intervention/image + GD | для private profile photos |
+| Browser crop | Cropper.js + Alpine.js | local PoC для optional profile photos |
 | Підпис | Alpine.js canvas | вбудований |
 | Налаштування адміна | spatie/laravel-settings | Етап 3 |
 | Черги (майбутні jobs/PDF) | Laravel Queue (database driver), без production worker зараз | Етап 3+ |
@@ -73,17 +75,25 @@
 - Одразу під формою по центру показується технічний system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`, де `Munas-Print` веде на `https://munas.online/`
 - У футері публічної форми є `Impressum` і `Datenschutz` із відкриттям у нових вкладках
 - Radio/checkbox controls у публічній формі використовують reusable class `ditib-choice-input`; колір береться з brand CSS variable `--ditib-brand-primary`, який прокидається з `App\Support\BrandColors`
-- ~~Крок 4: Unterschrift~~ → перенесено в Етап 4 разом із фото профілю
+- Крок 4: optional Foto; camera/gallery input → Cropper.js v2 → client-side JPEG 800x800 → Livewire `croppedPhoto`; submit без фото працює як раніше
+- Фото не публікується і потрібне тільки для внутрішньої Mitgliederverwaltung; якщо фото додано, потрібна окрема Foto-Einwilligung checkbox
+- Якщо фото додано, після створення `Member` воно зберігається через `ProfilePhotoService` у private storage на базі `member_number`; фото не потрапляє в email
+- ~~Unterschrift~~ → перенесено в майбутній етап
 - Після відправки → сторінка підтвердження з member_number, технічний статус `pending`, який в адмінці показується як `Neu`
 
 ### Кабінет члена (`/konto`) — Filament MemberPanel
 - Вхід через email (Filament auth)
-- Перегляд власних даних
-- Подача запиту на зміну (Änderungsantrag)
-- Перегляд статусу заявки
+- `/konto` перенаправляє на список `Meine Mitgliedschaften`
+- Detail URLs використовують `member_number` як public route key, наприклад `/konto/mitgliedschaften/DA-2026-0001`; внутрішній DB `id` у URL не використовується
+- Access model v1: `User.email` є ключем доступу; якщо на одну пошту зареєстровано кілька членів, користувач бачить усі `Member` записи з цією поштою
+- Користувач не бачить записи з іншими email; route binding member resource також scoped за email поточного користувача
+- Перегляд власних/родинних/фірмових записів read-only; self-service edit і photo replace у v1 не дозволені
+- Фото профілю показується у view кожного доступного запису через protected route `members.profile-photo`
+- Подача запиту на зміну (Änderungsantrag) — майбутній етап; кожен запит має бути прив'язаний до конкретного `member_id` / `member_number`, який користувач обирає зі списку своїх доступних записів, а не просто до email
 
 ### Адмін-панель (`/admin`) — Filament AdminPanel
 - Список членів з пошуком, фільтром по статусу, badge-кольорами
+- Member View/Edit URLs використовують `member_number` як public route key, наприклад `/admin/members/DA-2026-0001`; внутрішній DB `id` лишається тільки PK
 - Таблиця Mitglieder за замовчуванням показує 25 записів на сторінку
 - Перегляд і редагування кожного запису (секції: Дані, Банк, Статус)
 - Схвалення / відхилення заявок: системні відкриті стани `pending` (`Neu`) і `processing` (`Verarbeitung`), адмін переводить запис у `active` або `inactive`
@@ -99,6 +109,8 @@
 - При зміні статусу на `active` член отримує email про прийняття
 - Звичайний адмін-процес для завершення членства: перевести запис у `inactive`, не видаляти
 - Soft delete лишається технічно в системі, але не є адмінською UI-дією; номер не звільняється навіть для inactive або soft-deleted записів
+- Фото профілю показується тільки у View/Edit, у секції `Persönliche Daten` над `Mitgliedsnummer`; фото винесено в окремий верхній layout і не належить до двоколонкової сітки полів; у таблицю Mitglieder фото не додано
+- На edit page адмін може завантажити/замінити або видалити фото; усі операції йдуть через private `ProfilePhotoService`, без public storage
 - При видаленні запису адміністратор і член отримують email-фіксацію видалення
 - Обробка запитів на зміну даних
 
@@ -110,7 +122,7 @@
 
 | Поле | Тип | Примітка |
 |------|-----|---------|
-| member_number | string(20) | unique, auto DA-YYYY-NNNN, не перевикористовується |
+| member_number | string(20) | unique, auto DA-YYYY-NNNN, не перевикористовується; єдиний public route key для member URLs |
 | full_name | string | |
 | birth_date | date | |
 | birth_place | string | nullable |
@@ -126,6 +138,10 @@
 | email | string | **не unique** — один email дозволений для кількох членів (сім'я) |
 | phone | string | |
 | instagram | string | nullable, зберігається нормалізований username без `@`; форма приймає username, `@username` або Instagram URL |
+| profile_photo_path | string | nullable, relative path у private disk `local`, без public URL |
+| profile_photo_uploaded_at | timestamp | nullable |
+| profile_photo_zustimmung | boolean | default false, окрема згода на optional profile photo |
+| profile_photo_zustimmung_at | timestamp | nullable |
 | zahlungsart | enum | barzahlung / lastschrift / dauerauftrag |
 | monatsbeitrag | decimal | мін. €10 |
 | kontoinhaber | string | nullable (тільки при SEPA) |
@@ -167,12 +183,18 @@
 
 - IBAN і BIC — `'encrypted'` cast → зашифровані в БД
 - `member_number` — постійний історичний ідентифікатор; soft-deleted записи зберігають номер і не дають системі видати його повторно
+- Public URLs для `Member` використовують `member_number` через Laravel route model binding (`Member::getRouteKeyName()`), не auto-increment `id`
 - `inactive` — нормальний адміністративний статус для колишніх/неактивних членів; не видаляти записи через UI
 - SEPA/DSGVO consent fields і `zustimmung_at` у admin edit є read-only фактами; адмін не редагує згоду клієнта
 - `$hidden` у моделі НЕ використовувати для IBAN/BIC (блокує Filament форму)
-- Члени бачать тільки свої дані (Filament Panel ізоляція)
+- Члени в `/konto` бачать тільки записи з `members.email`, що збігається з email authenticated user; якщо один email використано для кількох членів родини/фірми, усі ці записи вважаються доступними цьому користувачу
 - Згода SEPA і DSGVO фіксується з timestamp при відправці форми; у публічній формі тексти згод мають посилання на `https://ditib-ahlen-projekte.de/datenschutz`
-- Поточна Datenschutzerklärung на лендінгу потребує юридичного доповнення під Mitgliedsantrag, SEPA/IBAN, членські дані й портал, бо зараз вона в основному описує проектний сайт
+- Авторитетний legal text для порталу і лендінгу ведеться в `../main/docs/legal-texts.md`; перед релізом фото-функції сторінка Datenschutz на лендінгу має відповідати цьому тексту
+- Optional profile photos зберігаються тільки на private disk `member_photos`; локально root за замовчуванням `storage/app/private`, на production root задається через `MEMBER_PHOTOS_ROOT` поза папкою Laravel-проєкту (`Home directory/ditib-portal-data`); у БД лежить тільки relative path `member-photos/...`; direct public URL, `public/storage` і email-usage не використовуються
+- Optional profile photos мають окрему згоду: якщо користувач додає фото на Step 4, `profile_photo_zustimmung` є обов'язковим і фіксується з `profile_photo_zustimmung_at`; без фото ця згода не потрібна
+- Admin preview для profile photos використовує protected route `members.profile-photo` із cache busting `?v=profile_photo_uploaded_at`; Filament temporary/private URLs не використовуються для постійного перегляду фото
+- Admin replace/delete фото не змінює `zustimmung_at`, SEPA або DSGVO facts; видалення фото очищає photo consent fields, soft delete member не видаляє runtime photo file автоматично
+- Protected photo route дозволяє admin доступ до будь-якого фото, а member-user доступ до всіх фото записів із тим самим email; це свідомий family/company access model для v1
 - `.env` з `APP_KEY` — ніколи не комітити в git
 
 ---
@@ -212,7 +234,43 @@ Filament panels:
 ### Email — не унікальний (v1.0)
 Один email може використовуватись для кількох членів. Причина: літні члени громади не мають власної пошти — діти або родичі реєструють їх на свій email.
 
-> **Майбутнє (Етап 4+):** При реалізації кабінету (`/konto`) входу через email-посилання (magic link) потрібно продумати логіку вибору облікового запису, якщо на один email зареєстровано кількох членів (наприклад, показати список і дати вибрати, або використовувати `member_number` як додатковий ідентифікатор).
+У `/konto` це є прийнятою бізнес-логікою: користувач, який увійшов під певним email, бачить усі записи членів із цим email. Це покриває родину або фірму, де одна людина керує кількома записами.
+
+Важливо для майбутнього `Änderungsantrag`: хоча доступ до списку записів визначається email, самі запити на зміну мають створюватися і вестися для конкретної зареєстрованої особи через `member_id` / `member_number`. Email не є ідентифікатором запису зміни.
+
+Backend security rule для майбутнього `Änderungsantrag`: UI вже показує користувачу тільки доступні записи з його email, але backend не має довіряти тільки UI. Кожна create/view/update дія для заявки на зміну повинна повторно перевіряти, що обраний `member_id` належить до `Member` запису з email authenticated user.
+
+Майбутнє уточнення: якщо потрібне індивідуальне self-service редагування або юридично точніша авторизація для окремого члена, можна додати додатковий binding через `member_number`, invitation token або окрему таблицю зв'язків `user_member`.
+
+### Public route key для Member
+
+`Member` використовує `member_number` як route model binding key:
+
+```php
+public function getRouteKeyName(): string
+{
+    return 'member_number';
+}
+```
+
+Результат:
+
+- `/admin/members/DA-2026-0001` замість `/admin/members/1`
+- `/admin/members/DA-2026-0001/edit` замість `/admin/members/1/edit`
+- `/konto/mitgliedschaften/DA-2026-0001` замість `/konto/mitgliedschaften/1`
+- `/members/DA-2026-0001/profile-photo` замість `/members/1/profile-photo`
+
+Внутрішній `id` лишається primary key і не має штучно збігатися з `member_number`. Це важливо для FK-зв'язків, performance і нормальної роботи Eloquent. Публічний ідентифікатор для адміна/члена — тільки `member_number`.
+
+Перед production release цієї зміни обов'язково перевірити:
+
+```sql
+SELECT COUNT(*) AS members_without_member_number
+FROM members
+WHERE member_number IS NULL OR member_number = '';
+```
+
+Очікувано: `0`. Якщо результат не 0, спочатку потрібно backfill для старих записів, інакше вони не відкриються через новий URL. Для phpMyAdmin підготовлено перевірочний файл `deploy-artifacts/production-check-member-number-route-key-readiness.sql`.
 
 ### Email — архітектура і брендування
 
@@ -298,7 +356,7 @@ npm ci
 npm run build
 ```
 
-Перед staging-copy скрипт автоматично піднімає технічну версію в `config/system-version.json` через `scripts/update-system-version.php`. Після цього створюється архів у `deploy-artifacts/ditib-ahlen-portal-YYYYMMDD-HHMMSS.tar.gz`.
+Перед staging-copy скрипт автоматично піднімає технічну версію в `config/system-version.json` через `scripts/update-system-version.php`. Після цього створюється архів у форматі `deploy-artifacts/ditib-ahlen-portal-vX.XXX-YYYYMMDD-HHMMSS.tar.gz`.
 
 Архів містить:
 
@@ -314,6 +372,7 @@ npm run build
 - `node_modules/`;
 - `database/database.sqlite`;
 - локальну папку `==logs/`;
+- runtime profile photos з production data folder `Home directory/ditib-portal-data/member-photos/` не потрапляють в artifact, бо ця папка знаходиться поза Laravel-проєктом;
 - локальні `storage/logs/*.log`, sessions, compiled views і cache data;
 - `.git/`.
 
@@ -328,15 +387,33 @@ npm run build
 
 Короткий production redeploy, коли БД уже містить реєстрації і міграцій немає:
 
-1. Зробити backup production MySQL через phpMyAdmin.
+1. Зробити Plesk backup із `User files` + `Databases`; він має включати `Home directory/ditib-portal-data/member-photos`, якщо на production вже є фото.
 2. У Plesk File Manager зайти в `mitglied.ditib-ahlen-projekte.de/`.
 3. Видалити старі файли Laravel-порталу, але **не видаляти `.env`**.
-4. Якщо на production є користувацькі uploads у `storage/app/public`, їх також не видаляти; для поточної форми таких uploads ще немає.
+4. Якщо на production є користувацькі uploads у `storage/app/public` або profile photos у `Home directory/ditib-portal-data/member-photos`, їх також не видаляти.
 5. Завантажити новий `deploy-artifacts/ditib-ahlen-portal-*.tar.gz`.
 6. Розпакувати архів у `mitglied.ditib-ahlen-projekte.de/`.
 7. Перевірити, що `.env` залишився серверним, `APP_KEY` не змінився, Document Root досі `.../public`.
 8. Якщо нових файлів у `database/migrations/` немає, **БД не чіпати**: не імпортувати SQL і не запускати migrate.
 9. Перевірити форму, `/admin`, старі реєстрації в адмінці і одну тестову валідаційну помилку у формі.
+
+Перед першим production release фото-функції перевірити PHP extensions на Plesk без SSH:
+
+1. Завантажити `deploy-artifacts/check-photo-extensions.php` у `mitglied.ditib-ahlen-projekte.de/public/check-photo-extensions.php`.
+2. Відкрити `https://mitglied.ditib-ahlen-projekte.de/check-photo-extensions.php`.
+3. Має бути `OK` для `gd_extension`, `fileinfo_extension`, `gd_imagecreatetruecolor`, `gd_imagejpeg`; `exif_extension` бажаний для коректнішої orientation-обробки.
+4. Файл також покаже `member_photos_root_candidate`; його можна використати як `MEMBER_PHOTOS_ROOT`, якщо `member_photos_root_exists` і `member_photos_root_writable` показують `OK`.
+5. Після перевірки одразу видалити цей файл із production.
+
+Для Plesk backup: внутрішній backup має включати і файли, і базу даних. Критична папка для фото: `Home directory/ditib-portal-data/member-photos`. Перевірка 2026-05-20 підтвердила, що Plesk backup subscription включає створену `ditib-portal-data/member-photos` поруч із `httpdocs` і `mitglied.ditib-ahlen-projekte.de`. Цю папку не можна очищати при redeploy і треба відновлювати разом із MySQL, бо в БД зберігаються тільки relative paths.
+
+Production `.env` для фото має вказувати абсолютний шлях до data folder поза Laravel-проєктом:
+
+```env
+MEMBER_PHOTOS_ROOT=/var/www/vhosts/ditib-ahlen-projekte.de/ditib-portal-data
+```
+
+Якщо фактичний absolute path у Plesk інший, використати саме його. Локально `MEMBER_PHOTOS_ROOT` можна лишити порожнім: тоді disk `member_photos` пише у `storage/app/private/member-photos`.
 
 Після artifact deploy без shell-команд Laravel працює без `config:cache`, `route:cache` і `view:cache`. Це повільніше за optimized deploy, але прийнятно для поточного масштабу порталу.
 
@@ -497,6 +574,7 @@ QUEUE_CONNECTION=database
 
 BROADCAST_CONNECTION=log
 FILESYSTEM_DISK=local
+MEMBER_PHOTOS_ROOT=/var/www/vhosts/ditib-ahlen-projekte.de/ditib-portal-data
 
 MAIL_MAILER=smtp
 MAIL_HOST=mail.ditib-ahlen-projekte.de
@@ -574,9 +652,9 @@ MAIL_LOGO_URL=...
 - [ ] PDF підтвердження членства (Base64 для зображень)
 
 ### Етап 4 🔲
-- [ ] Фото профілю (FilePond + Image Crop 1:1)
+- [x] Фото профілю: backend foundation, public mobile PoC, public form integration, Admin Filament integration, Member Panel display, Datenschutz/deploy/backup docs і локальна release verification готові; production deploy ще не виконано
 - [ ] Unterschrift canvas у формі реєстрації (Крок 4)
-- [ ] Кабінет члена — перегляд даних, Änderungsantrag
+- [ ] Кабінет члена — Änderungsantrag по конкретному `member_id` / `member_number` зі списку доступних записів, не по email
 - [ ] Двомовність (DE + TR): Middleware SetLocale, lang/de.json, lang/tr.json
 - [ ] Експорт таблиці членів громади з адмінки в Excel-файл (`.xlsx`) із завантаженням на ПК
 - [x] Artifact deploy обрано як поточний процес: staging-збірка `vendor/` + `public/build/` + Laravel-код без зміни локальних dev-залежностей, завантаження через File Manager/FTP; міграції БД виконуються окремо через SQL/phpMyAdmin
