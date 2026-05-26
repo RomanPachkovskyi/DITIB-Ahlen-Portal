@@ -66,8 +66,11 @@
 - Крок 2: необов'язкове поле Instagram приймає `username`, `@username` або Instagram URL; у БД зберігається нормалізований username без `@`
 - Крок 3: Beitrag & Zahlungsweise (мін. €10, пресети 10/15/20/25 € як компактні pill-кнопки, ручний ввід кроком 1 €, стандартна Zahlungsweise `Dauerauftrag`, умовні SEPA-поля тільки для `Lastschrift`, SEPA-згода, DSGVO-згода)
 - Пресети внеску на desktop/tablet показуються в один ряд на ширину блоку; на mobile — 2x2 з центруванням
-- `Weiter` виконує м'яку валідацію: помилки поточного кроку показуються, але користувач може перейти далі й дозаповнити форму
+- `Weiter` виконує м'яку валідацію на переходах 1 → 2 і 2 → 3: помилки поточного кроку показуються, але користувач може перейти далі й дозаповнити форму
+- Перехід 3 → 4 (`Foto`) дозволений тільки після валідної анкети на кроках 1-3; якщо є помилки, форма повертає користувача до першого проблемного кроку, щоб не витрачати час на optional фото
+- Перед входом на крок 4 виконується duplicate guard за `birth_date + normalized phone`; якщо такий запис уже існує, форма повертається на крок 2 і показує помилку біля телефону
 - При фінальному `Antrag absenden` перевіряються всі кроки; якщо є помилки, форма автоматично повертає користувача до першого проблемного кроку
+- При фінальному `Antrag absenden` duplicate guard повторюється перед `Member::create()`, щоб дубль не можна було створити через обхід UI або повторний submit
 - Step indicators не клікабельні; кроки з помилками позначаються білим кружком із червоною рамкою поверх progress-line
 - Сіре summary-повідомлення над формою показується тільки тоді, коли помилки лишились у попередніх кроках
 - PLZ dropdown не має очищати validation errors для `postal_code`, `city`, `state`; інакше inline-помилки адреси зникають при кліку на `Weiter`
@@ -89,6 +92,7 @@
 - Користувач не бачить записи з іншими email; route binding member resource також scoped за email поточного користувача
 - Перегляд власних/родинних/фірмових записів read-only; self-service edit і photo replace у v1 не дозволені
 - Фото профілю показується у view кожного доступного запису через protected route `members.profile-photo`
+- Production QA для `/konto` photo display відкладено: клієнтський доступ/посилання на пошту для кабінету ще не реалізовані й будуть окремою великою задачею
 - Подача запиту на зміну (Änderungsantrag) — майбутній етап; кожен запит має бути прив'язаний до конкретного `member_id` / `member_number`, який користувач обирає зі списку своїх доступних записів, а не просто до email
 
 ### Адмін-панель (`/admin`) — Filament AdminPanel
@@ -236,6 +240,8 @@ Filament panels:
 
 У `/konto` це є прийнятою бізнес-логікою: користувач, який увійшов під певним email, бачить усі записи членів із цим email. Це покриває родину або фірму, де одна людина керує кількома записами.
 
+Duplicate protection для публічної реєстрації не використовує email і не покладається на ім'я, бо імена можуть мати різні турецькі/німецькі написання або помилки введення. Дубль блокується за практичним критерієм `birth_date + normalized phone`. Перевірка виконується перед optional кроком `Foto` і повторно перед створенням `Member`; пошук включає soft-deleted записи через `Member::withTrashed()`.
+
 Важливо для майбутнього `Änderungsantrag`: хоча доступ до списку записів визначається email, самі запити на зміну мають створюватися і вестися для конкретної зареєстрованої особи через `member_id` / `member_number`. Email не є ідентифікатором запису зміни.
 
 Backend security rule для майбутнього `Änderungsantrag`: UI вже показує користувачу тільки доступні записи з його email, але backend не має довіряти тільки UI. Кожна create/view/update дія для заявки на зміну повинна повторно перевіряти, що обраний `member_id` належить до `Member` запису з email authenticated user.
@@ -356,7 +362,7 @@ npm ci
 npm run build
 ```
 
-Перед staging-copy скрипт автоматично піднімає технічну версію в `config/system-version.json` через `scripts/update-system-version.php`. Після цього створюється архів у форматі `deploy-artifacts/ditib-ahlen-portal-vX.XXX-YYYYMMDD-HHMMSS.tar.gz`.
+Перед staging-copy скрипт автоматично піднімає технічну версію в `config/system-version.json` через `scripts/update-system-version.php`. Після цього створюється архів у форматі `deploy-artifacts/ditib-ahlen-portal-vX.XXX-YYYYMMDD-HHMMSS.tar.gz`. Звичайні code/doc changes без запуску `scripts/build-artifact.sh` або `scripts/export-production-sql.php` не піднімають версію вручну.
 
 Архів містить:
 
@@ -652,7 +658,7 @@ MAIL_LOGO_URL=...
 - [ ] PDF підтвердження членства (Base64 для зображень)
 
 ### Етап 4 🔲
-- [x] Фото профілю: backend foundation, public mobile PoC, public form integration, Admin Filament integration, Member Panel display, Datenschutz/deploy/backup docs і локальна release verification готові; production deploy ще не виконано
+- [x] Фото профілю: production deploy виконано; admin upload/replace/delete і public form crop/preview перевірені; `/konto` display QA відкладено до окремої задачі клієнтського доступу до кабінету
 - [ ] Unterschrift canvas у формі реєстрації (Крок 4)
 - [ ] Кабінет члена — Änderungsantrag по конкретному `member_id` / `member_number` зі списку доступних записів, не по email
 - [ ] Двомовність (DE + TR): Middleware SetLocale, lang/de.json, lang/tr.json

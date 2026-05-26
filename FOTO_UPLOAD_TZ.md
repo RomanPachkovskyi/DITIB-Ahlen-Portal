@@ -256,6 +256,12 @@ Acceptance criteria:
 - Browser verification реальної форми виконано: Step 1-3 → Step 4 → crop → Livewire `image/jpeg`, `800 x 800`.
 - Screenshot proof: `/private/tmp/ditib-membership-step4-photo.png`.
 
+Оновлення 2026-05-26:
+
+- Step 4 `Foto` більше не відкривається для неповної анкети: перед входом на фото крок перевіряються Step 1-3, а користувач повертається до першого проблемного кроку.
+- Перед входом на Step 4 виконується duplicate guard за `birth_date + normalized phone`; це захищає від повторної реєстрації до того, як користувач витратить час на optional фото.
+- Та сама duplicate-перевірка повторюється на final submit перед створенням `Member`.
+
 Зауваження, що впливає на наступні етапи:
 
 - ✅ Новий SQL для Етапу 3 не потрібен: використані поля `profile_photo_path` і `profile_photo_uploaded_at` вже додані в Етапі 1.
@@ -450,7 +456,15 @@ Acceptance criteria:
 Зауваження:
 
 - `tar: Failed to set default locale` з'являється локально під час tar-команд на macOS, але artifact створюється й читається коректно.
-- Production deploy ще не виконано. Перед ним вже виконані Plesk extension check і backup.
+- Production deploy виконано після backup, Plesk extension check і локальної release verification.
+
+Production QA 2026-05-20:
+
+- `/admin` працює після deploy; admin list/view/edit відкриваються, member URLs використовують `member_number`.
+- Admin photo upload/replace/delete працює; файл фізично створюється в `ditib-portal-data/member-photos/...` і видаляється з сервера після видалення фото в UI.
+- Публічна форма працює; вибір фото, crop і preview працюють.
+- `/konto` повністю не перевірявся на production, бо клієнтський доступ/посилання на пошту для кабінету ще не реалізовані. Це окрема майбутня задача і не блокує фото-реліз.
+- Подальші помилки або корекції після release фіксуються окремими fix-задачами/чатами.
 
 Мета: довести, що функція безпечна і не ламає реєстрацію.
 

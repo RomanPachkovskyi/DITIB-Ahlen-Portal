@@ -738,6 +738,20 @@
 - Після успішної Plesk extension check і backup у `deploy-artifacts/` залишено тільки актуальний artifact і `production-photo-upload-release-20260520.sql`.
 - Оновлено `scripts/build-artifact.sh`, щоб `.phpunit.result.cache` не потрапляв у production artifact.
 
+### [2026-05-20 18:42] Фото профілю — production QA зафіксовано — Codex
+- Зафіксовано результат production QA після deploy: `/admin` працює, member URLs через `member_number` коректні.
+- Admin photo upload/replace/delete працює; файл створюється в `ditib-portal-data/member-photos/...` і видаляється із сервера після видалення фото.
+- Публічна форма працює; вибір фото, crop і preview працюють.
+- `/konto` production QA відкладено, бо клієнтський доступ/посилання на пошту для кабінету ще не реалізовані; це окрема майбутня задача.
+- Оновлено `PROJECT.md` і `FOTO_UPLOAD_TZ.md`; подальші помилки або корекції після release фіксуються окремими fix-задачами.
+
+### [2026-05-26 15:11] Захист від дубля реєстрації перед фото — Codex
+- Додано `MemberDuplicateChecker`: duplicate guard шукає існуючий запис за `birth_date + normalized phone` і включає soft-deleted записи через `Member::withTrashed()`.
+- Перехід 3 → 4 (`Foto`) тепер дозволений тільки після валідних кроків 1-3; якщо анкета неповна, користувач повертається до першого проблемного кроку і не витрачає час на фото.
+- Перед входом на `Foto` і повторно перед `Member::create()` блокується дубль; форма повертається на крок 2 і показує повідомлення біля телефону.
+- Додано regression tests для блокування Step 4 при неповній анкеті, duplicate guard перед фото і duplicate guard на фінальному submit.
+- Оновлено `PROJECT.md` з новою логікою та уточненням: технічна версія піднімається автоматично тільки при `scripts/build-artifact.sh` або `scripts/export-production-sql.php`; artifact build у цій сесії не запускався.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

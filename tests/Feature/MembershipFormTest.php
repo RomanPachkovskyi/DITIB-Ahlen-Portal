@@ -209,6 +209,81 @@ class MembershipFormTest extends TestCase
             ->assertHasErrors(['anrede', 'full_name', 'birth_date']);
     }
 
+    public function test_it_does_not_enter_photo_step_when_registration_is_incomplete(): void
+    {
+        Livewire::test(MembershipForm::class)
+            ->set('step', 3)
+            ->set('monatsbeitrag', 10)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->call('nextStep')
+            ->assertSet('step', 1)
+            ->assertSet('showValidationSummary', true)
+            ->assertSet('stepsWithErrors.1', true)
+            ->assertHasErrors(['anrede', 'full_name', 'birth_date']);
+    }
+
+    public function test_it_blocks_duplicate_registration_before_photo_step(): void
+    {
+        $this->createMember([
+            'birth_date' => '1990-01-01',
+            'phone' => '+492382123456',
+        ]);
+
+        Livewire::test(MembershipForm::class)
+            ->set('step', 3)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Andere Schreibweise')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'andere@example.com')
+            ->set('phone', '02382/123456')
+            ->set('monatsbeitrag', 25)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->call('nextStep')
+            ->assertSet('step', 2)
+            ->assertSet('showValidationSummary', true)
+            ->assertSet('stepsWithErrors.2', true)
+            ->assertHasErrors(['phone']);
+    }
+
+    public function test_it_blocks_duplicate_registration_on_submit(): void
+    {
+        Event::fake([MemberRegistered::class]);
+
+        $this->createMember([
+            'birth_date' => '1990-01-01',
+            'phone' => '+492382123456',
+        ]);
+
+        Livewire::test(MembershipForm::class)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Andere Schreibweise')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'andere@example.com')
+            ->set('phone', '02382/123456')
+            ->set('monatsbeitrag', 25)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->call('submit')
+            ->assertSet('step', 2)
+            ->assertSet('submitted', false)
+            ->assertHasErrors(['phone']);
+
+        $this->assertDatabaseCount('members', 1);
+        Event::assertNotDispatched(MemberRegistered::class);
+    }
+
     public function test_it_keeps_too_short_phone_input_visible_for_validation(): void
     {
         $this->assertSame('123', PhoneNumber::format('123'));
@@ -474,5 +549,25 @@ class MembershipFormTest extends TestCase
         Mail::assertSent(MemberRegistrationConfirmation::class, fn (MemberRegistrationConfirmation $mail) => $mail->hasTo('ali@example.com'));
         Mail::assertSent(NewMemberNotification::class, fn (NewMemberNotification $mail) => $mail->hasTo('info@ditib-ahlen-projekte.de'));
         Mail::assertNothingQueued();
+    }
+
+    private function createMember(array $overrides = []): Member
+    {
+        return Member::create(array_merge([
+            'anrede' => 'Herr',
+            'full_name' => 'Max Mustermann',
+            'street' => 'Musterstrasse 1',
+            'city' => 'Ahlen',
+            'state' => 'Nordrhein-Westfalen',
+            'postal_code' => '59227',
+            'birth_date' => '1990-01-01',
+            'email' => 'max@example.com',
+            'phone' => '+492382123456',
+            'zahlungsart' => 'barzahlung',
+            'monatsbeitrag' => 25,
+            'unterschrift' => '',
+            'dsgvo_zustimmung' => true,
+            'status' => 'pending',
+        ], $overrides));
     }
 }

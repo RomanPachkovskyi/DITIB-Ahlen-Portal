@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Events\MemberRegistered;
 use App\Models\Member;
 use App\Models\PostalCode;
+use App\Services\MemberDuplicateChecker;
 use App\Services\ProfilePhotoService;
 use App\Support\Iban;
 use App\Support\Instagram;
@@ -99,6 +100,8 @@ class MembershipForm extends Component
     public array $stepsWithErrors = [];
 
     public bool $showValidationSummary = false;
+
+    private const DUPLICATE_MEMBER_MESSAGE = 'Zu diesem Geburtsdatum und dieser Telefonnummer liegt bereits ein Mitgliedsantrag vor. Bitte wenden Sie sich an die Verwaltung, falls Sie eine weitere Person anmelden möchten.';
 
     protected function rulesStep1(): array
     {
@@ -434,6 +437,16 @@ class MembershipForm extends Component
 
     public function nextStep(): void
     {
+        if ($this->step === 3) {
+            if (! $this->validateRegistrationBeforePhoto()) {
+                return;
+            }
+
+            $this->step = 4;
+
+            return;
+        }
+
         $this->validateStep($this->step);
         $this->step = min(4, $this->step + 1);
     }
@@ -456,6 +469,12 @@ class MembershipForm extends Component
         if ($firstInvalidStep !== null) {
             $this->step = $firstInvalidStep;
             $this->showValidationSummary = true;
+
+            return;
+        }
+
+        if ($this->hasDuplicateMember()) {
+            $this->markDuplicateMemberError();
 
             return;
         }
@@ -514,6 +533,46 @@ class MembershipForm extends Component
         $this->submitted = true;
 
         MemberRegistered::dispatch($member);
+    }
+
+    protected function validateRegistrationBeforePhoto(): bool
+    {
+        $firstInvalidStep = null;
+
+        foreach ([1, 2, 3] as $step) {
+            if (! $this->validateStep($step) && $firstInvalidStep === null) {
+                $firstInvalidStep = $step;
+            }
+        }
+
+        if ($firstInvalidStep !== null) {
+            $this->step = $firstInvalidStep;
+            $this->showValidationSummary = true;
+
+            return false;
+        }
+
+        if ($this->hasDuplicateMember()) {
+            $this->markDuplicateMemberError();
+
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function hasDuplicateMember(): bool
+    {
+        return app(MemberDuplicateChecker::class)
+            ->findByBirthDateAndPhone($this->birth_date, $this->phone) !== null;
+    }
+
+    protected function markDuplicateMemberError(): void
+    {
+        $this->step = 2;
+        $this->stepsWithErrors[2] = true;
+        $this->showValidationSummary = true;
+        $this->addError('phone', self::DUPLICATE_MEMBER_MESSAGE);
     }
 
     public function render()
