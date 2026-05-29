@@ -9,8 +9,8 @@ use App\Services\MemberDuplicateChecker;
 use App\Services\ProfilePhotoService;
 use App\Support\Iban;
 use App\Support\Instagram;
+use App\Support\MemberFieldRules;
 use App\Support\PhoneNumber;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -106,39 +106,27 @@ class MembershipForm extends Component
     protected function rulesStep1(): array
     {
         return [
-            'anrede' => 'required|in:Frau,Herr',
-            'full_name' => ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
-            'birth_date' => ['required', 'date', 'before:today', function ($attr, $value, $fail) {
-                if (Carbon::parse($value)->age < 16) {
-                    $fail('Eine Registrierung ist erst ab 16 Jahren möglich.');
-                }
-            }],
-            'birth_place' => ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
-            'staatsangehoerigkeit' => ['nullable', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
-            'familienangehoerige' => 'required|integer|min:1',
-            'beruf' => ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
-            'heimatstadt' => ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'],
+            'anrede' => MemberFieldRules::anrede(),
+            'full_name' => MemberFieldRules::fullName(),
+            'birth_date' => MemberFieldRules::birthDate(),
+            'birth_place' => MemberFieldRules::birthPlace(),
+            'staatsangehoerigkeit' => MemberFieldRules::staatsangehoerigkeit(),
+            'familienangehoerige' => MemberFieldRules::familienangehoerige(),
+            'beruf' => MemberFieldRules::beruf(),
+            'heimatstadt' => MemberFieldRules::heimatstadt(),
         ];
     }
 
     protected function rulesStep2(): array
     {
         return [
-            'street' => 'required|string|max:255',
-            'postal_code' => ['required', 'string', 'regex:/^[0-9]{5}$/'],
-            'city' => ['required', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
-            'state' => ['required', 'string', 'max:100', 'regex:/^[\pL\s\-]+$/u'],
-            'email' => 'required|email', // unique не застосовується: один email може використовуватись для кількох членів (діти реєструють батьків)
-            'phone' => ['required', 'string', 'max:50', function ($attribute, $value, $fail) {
-                if (! PhoneNumber::isValid($value)) {
-                    $fail(PhoneNumber::validationMessage());
-                }
-            }],
-            'instagram' => ['nullable', 'string', 'max:255', function ($attribute, $value, $fail) {
-                if (! Instagram::isValid($value)) {
-                    $fail('Bitte geben Sie einen Instagram-Namen oder Instagram-Link ein.');
-                }
-            }],
+            'street' => MemberFieldRules::street(),
+            'postal_code' => MemberFieldRules::postalCode(),
+            'city' => MemberFieldRules::city(),
+            'state' => MemberFieldRules::state(),
+            'email' => MemberFieldRules::email(),
+            'phone' => MemberFieldRules::phone(),
+            'instagram' => MemberFieldRules::instagram(),
         ];
     }
 
@@ -205,21 +193,17 @@ class MembershipForm extends Component
     protected function rulesStep3(): array
     {
         $rules = [
-            'monatsbeitrag' => 'required|numeric|min:10',
-            'zahlungsart' => 'required|in:barzahlung,lastschrift,dauerauftrag',
+            'monatsbeitrag' => MemberFieldRules::monatsbeitrag(),
+            'zahlungsart' => MemberFieldRules::zahlungsart(),
             'dsgvo_zustimmung' => 'accepted',
         ];
 
         if ($this->zahlungsart === 'lastschrift') {
             $rules['sepa_zustimmung'] = 'accepted';
-            $rules['kontoinhaber'] = ['required', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
-            $rules['iban'] = ['required', 'string', function ($attribute, $value, $fail) {
-                if (! Iban::isValidStructure($value)) {
-                    $fail('Ungültige IBAN.');
-                }
-            }];
-            $rules['bic'] = 'nullable|string|max:11';
-            $rules['kreditinstitut'] = ['nullable', 'string', 'max:255', 'regex:/^[\pL\s\-]+$/u'];
+            $rules['kontoinhaber'] = MemberFieldRules::kontoinhaber();
+            $rules['iban'] = MemberFieldRules::iban();
+            $rules['bic'] = MemberFieldRules::bic();
+            $rules['kreditinstitut'] = MemberFieldRules::kreditinstitut();
         }
 
         return $rules;

@@ -43,9 +43,8 @@ Konto зараз використовує окрему коротку schema:
 ## Підтверджені Рішення
 
 - Клієнт має бачити максимум інформації.
-- Від клієнта приховуємо тільки:
-  - `status`;
-  - `admin_notiz` (`Interne Notiz`).
+- Від клієнта приховуємо тільки `admin_notiz` (`Interne Notiz`).
+- `status` клієнт БАЧИТЬ (read-only) і в списку, і в detail — список `/konto` робимо з тими ж колонками, що admin-таблиця; але клієнт ніколи не РЕДАГУЄ `status` (він керується тільки системно/адміном). (Рішення Roman 2026-05-29, оновлює попередню чернетку, де `status` ховався від клієнта.)
 - Detail page у `/konto` має бути `Vorschau`, а не `Anzeigen`.
 - На `Vorschau` має бути кнопка `Bearbeiten`.
 - Якщо клієнт змінив хоч одне поле, запис переходить у `processing` (`Verarbeitung`).
@@ -104,8 +103,9 @@ Konto зараз використовує окрему коротку schema:
 
 ### `Status & Verwaltung`
 
-Клієнт бачить тільки:
+Клієнт бачить:
 
+- `status` (read-only, не редагується клієнтом);
 - `zustimmung_at`;
 - `sepa_zustimmung`;
 - `dsgvo_zustimmung`;
@@ -114,10 +114,9 @@ Konto зараз використовує окрему коротку schema:
 
 Клієнт не бачить:
 
-- `status`;
 - `admin_notiz`.
 
-На першому етапі consent fields мають бути read-only. Якщо пізніше дозволяти клієнту змінювати SEPA/DSGVO/photo consent, потрібна окрема юридична й технічна логіка з новим timestamp.
+Consent fields у загальному випадку read-only. Виняток (Рішення Roman 4): якщо клієнт перемикає `zahlungsart` на `lastschrift`, потрібне нове підтвердження SEPA-згоди — клієнт наново бере на себе відповідальність, `sepa_zustimmung` і відповідний timestamp фіксуються заново. Без цього підтвердження перехід на `lastschrift` не зберігається. DSGVO/photo consent клієнт у v1 не змінює.
 
 ## Логіка Редагування В `/konto`
 
@@ -138,7 +137,9 @@ Konto зараз використовує окрему коротку schema:
 
 - клієнт може view/edit тільки записи, де `lower(members.email) = lower(auth user email)`;
 - create/delete у `/konto` лишаються заборонені;
-- inactive members не отримують login link, тому не доходять до edit flow.
+- inactive записи показуються у списку (напівпрозорі, зі статусом), але `canView()` і `canEdit()` для них повертають `false` — клієнт не може ні відкрити detail, ні редагувати, навіть через прямий URL; усі питання по inactive — до адміна;
+- `getEloquentQuery()` повертає всі записи з email клієнта (включно з inactive, щоб список їх показав); блокування inactive — на рівні `canView()/canEdit()` і route binding, не на рівні query;
+- inactive-only email не отримує login link (немає що відкривати), натомість inactive-notice email.
 - save у member-edit має використовувати явний server-side allowlist, наприклад `Arr::only($data, MemberFormContext::memberEditableFields())`;
 - навіть якщо Livewire request підкине `status`, `admin_notiz`, `member_number`, `email`, consent fields або інше недозволене поле, backend має його проігнорувати;
 - після allowlist застосовується системна status transition у `processing`, а не дані з request.
@@ -175,9 +176,7 @@ Konto зараз використовує окрему коротку schema:
 
 > Ihr Mitgliedskonto ist derzeit nicht aktiv. Bitte wenden Sie sich an uns, damit wir den Status gemeinsam prüfen können.
 
-Відкрите рішення:
-
-- Якщо один email має кілька записів, частина active/pending/processing, частина inactive: чи показувати inactive записи read-only з поясненням, чи повністю виключати inactive з `/konto`? Рекомендація для першої реалізації: magic link дозволяти, якщо є хоча б один не-inactive запис; у `/konto` показувати тільки не-inactive записи. Це треба підтвердити.
+Рішення Roman (1, уточнено): inactive записи в `/konto` показуються у списку напівпрозорими (dimmed) разом зі статусом, але клієнт не може ні відкрити їх (detail), ні редагувати — рядок візуально присутній, але неактивний. Magic-link дозволяти, якщо є хоча б один не-inactive запис. Якщо всі записи email inactive → magic-link не слати (нема чого відкривати), надіслати inactive-notice.
 
 ## Спільна Schema Архітектура
 
@@ -472,11 +471,13 @@ Admin changes:
 ### Phase 3: Member Edit Page
 
 - Додати `EditMemberAccount`.
-- Увімкнути `canEdit()` для власних не-inactive записів.
+- Увімкнути `canView()` і `canEdit()` тільки для власних НЕ-inactive записів; inactive — заблоковані навіть через прямий URL.
+- У списку `/konto` inactive рядки показувати напівпрозорими (dimmed) зі статусом, але без `recordUrl`/відкриття і без row actions.
 - Додати `Bearbeiten` на member view.
 - Змінити breadcrumb/member view wording на `Vorschau`.
 - Додати server-side allowlist у save flow.
 - Додати shared validation/normalization для phone, Instagram, IBAN/BIC і contribution.
+- SEPA re-consent при переході `zahlungsart` → `lastschrift` (нова згода + timestamp).
 - Після save повертати на view.
 
 ### Phase 4: Inactive Login Handling
@@ -514,13 +515,17 @@ Admin changes:
 Feature tests:
 
 - member бачить повні дозволені секції;
-- member не бачить `Status` і `Interne Notiz`;
-- member може редагувати власний запис;
+- member бачить `Status` (read-only), але не бачить `Interne Notiz` (`admin_notiz`);
+- member може редагувати власний не-inactive запис;
 - member не може редагувати чужий запис;
+- member НЕ може відкрити (`canView`) або редагувати (`canEdit`) власний inactive запис, навіть через прямий URL;
+- inactive запис показується у списку `/konto` (dimmed), але без відкриття/редагування;
 - member edit ставить статус `processing`;
 - no-op save не змінює status/email/audit;
 - member не може підкинути `status`, `admin_notiz`, `member_number`, `email` або consent fields через request;
 - member не може редагувати `email` у v1;
+- `monatsbeitrag` нижче EUR 10 відхиляється у member edit;
+- перехід `zahlungsart` → `lastschrift` без SEPA re-consent не зберігається;
 - inactive-only email отримує inactive notice, не magic link;
 - admin email не отримує member magic-link token;
 - admin edit створює audit logs;
@@ -562,10 +567,10 @@ Manual QA:
 - `member_login_tokens` містить PII (`ip_address`, `user_agent`), тому потрібен cleanup expired/used токенів.
 - Production не має server-side artisan migrations; для deployment потрібен SQL файл для phpMyAdmin.
 
-## Відкриті Рішення Для Roman
+## Рішення Roman (зафіксовано 2026-05-29)
 
-1. Якщо один email має active/pending/processing запис і inactive запис, чи показувати inactive запис у `/konto` read-only з поясненням, чи повністю приховувати?
-2. Чи приховувати `status` також у списку `/konto`, чи тільки на detail/edit?
-3. Чи може member змінювати `email`? Рекомендація оновлена: ні у v1; пізніше тільки через double opt-in.
-4. Чи може member зменшувати `monatsbeitrag`, якщо він не нижче EUR 10? Поточне правило public/admin: мінімум EUR 10.
-5. Чи може member змінити `zahlungsart` на `lastschrift` без нового підтвердження SEPA consent? Рекомендація: на першому етапі не міняти consent автоматично; для нового Lastschrift потрібен окремий consent confirmation.
+1. **Mixed-email → inactive показуємо dimmed, але заблоковані.** Inactive записи зʼявляються у списку `/konto` напівпрозорими, зі статусом, але клієнт не може їх ні відкрити, ні редагувати (блокування у `canView()/canEdit()` + route binding, не у query). Magic-link дозволяється, якщо є хоча б один не-inactive запис; якщо всі inactive → magic-link не слати + inactive-notice email.
+2. **Список `/konto` = як у admin.** Ті самі колонки (`member_number`, name, `status` badge, city). Це безпечно, бо admin-таблиця не виводить нічого справді прихованого: `admin_notiz` не є колонкою. Наслідок: `status` видимий клієнту (read-only) і в списку, і в detail; справді прихований тільки `admin_notiz`. `status` клієнт ніколи не редагує.
+3. **`email` — не редагується клієнтом у v1** (ключ доступу). Пізніше тільки через double opt-in. (Залишається без змін.)
+4. **`monatsbeitrag` редагований, мінімум EUR 10** — центральне правило для public/admin/member. Member може і збільшувати, і зменшувати, але не нижче EUR 10.
+5. **`zahlungsart` → `lastschrift` вимагає нової SEPA-згоди.** Клієнт при кожній такій зміні наново бере відповідальність: показати SEPA-consent checkbox, зберегти `sepa_zustimmung` + новий timestamp; без підтвердження перехід на `lastschrift` не зберігається. `sepa_zustimmung` лишається system-controlled (не вільне поле allowlist) — встановлюється тільки через цей явний consent-крок.
