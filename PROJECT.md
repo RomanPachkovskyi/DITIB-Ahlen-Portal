@@ -153,17 +153,24 @@
 - [x] `/konto/login` використовує email-only magic-link flow: користувач вводить email, отримує одноразове посилання на пошту, link дійсний 60 хвилин і використовується один раз.
 - [x] Magic-link токени зберігаються в `member_login_tokens` тільки як SHA-256 hash; `used_at` блокує повторне використання.
 - [x] Якщо email не знайдений у `members`, UI показує нейтральне повідомлення без розкриття, чи є така адреса в базі.
+- [x] Member magic-link не видається для admin email (`User::isAdminEmail()`): admin і member ділять один `User`/web guard, тому magic-link для admin email створив би admin-capable сесію. `createForEmail()` і `consume()` відмовляють такому email, UI лишається нейтральним, спроба логується як security warning. Admin входить тільки через `/admin`.
+- [x] Spent (used/expired) magic-link токени видаляються автоматично при кожній видачі нового лінка через `MemberLoginToken::pruneSpent()`, тому `ip_address`/`user_agent` не накопичуються; cron не потрібен. Опційна команда `php artisan member:prune-login-tokens` (`--keep-hours=N`) лишається тільки для разового ops-purge.
 
 **Заплановано / хочемо додати:**
 - [ ] Production QA `/konto`, включно з magic-link email delivery, одноразовим входом і profile photo display, після deploy access flow.
-- [ ] `Änderungsantrag`: запит на зміну даних для конкретного `member_id` / `member_number`, вибраного зі списку доступних записів користувача.
+- [ ] Shared member schema + self-service edit для `/konto`: клієнт бачить майже повну картку, редагує власні дозволені поля, після будь-якої зміни запис переходить у `processing` (`Verarbeitung`), адміністратор отримує email.
+- [ ] Детальний робочий план цієї задачі ведеться в тимчасовому документі `docs/member-account-editing-audit-plan.md`; після реалізації фінальні рішення перенести назад у `PROJECT.md`.
+- [ ] `Änderungsantrag` / approval workflow лишається можливим майбутнім напрямком, але поточний план self-service edit базується на прямому редагуванні з audit log і статусом `processing`.
 
 **Важливі рішення:**
 - Email визначає доступ до списку записів, але не є ідентифікатором заявки на зміну.
 - `/konto` не використовує password login для членів; ручні паролі лишаються тільки для admin flow.
 - Для magic-link не показувати явну помилку “email не знайдено”, щоб не розкривати membership presence.
+- (Ще не реалізовано — Phase 4 плану) Якщо email існує тільки в `inactive` записах, magic-link не надсилати; натомість надіслати email із поясненням, що запис зараз не активний і треба звернутися до DITIB Ahlen. Поточний код (`MemberMagicLoginService::memberEmailExists()`) перевіряє лише наявність email у `members`, без фільтра за `status`, тому inactive-only email зараз усе ще отримує magic-link.
+- Member magic-link не створює login token для admin email (реалізовано через `User::isAdminEmail()`); поточний shared `User`/web guard є свідомим тимчасовим компромісом, кращий майбутній варіант — окремий guard/model для членів.
 - Кожна create/view/update дія для майбутнього `Änderungsantrag` повинна повторно перевіряти на backend, що обраний `member_id` належить до `Member` запису з email authenticated user.
-- Self-service edit або self-service photo replace не додавати без окремого approval/change-request workflow.
+- Для self-service edit приховати від клієнта `status` і `admin_notiz`; IBAN/BIC зміни в audit/email фіксувати тільки як факт зміни без старого/нового значення.
+- Server-side allowlist дозволених member-полів уже реалізований як єдине джерело правди: `App\Filament\Resources\Members\Schemas\MemberFormContext` (`memberEditableFields()` / `onlyMemberEditable()`) з принципом deny-by-default — будь-яке нове `fillable`/системне поле автоматично заборонене для member-edit, доки явно не додане в allowlist. `email`, `member_number`, `status`, `admin_notiz` і consent/timestamp fields не редагуються клієнтом у v1. Майбутня сторінка self-service edit зобовʼязана пропускати дані через `MemberFormContext::onlyMemberEditable()`, а не покладатися на hidden/disabled поля Filament.
 
 ### Адмін-Панель (`/admin`)
 
@@ -213,6 +220,7 @@
 - [x] Artifact build виправлений, щоб mail override templates не випадали через exclude `vendor`.
 
 **Заплановано / хочемо додати:**
+- [ ] Email адміну, коли клієнт змінив власні дані в `/konto`; лист містить ім'я, member number, список змінених полів і пряме посилання на admin record. IBAN/BIC не розкривати в листі, тільки позначати як змінені.
 - [ ] Якщо Gmail/Outlook/Apple Mail покажуть недостатній контроль верстки, перейти на власний HTML email template (`view:`) окремим етапом.
 
 **Важливі рішення:**
@@ -254,12 +262,15 @@
 
 **Працює зараз:**
 - [x] Немає production Excel export і глобального audit log; це свідомо ще не реалізовано.
+- [x] Існує legacy/future таблиця `change_requests`, але вона не є audit log і зараз не використовується як єдина система логування.
+- [x] Cleanup для `member_login_tokens` реалізовано: spent токени видаляються автоматично при видачі нового лінка (`MemberLoginToken::pruneSpent()`) + опційна команда `member:prune-login-tokens`. Це закриває retention тільки для login-токенів; глобальний audit log і його retention ще не реалізовані.
 
 **Заплановано / хочемо додати:**
 - [ ] Експорт таблиці членів громади в `.xlsx` із адмінки.
-- [ ] Глобальний audit log: хто, що, коли створив/змінив/видалив/підтвердив.
+- [ ] Єдиний audit log для фактичних змін `Member`: admin edit, member edit, status actions, bulk status actions, photo upload/delete; детальний план у `docs/member-account-editing-audit-plan.md`.
 - [ ] Мінімальний audit scope: нова реєстрація, зміна статусу, редагування полів, soft delete/delete, admin login, email-помилки, admin replace/delete profile photo.
 - [ ] Окрема адмін-сторінка audit log із фільтрами по користувачу, типу дії, сутності та даті.
+- [ ] Retention/anonymization для майбутнього audit log: він міститиме персональні дані (ім'я, адреса, телефон) навіть для несенситивних полів, тому при soft-delete/erasure члена потрібен service/command для очищення або анонімізації записів по `member_id`. (Cleanup для `member_login_tokens` уже реалізовано окремо, див. вище.)
 
 **Важливі рішення:**
 - Фото в Excel export не додавати.
@@ -368,6 +379,9 @@
 - SEPA/DSGVO consent fields і `zustimmung_at` у admin edit є read-only фактами; адмін не редагує згоду клієнта
 - `$hidden` у моделі НЕ використовувати для IBAN/BIC (блокує Filament форму)
 - Члени в `/konto` бачать тільки записи з `members.email`, що збігається з email authenticated user; якщо один email використано для кількох членів родини/фірми, усі ці записи вважаються доступними цьому користувачу
+- Admin і member ділять одну таблицю `users` і один web guard; щоб magic-link не створив admin-capable сесію, member magic-link не видається для admin email (`User::isAdminEmail()` перевіряється і в `createForEmail()`, і в `consume()`). Розділення на окремий member guard — майбутнє покращення
+- `member_login_tokens` зберігає тільки SHA-256 hash токена + `ip_address`/`user_agent` (PII); spent (used/expired) токени автоматично видаляються при видачі нового лінка (`MemberLoginToken::pruneSpent()`), щоб ця таблиця не ставала відкритим архівом PII
+- Майбутній member self-service edit зобовʼязаний використовувати server-side allowlist `MemberFormContext::onlyMemberEditable()` (deny-by-default); hidden/disabled поля у Filament НЕ вважаються захистом, бо Livewire-запит можна підробити. Заборонені для member-edit: `email`, `member_number`, `status`, `admin_notiz`, усі consent/timestamp і photo-path поля
 - Згода SEPA і DSGVO фіксується з timestamp при відправці форми; у публічній формі тексти згод мають посилання на `https://ditib-ahlen-projekte.de/datenschutz`
 - Авторитетний legal text для порталу і лендінгу ведеться в `../main/docs/legal-texts.md`; сторінка Datenschutz на лендінгу має залишатися синхронізованою з цим текстом, особливо для Mitgliedsantrag, SEPA/IBAN, членських даних і optional profile photos
 - Optional profile photos зберігаються тільки на private disk `member_photos`; локально root за замовчуванням `storage/app/private`, на production root задається через `MEMBER_PHOTOS_ROOT` поза папкою Laravel-проєкту (`Home directory/ditib-portal-data`); у БД лежить тільки relative path `member-photos/...`; direct public URL, `public/storage` і email-usage не використовуються

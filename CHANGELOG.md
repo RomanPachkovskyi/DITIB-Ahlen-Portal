@@ -2,7 +2,7 @@
 ## DITIB-Ahlen-Portal
 
 > Тут — повна історія змін: хто, коли, що зробив.
-> Правила для агентів → `CLAUDE.md` | Архітектура → `PROJECT.md`
+> Правила для агентів → `AGENTS.md` | Архітектура → `PROJECT.md`
 
 ---
 
@@ -10,9 +10,10 @@
 
 | Файл | Призначення |
 |------|-------------|
-| **`CLAUDE.md`** | Правила для агентів, команди, середовище — читати першим |
+| **`AGENTS.md`** | Правила для агентів, команди, середовище — читати першим |
 | **`PROJECT.md`** | Архітектура, стек, функціональність, деплой |
 | **`CHANGELOG.md`** ← ти тут | Хронологія всіх змін — що, коли, хто зробив |
+| `CLAUDE.md` | Compatibility-pointer для Claude Code → посилається на `AGENTS.md` |
 
 ---
 
@@ -807,6 +808,39 @@
 - Додано під кнопкою `/konto/login` текст `Noch kein Mitgliedskonto? Jetzt registrieren` із посиланням на `https://mitglied.ditib-ahlen-projekte.de/`.
 - Посилання додано тільки в member magic-link login flow; `/admin/login` не змінено.
 - Додано regression assertion для тексту й URL реєстрації на `/konto/login`.
+
+### [2026-05-29 12:56] План self-service edit і audit log для `/konto` — Codex
+- Створено тимчасовий робочий документ `docs/member-account-editing-audit-plan.md` для shared member schema, member edit flow, inactive login behavior, admin email і єдиного audit log.
+- У `PROJECT.md` коротко зафіксовано напрямок: `/konto` має перейти на майже повну картку члена з редагуванням, статусом `processing` після змін і audit logging.
+- Уточнено, що існуючий `ChangeRequest` не є `CHANGELOG.md` і не має ставати паралельною системою логування без окремого рішення.
+- Додано security guardrails до плану: server-side allowlist для member-edit, email read-only у v1, блокування member magic-link для admin emails, DSGVO retention і cleanup для token/audit PII.
+
+### [2026-05-29 14:55] Admin/member identity guard у magic-link flow — Claude Code
+- Реалізовано пункт C плану `member-account-editing-audit-plan.md`: admin emails більше не отримують member magic-link доступ через спільний `User`/web guard.
+- `User::isAdminEmail()` — новий case-insensitive helper; `User::isAdmin()` тепер використовує його.
+- `MemberMagicLoginService::createForEmail()` не створює token для admin email (UI лишається нейтральним, подія логується як security warning).
+- `MemberMagicLoginService::consume()` додатково відмовляє admin email навіть при вже наявному token (defense in depth).
+- Додано тести: admin email не отримує token/лист попри наявний member-запис; pre-existing admin-email token не автентифікує. Весь набір — 71 тест зелений.
+
+### [2026-05-29 15:10] Server-side allowlist для member-edit (foundation) — Claude Code
+- Реалізовано foundation пункту A плану: `app/Filament/Resources/Members/Schemas/MemberFormContext.php` — єдине джерело правди для server-side allowlist member-полів (не сама shared schema; admin/konto форми поки лишаються окремими).
+- Enum-кейси `AdminView/AdminEdit/MemberView/MemberEdit` додані як заготовка під майбутню shared schema (Phase 2), але schema-building логіки ще не містять.
+- `MemberFormContext::memberEditableFields()` — явний allowlist (23 поля); `memberProtectedFields()` derived за принципом deny-by-default: будь-яке нове `fillable`/системне поле автоматично заборонене, доки явно не додане в allowlist.
+- `MemberFormContext::onlyMemberEditable($data)` — security boundary для майбутнього `EditMemberAccount` save: зрізає підкинуті `status`/`admin_notiz`/`member_number`/`email`/consent.
+- Додано unit-тести (`tests/Unit/MemberFormContextTest.php`): editable∩protected=∅, sensitive/admin поля захищені, повне покриття `fillable`, зрізання forbidden keys. Весь набір — 75 тестів зелений.
+
+### [2026-05-29 15:25] Auto-cleanup member_login_tokens (DSGVO) — Claude Code
+- Реалізовано пункт D плану без потреби в cron/ручному запуску.
+- `MemberLoginToken::pruneSpent()` — єдине джерело логіки: видаляє used/expired токени (таблиця зберігає `ip_address`/`user_agent` PII), активні не чіпає.
+- `MemberMagicLoginService::createForEmail()` викликає `pruneSpent()` при кожній видачі нового токена — рутинна чистка відбувається автоматично під час звичайної активності.
+- `php artisan member:prune-login-tokens` лишено як опційний ops-fallback (one-off purge, `--keep-hours=N`); для нормальної роботи не потрібен.
+- Тести: auto-prune при видачі токена + поведінка команди. Весь набір — 78 тестів зелений.
+
+### [2026-05-29 15:45] Doc-sync після контрольного рев'ю — Claude Code
+- Виправлено header CHANGELOG: канон правил для агентів — `AGENTS.md`, а не `CLAUDE.md`; `CLAUDE.md` позначено як compatibility-pointer (header-legend і верхня таблиця «Три документи»).
+- Уточнено формулювання про `MemberFormContext`: це foundation + server-side allowlist, а не сама shared schema (admin/konto форми поки окремі).
+- У `PROJECT.md` явно позначено, що inactive-only magic-link suppression ще не реалізовано (Phase 4): `memberEmailExists()` поки не фільтрує за `status`, тому inactive-only email усе ще отримує лінк.
+- Без змін у коді; `php artisan test` — 78 тестів зелений.
 
 ---
 

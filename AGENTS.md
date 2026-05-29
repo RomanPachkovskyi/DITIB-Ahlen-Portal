@@ -182,6 +182,9 @@ Production DB зміни виконуються через SQL-файли для
 - IBAN, BIC — `'encrypted'` cast → зашифровані в БД
 - `$hidden` у моделі не використовувати для IBAN/BIC — блокує Filament
 - Члени в `/konto` бачать тільки записи з email authenticated user; один email може мати кілька записів родини/фірми
+- Admin і member ділять одну `users`-таблицю та web guard → member magic-link НЕ видавати для admin email (`User::isAdminEmail()`); guard уже стоїть у `MemberMagicLoginService::createForEmail()` і `consume()`, не обходити його
+- Member self-service edit писати ТІЛЬКИ через server-side allowlist `MemberFormContext::onlyMemberEditable()` (deny-by-default); hidden/disabled поля Filament не є захистом. Заборонені для member-edit: `email`, `member_number`, `status`, `admin_notiz`, consent/timestamp і photo-path поля
+- `member_login_tokens` містить PII (`ip_address`, `user_agent`); spent токени чистяться автоматично через `MemberLoginToken::pruneSpent()` при видачі нового лінка — не дублювати цю логіку, перевикористовувати метод
 - `.env` з `APP_KEY` — ніколи в git
 
 ---
