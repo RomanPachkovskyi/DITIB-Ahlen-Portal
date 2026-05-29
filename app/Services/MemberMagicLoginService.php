@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Models\MemberLoginToken;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class MemberMagicLoginService
@@ -18,6 +19,18 @@ class MemberMagicLoginService
     public function createForEmail(string $email, ?string $ipAddress = null, ?string $userAgent = null): ?array
     {
         $email = $this->normalizeEmail($email);
+
+        // Admin and member share one User/web guard. A magic link for an admin
+        // email would create an admin-capable session, so never issue one here.
+        // The UI stays neutral; only a security event is logged.
+        if (User::isAdminEmail($email)) {
+            Log::warning('Blocked member magic-link request for admin email.', [
+                'email' => $email,
+                'ip_address' => $ipAddress,
+            ]);
+
+            return null;
+        }
 
         if (! $this->memberEmailExists($email)) {
             return null;
@@ -47,6 +60,12 @@ class MemberMagicLoginService
             ->first();
 
         if (! $token?->isUsable()) {
+            return null;
+        }
+
+        // Defense in depth: never authenticate an admin email through the
+        // member magic-link flow, even if a token somehow already exists.
+        if (User::isAdminEmail($token->email)) {
             return null;
         }
 

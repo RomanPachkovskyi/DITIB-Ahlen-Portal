@@ -114,6 +114,44 @@ class MemberMagicLoginTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_no_magic_link_is_issued_for_admin_email_even_if_member_exists(): void
+    {
+        Mail::fake();
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        // Admin email is also present in members (shared-email scenario).
+        $this->makeMember(['email' => 'info@ditib-ahlen-projekte.de']);
+
+        $this->assertNull(
+            app(MemberMagicLoginService::class)->createForEmail('Info@DITIB-Ahlen-Projekte.de')
+        );
+
+        // UI stays neutral, but no token is created and no mail is sent.
+        Livewire::test(RequestLoginLink::class)
+            ->set('data.email', 'info@ditib-ahlen-projekte.de')
+            ->call('authenticate')
+            ->assertSet('linkRequestSent', true);
+
+        $this->assertDatabaseCount('member_login_tokens', 0);
+        Mail::assertNothingSent();
+    }
+
+    public function test_pre_existing_admin_email_token_cannot_authenticate(): void
+    {
+        $this->makeMember(['email' => 'info@ditib-ahlen-projekte.de']);
+        $plainToken = 'admin-email-token';
+
+        MemberLoginToken::create([
+            'email' => 'info@ditib-ahlen-projekte.de',
+            'token_hash' => app(MemberMagicLoginService::class)->hashToken($plainToken),
+            'expires_at' => now()->addMinutes(60),
+        ]);
+
+        $this->get(route('member.magic-login.consume', ['token' => $plainToken]))
+            ->assertRedirect(Filament::getPanel('member')->getLoginUrl());
+
+        $this->assertGuest();
+    }
+
     private function makeMember(array $attributes = []): Member
     {
         return Member::create(array_merge([

@@ -51,6 +51,17 @@ class User extends Authenticatable implements FilamentUser
 
     public function isAdmin(): bool
     {
-        return in_array($this->email, self::ADMIN_EMAILS, true);
+        return self::isAdminEmail((string) $this->email);
+    }
+
+    public static function isAdminEmail(?string $email): bool
+    {
+        if ($email === null) {
+            return false;
+        }
+
+        $normalized = mb_strtolower(trim($email));
+
+        return in_array($normalized, self::ADMIN_EMAILS, true);
     }
 }
