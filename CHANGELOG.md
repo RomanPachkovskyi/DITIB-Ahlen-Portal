@@ -842,6 +842,9 @@
 - У `PROJECT.md` явно позначено, що inactive-only magic-link suppression ще не реалізовано (Phase 4): `memberEmailExists()` поки не фільтрує за `status`, тому inactive-only email усе ще отримує лінк.
 - Без змін у коді; `php artisan test` — 78 тестів зелений.
 
----
-
-*Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*
+### [2026-05-29 16:20] Shared member field validation rules (пункт E) — Claude Code
+- `app/Support/MemberFieldRules.php` — єдине джерело правди для валідаційних правил полів `Member`, включно з closure-правилами (мін. вік 16, phone, IBAN structure, Instagram). Нормалізація лишається в наявних helpers `PhoneNumber`/`Iban`/`Instagram`.
+- `MembershipForm` (`rulesStep1/2/3`) переведено на `MemberFieldRules` без зміни поведінки реєстрації; прибрано невикористаний `Carbon` import.
+- Мета: майбутня Filament admin/member edit форма валідуватиме ідентично до публічної реєстрації, тож member-edit не зможе обійти перевірки (duplicate-guard, формат phone/IBAN, мін. €10).
+- Додано `tests/Feature/MemberFieldRulesTest.php` (6 кейсів); наявний `MembershipFormTest` як характеризаційна сітка не змінювався. Весь набір — 84 тести зелений.
+- Зафіксовано рішення Roman у `docs/member-account-editing-audit-plan.md` (mixed-email: inactive показувати dimmed без відкриття/редагування; `status` видимий клієнту read-only; `monatsbeitrag` ≥ €10; `zahlungsart`→`lastschrift` потребує нової SEPA-згоди; `email` read-only у v1).
