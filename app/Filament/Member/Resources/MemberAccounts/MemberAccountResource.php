@@ -2,6 +2,7 @@
 
 namespace App\Filament\Member\Resources\MemberAccounts;
 
+use App\Filament\Member\Resources\MemberAccounts\Pages\EditMemberAccount;
 use App\Filament\Member\Resources\MemberAccounts\Pages\ListMemberAccounts;
 use App\Filament\Member\Resources\MemberAccounts\Pages\ViewMemberAccount;
 use App\Filament\Resources\Members\Schemas\MemberForm;
@@ -50,7 +51,8 @@ class MemberAccountResource extends Resource
 
     public static function canView(Model $record): bool
     {
-        return static::belongsToCurrentUser($record);
+        // Inactive records are listed (dimmed) but cannot be opened.
+        return static::belongsToCurrentUser($record) && ! static::isInactive($record);
     }
 
     public static function canCreate(): bool
@@ -60,8 +62,8 @@ class MemberAccountResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        // Self-service edit is enabled in Phase 3; read-only for now.
-        return false;
+        // Members edit only their own, non-inactive records.
+        return static::belongsToCurrentUser($record) && ! static::isInactive($record);
     }
 
     public static function canDelete(Model $record): bool
@@ -77,6 +79,11 @@ class MemberAccountResource extends Resource
             && $record instanceof Member
             && $record->email !== null
             && strcasecmp($record->email, $email) === 0;
+    }
+
+    protected static function isInactive(Model $record): bool
+    {
+        return $record instanceof Member && $record->status === MemberStatus::INACTIVE;
     }
 
     public static function form(Schema $schema): Schema
@@ -127,11 +134,16 @@ class MemberAccountResource extends Resource
                     ->toggleable(),
             ])
             ->defaultSort('member_number')
-            ->recordUrl(fn (Member $record): string => static::getUrl('view', ['record' => $record]))
+            // Inactive rows are shown dimmed and are not clickable.
+            ->recordClasses(fn (Member $record): ?string => static::isInactive($record) ? 'opacity-50' : null)
+            ->recordUrl(fn (Member $record): ?string => static::isInactive($record)
+                ? null
+                : static::getUrl('view', ['record' => $record]))
             ->recordActions([
                 ViewAction::make()
                     ->label('Anzeigen')
-                    ->color('gray'),
+                    ->color('gray')
+                    ->hidden(fn (Member $record): bool => static::isInactive($record)),
             ]);
     }
 
@@ -140,6 +152,7 @@ class MemberAccountResource extends Resource
         return [
             'index' => ListMemberAccounts::route('/'),
             'view' => ViewMemberAccount::route('/{record}'),
+            'edit' => EditMemberAccount::route('/{record}/edit'),
         ];
     }
 }

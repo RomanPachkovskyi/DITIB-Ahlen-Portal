@@ -57,6 +57,17 @@ class MemberPanelAccountsTest extends TestCase
             ->assertSee('Eingegangen am');
     }
 
+    public function test_member_list_shows_system_version_label(): void
+    {
+        $this->actingAsMemberUser('family@example.com');
+        $this->makeMember(['email' => 'family@example.com']);
+
+        $this->get(MemberAccountResource::getUrl(panel: 'member'))
+            ->assertOk()
+            ->assertSee(\App\Support\SystemInfo::version())
+            ->assertSee('Munas-Print');
+    }
+
     public function test_member_panel_home_redirects_to_memberships_list(): void
     {
         $this->actingAsMemberUser('family@example.com');

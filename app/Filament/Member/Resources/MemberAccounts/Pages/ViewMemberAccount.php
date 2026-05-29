@@ -3,6 +3,7 @@
 namespace App\Filament\Member\Resources\MemberAccounts\Pages;
 
 use App\Filament\Member\Resources\MemberAccounts\MemberAccountResource;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewMemberAccount extends ViewRecord
@@ -11,7 +12,7 @@ class ViewMemberAccount extends ViewRecord
 
     public function getBreadcrumb(): string
     {
-        return 'Anzeigen';
+        return 'Vorschau';
     }
 
     public function getTitle(): string
@@ -21,6 +22,11 @@ class ViewMemberAccount extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            // Shown only when the record is editable (own, non-inactive).
+            EditAction::make()
+                ->label('Bearbeiten')
+                ->color('primary'),
+        ];
     }
 }

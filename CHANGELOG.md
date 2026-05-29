@@ -860,3 +860,12 @@
 - `/konto` таблиця тепер має ті самі дефолтні колонки, що admin: `Nr. / Name / Status / E-Mail / Ort / Beitrag/Mo. / Eingegangen am` (раніше тільки 4).
 - Фото-consent поля (`Foto-Einwilligung` тумблер і `Foto-Einwilligung am` timestamp) у `MemberForm` тепер видимі лише коли є збережене фото (`profile_photo_path !== null`) — для обох панелей. Це прибирає зайвий «Foto-Einwilligung am» без фото на `/konto` (наслідок Phase 2) і той самий наявний баг в адмінці.
 - Додано тести: дефолтні колонки `/konto`; фото-consent ховається без фото (member + admin) і показується з фото. Весь набір — 87 тестів зелений.
+
+### [2026-05-29 18:05] Member self-service edit (Phase 3 core) — Claude Code
+- Додано сторінку `EditMemberAccount`; на `/konto` view тепер breadcrumb `Vorschau` + кнопка `Bearbeiten`, redirect на view після save.
+- `MemberAccountResource`: `canView`/`canEdit` тільки для власних **не-inactive** записів; inactive у списку показуються dimmed (`opacity-50`) і не клікабельні (`recordUrl` null, ViewAction приховано).
+- Save проходить через server-side allowlist `MemberFormContext::onlyMemberEditable()` — підкинуті `status`/`admin_notiz`/`member_number`/`email` ігноруються. Будь-яка реальна зміна editable-поля переводить `pending`/`active` у `processing` (`afterSave`, `saveQuietly`); no-op save статус не змінює.
+- SEPA: перехід `zahlungsart`→`lastschrift` без наявної згоди блокується (повний re-consent UX — окремий під-зріз 3c).
+- Під списком `/konto` додано technical system label (render-hook `RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER` → `filament.system-info`), як під таблицею Mitglieder в адмінці; версія/дата підтягуються з `config/system-version.json`.
+- Додано `tests/Feature/MemberSelfEditTest.php` (7 кейсів: edit→processing, no-op, forge protected, lastschrift-guard, inactive view/edit заборонено, dimmed list, чужий email) + тест label під списком `/konto`. Весь набір — 95 тестів зелений.
+- Оновлено `PROJECT.md` (факти Phase 3 + label + залишок 3c/Phase 4/5/6).

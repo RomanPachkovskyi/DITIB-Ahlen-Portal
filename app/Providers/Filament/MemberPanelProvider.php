@@ -39,6 +39,10 @@ class MemberPanelProvider extends PanelProvider
                 fn () => view('filament.footer'),
             )
             ->renderHook(
+                PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER,
+                fn () => view('filament.system-info'),
+            )
+            ->renderHook(
                 PanelsRenderHook::SIMPLE_PAGE_END,
                 fn () => view('filament.auth-system-info'),
                 \Filament\Auth\Pages\Login::class,

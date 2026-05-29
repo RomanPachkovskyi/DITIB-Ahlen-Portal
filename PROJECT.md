@@ -148,7 +148,13 @@
 - [x] Access model v1: `User.email` є ключем доступу; якщо на одну пошту зареєстровано кілька членів, користувач бачить усі `Member` записи з цією поштою.
 - [x] Detail URLs використовують `member_number`, наприклад `/konto/mitgliedschaften/DA-2026-0001`; внутрішній DB `id` у URL не використовується.
 - [x] Resource query і route binding scoped за email поточного користувача; записи з іншими email не відкриваються через URL.
-- [x] Перегляд власних/родинних/фірмових записів read-only; self-service edit і photo replace у v1 не дозволені.
+- [x] `/konto` використовує спільну з admin схему (`MemberForm::build(..., MemberFormContext::MemberView)`): клієнт бачить майже повну картку (`Persönliche Daten` / `Status & Verwaltung` / `Beitrag & Bankverbindung`), мінус admin-only поля. `status` показується read-only, `admin_notiz` прихований, `email` read-only.
+- [x] Self-service edit (Phase 3 core): сторінка `EditMemberAccount`, кнопка `Bearbeiten` на `Vorschau`, redirect на view після save. Доступ — лише власні **не-inactive** записи (`canView`/`canEdit`). Save проходить через server-side allowlist `MemberFormContext::onlyMemberEditable()`; будь-яка реальна зміна переводить `pending`/`active` у `processing`; no-op save статус не змінює.
+- [x] Inactive записи у списку `/konto` показуються dimmed (`opacity-50`) і не клікабельні; `canView`/`canEdit` для них `false` (не відкрити навіть прямим URL).
+- [x] Під списком `/konto` показується technical system label (`vX.XXX - Update: DD.MM.YYYY - by Munas-Print`), так само як під таблицею Mitglieder в адмінці (render-hook `RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER` → `filament.system-info`).
+- [x] Перехід `zahlungsart` → `lastschrift` без наявної SEPA-згоди у member-edit поки **блокується** (повний re-consent UX — окремий під-зріз 3c). Photo replace через `/konto` у v1 не ввімкнено.
+- [x] Список `/konto` має ті самі дефолтні колонки, що admin: `Nr. / Name / Status / E-Mail / Ort / Beitrag/Mo. / Eingegangen am`.
+- [x] Фото-consent поля (`Foto-Einwilligung` тумблер і `Foto-Einwilligung am`) показуються лише коли є збережене фото (`profile_photo_path !== null`) — для обох панелей.
 - [x] Фото профілю показується у view кожного доступного запису через protected route `members.profile-photo`.
 - [x] `/konto/login` використовує email-only magic-link flow: користувач вводить email, отримує одноразове посилання на пошту, link дійсний 60 хвилин і використовується один раз.
 - [x] Magic-link токени зберігаються в `member_login_tokens` тільки як SHA-256 hash; `used_at` блокує повторне використання.
@@ -158,7 +164,9 @@
 
 **Заплановано / хочемо додати:**
 - [ ] Production QA `/konto`, включно з magic-link email delivery, одноразовим входом і profile photo display, після deploy access flow.
-- [ ] Shared member schema + self-service edit для `/konto`: клієнт бачить майже повну картку, редагує власні дозволені поля, після будь-якої зміни запис переходить у `processing` (`Verarbeitung`), адміністратор отримує email.
+- [x] Shared member schema для `/konto` — зроблено (Phase 2): спільний `MemberForm` із контекстами admin/member.
+- [x] Self-service edit для `/konto` (Phase 3 core) — зроблено: edit власних не-inactive записів, allowlist save, статус→`processing`, dimmed/заблоковані inactive.
+- [ ] Залишок навколо self-service edit: SEPA re-consent UX при переході на `lastschrift` (3c); audit log змін (Phase 5); email адміну після member-edit (Phase 6); inactive-login suppression + notice (Phase 4).
 - [ ] Детальний робочий план цієї задачі ведеться в тимчасовому документі `docs/member-account-editing-audit-plan.md`; після реалізації фінальні рішення перенести назад у `PROJECT.md`.
 - [ ] `Änderungsantrag` / approval workflow лишається можливим майбутнім напрямком, але поточний план self-service edit базується на прямому редагуванні з audit log і статусом `processing`.
 
@@ -169,7 +177,7 @@
 - (Ще не реалізовано — Phase 4 плану) Якщо email існує тільки в `inactive` записах, magic-link не надсилати; натомість надіслати email із поясненням, що запис зараз не активний і треба звернутися до DITIB Ahlen. Поточний код (`MemberMagicLoginService::memberEmailExists()`) перевіряє лише наявність email у `members`, без фільтра за `status`, тому inactive-only email зараз усе ще отримує magic-link.
 - Member magic-link не створює login token для admin email (реалізовано через `User::isAdminEmail()`); поточний shared `User`/web guard є свідомим тимчасовим компромісом, кращий майбутній варіант — окремий guard/model для членів.
 - Кожна create/view/update дія для майбутнього `Änderungsantrag` повинна повторно перевіряти на backend, що обраний `member_id` належить до `Member` запису з email authenticated user.
-- Для self-service edit приховати від клієнта `status` і `admin_notiz`; IBAN/BIC зміни в audit/email фіксувати тільки як факт зміни без старого/нового значення.
+- Від клієнта приховуємо тільки `admin_notiz`; `status` клієнт БАЧИТЬ read-only (і в списку, і в картці), але ніколи не редагує. IBAN/BIC зміни в audit/email фіксувати тільки як факт зміни без старого/нового значення. (Рішення Roman 2026-05-29, оновлює попередню чернетку, де `status` ховався.)
 - Server-side allowlist дозволених member-полів уже реалізований як єдине джерело правди: `App\Filament\Resources\Members\Schemas\MemberFormContext` (`memberEditableFields()` / `onlyMemberEditable()`) з принципом deny-by-default — будь-яке нове `fillable`/системне поле автоматично заборонене для member-edit, доки явно не додане в allowlist. `email`, `member_number`, `status`, `admin_notiz` і consent/timestamp fields не редагуються клієнтом у v1. Майбутня сторінка self-service edit зобовʼязана пропускати дані через `MemberFormContext::onlyMemberEditable()`, а не покладатися на hidden/disabled поля Filament.
 
 ### Адмін-Панель (`/admin`)
