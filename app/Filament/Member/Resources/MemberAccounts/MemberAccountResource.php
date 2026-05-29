@@ -4,26 +4,20 @@ namespace App\Filament\Member\Resources\MemberAccounts;
 
 use App\Filament\Member\Resources\MemberAccounts\Pages\ListMemberAccounts;
 use App\Filament\Member\Resources\MemberAccounts\Pages\ViewMemberAccount;
+use App\Filament\Resources\Members\Schemas\MemberForm;
+use App\Filament\Resources\Members\Schemas\MemberFormContext;
 use App\Models\Member;
 use App\Support\MemberStatus;
-use App\Support\PhoneNumber;
 use BackedEnum;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\HtmlString;
 
 class MemberAccountResource extends Resource
 {
@@ -56,12 +50,7 @@ class MemberAccountResource extends Resource
 
     public static function canView(Model $record): bool
     {
-        $email = Filament::auth()->user()?->email;
-
-        return $email !== null
-            && $record instanceof Member
-            && $record->email !== null
-            && strcasecmp($record->email, $email) === 0;
+        return static::belongsToCurrentUser($record);
     }
 
     public static function canCreate(): bool
@@ -71,6 +60,7 @@ class MemberAccountResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
+        // Self-service edit is enabled in Phase 3; read-only for now.
         return false;
     }
 
@@ -79,80 +69,20 @@ class MemberAccountResource extends Resource
         return false;
     }
 
+    protected static function belongsToCurrentUser(Model $record): bool
+    {
+        $email = Filament::auth()->user()?->email;
+
+        return $email !== null
+            && $record instanceof Member
+            && $record->email !== null
+            && strcasecmp($record->email, $email) === 0;
+    }
+
     public static function form(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Section::make('Mitgliedschaft')
-                    ->schema([
-                        View::make('filament.members.profile-photo-preview')
-                            ->viewData(fn (?Member $record): array => [
-                                'member' => $record,
-                            ])
-                            ->visible(fn (?Member $record): bool => $record?->profile_photo_path !== null),
-                        Placeholder::make('member_number_display')
-                            ->hiddenLabel()
-                            ->content(fn (?Member $record) => $record
-                                ? new HtmlString('<span style="white-space: nowrap;">Mitgliedsnummer: '.e($record->member_number).'</span>')
-                                : '')
-                            ->extraAttributes([
-                                'class' => 'text-left text-gray-500 text-sm font-semibold tracking-wider',
-                                'style' => 'white-space: nowrap;',
-                            ]),
-                        Grid::make(['default' => 1, 'sm' => 2])
-                            ->schema([
-                                TextInput::make('full_name')
-                                    ->label('Vor- und Nachname')
-                                    ->disabled()
-                                    ->columnSpan([
-                                        'default' => 'full',
-                                        'sm' => 1,
-                                    ]),
-                                TextInput::make('status')
-                                    ->label('Status')
-                                    ->formatStateUsing(fn (?string $state): string => $state ? MemberStatus::label($state) : '')
-                                    ->disabled(),
-                                TextInput::make('birth_date')
-                                    ->label('Geburtsdatum')
-                                    ->formatStateUsing(fn ($state): string => blank($state) ? '' : Carbon::parse($state)->format('d.m.Y'))
-                                    ->disabled(),
-                                TextInput::make('phone')
-                                    ->label('Telefon')
-                                    ->formatStateUsing(fn (?string $state): string => PhoneNumber::format($state))
-                                    ->disabled(),
-                                TextInput::make('email')
-                                    ->label('E-Mail')
-                                    ->disabled()
-                                    ->columnSpanFull(),
-                                TextInput::make('street')
-                                    ->label('Straße und Hausnummer')
-                                    ->disabled()
-                                    ->columnSpanFull(),
-                                TextInput::make('postal_code')
-                                    ->label('Postleitzahl')
-                                    ->disabled(),
-                                TextInput::make('city')
-                                    ->label('Ort')
-                                    ->disabled(),
-                                TextInput::make('state')
-                                    ->label('Bundesland')
-                                    ->disabled(),
-                                TextInput::make('monatsbeitrag')
-                                    ->label('Monatlicher Beitrag')
-                                    ->formatStateUsing(fn ($state): string => $state !== null ? number_format((float) $state, 2, ',', '.').' €' : '')
-                                    ->disabled(),
-                                TextInput::make('zahlungsart')
-                                    ->label('Zahlungsweise')
-                                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                                        'barzahlung' => 'Barzahlung',
-                                        'lastschrift' => 'Lastschrift',
-                                        'dauerauftrag' => 'Dauerauftrag',
-                                        default => $state ?? '',
-                                    })
-                                    ->disabled(),
-                            ]),
-                    ]),
-            ]);
+        // Same card as admin, minus admin-only fields (member context).
+        return MemberForm::build($schema, MemberFormContext::MemberView);
     }
 
     public static function table(Table $table): Table
@@ -175,9 +105,26 @@ class MemberAccountResource extends Resource
                     ->color(fn (string $state): string => MemberStatus::color($state))
                     ->formatStateUsing(fn (string $state): string => MemberStatus::label($state))
                     ->grow(false),
+                TextColumn::make('email')
+                    ->label('E-Mail')
+                    ->wrap()
+                    ->toggleable(),
                 TextColumn::make('city')
                     ->label('Ort')
-                    ->wrap(),
+                    ->wrap()
+                    ->toggleable(),
+                TextColumn::make('monatsbeitrag')
+                    ->label('Beitrag/Mo.')
+                    ->money('EUR')
+                    ->sortable()
+                    ->grow(false)
+                    ->toggleable(),
+                TextColumn::make('created_at')
+                    ->label('Eingegangen am')
+                    ->date('d.m.Y')
+                    ->sortable()
+                    ->grow(false)
+                    ->toggleable(),
             ])
             ->defaultSort('member_number')
             ->recordUrl(fn (Member $record): string => static::getUrl('view', ['record' => $record]))

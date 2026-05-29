@@ -848,3 +848,15 @@
 - Мета: майбутня Filament admin/member edit форма валідуватиме ідентично до публічної реєстрації, тож member-edit не зможе обійти перевірки (duplicate-guard, формат phone/IBAN, мін. €10).
 - Додано `tests/Feature/MemberFieldRulesTest.php` (6 кейсів); наявний `MembershipFormTest` як характеризаційна сітка не змінювався. Весь набір — 84 тести зелений.
 - Зафіксовано рішення Roman у `docs/member-account-editing-audit-plan.md` (mixed-email: inactive показувати dimmed без відкриття/редагування; `status` видимий клієнту read-only; `monatsbeitrag` ≥ €10; `zahlungsart`→`lastschrift` потребує нової SEPA-згоди; `email` read-only у v1).
+
+### [2026-05-29 16:55] Shared member schema (Phase 2) — Claude Code
+- `MemberForm` зроблено context-aware: `configure()` (admin) делегує новому `build($schema, MemberFormContext)`; admin-поведінка не змінилась.
+- Member-контекст дає точкові відмінності: `admin_notiz` приховано, `status` і `email` read-only; consents лишаються `disabledOn('edit')`.
+- `/konto` (`MemberAccountResource`) переведено з окремої короткої схеми на спільний `MemberForm::build(..., MemberFormContext::MemberView)` — клієнт тепер бачить майже повну картку (як admin), мінус admin-only поля. `canEdit` поки `false` (edit вмикається у Phase 3).
+- Виправлено наявний баг: німецьке validation-повідомлення для `full_name` містило українську вставку — замінено на коректний німецький текст.
+- Додано `tests/Feature/MemberSharedSchemaTest.php` (member бачить `Status`/повну картку, не бачить `Interne Notiz`; admin edit досі бачить обидва). Весь набір — 86 тестів зелений.
+
+### [2026-05-29 17:20] /konto display-фікси (колонки + фото-consent) — Claude Code
+- `/konto` таблиця тепер має ті самі дефолтні колонки, що admin: `Nr. / Name / Status / E-Mail / Ort / Beitrag/Mo. / Eingegangen am` (раніше тільки 4).
+- Фото-consent поля (`Foto-Einwilligung` тумблер і `Foto-Einwilligung am` timestamp) у `MemberForm` тепер видимі лише коли є збережене фото (`profile_photo_path !== null`) — для обох панелей. Це прибирає зайвий «Foto-Einwilligung am» без фото на `/konto` (наслідок Phase 2) і той самий наявний баг в адмінці.
+- Додано тести: дефолтні колонки `/konto`; фото-consent ховається без фото (member + admin) і показується з фото. Весь набір — 87 тестів зелений.

@@ -25,6 +25,23 @@ class MemberForm
 {
     public static function configure(Schema $schema): Schema
     {
+        // Admin entry point — unchanged behaviour.
+        return self::build($schema, MemberFormContext::AdminEdit);
+    }
+
+    /**
+     * Shared schema builder for both admin and member (/konto) panels.
+     *
+     * The card is identical across contexts except for a few member deltas:
+     * `admin_notiz` is hidden, and `status`/`email` are read-only. The server-
+     * side write boundary for member edits stays in MemberFormContext::
+     * onlyMemberEditable() (the EditMemberAccount save flow), not in field
+     * visibility — hidden/disabled fields are UX, not security.
+     */
+    public static function build(Schema $schema, MemberFormContext $context): Schema
+    {
+        $isMember = $context->isMember();
+
         return $schema
             ->components([
 
@@ -56,7 +73,7 @@ class MemberForm
                                         'default' => 'full',
                                         'sm' => 1,
                                     ])
-                                    ->validationMessages(['regex' => 'Der Name darf тільки літери та пробіли.'])
+                                    ->validationMessages(['regex' => 'Der Name darf nur Buchstaben, Leerzeichen und Bindestriche enthalten.'])
                                     ->live(onBlur: true),
                                 Select::make('anrede')
                                     ->label('Anrede')
@@ -147,6 +164,8 @@ class MemberForm
                                     ->label('E-Mail')
                                     ->email()
                                     ->required()
+                                    // Email is the /konto access key, read-only for members in v1.
+                                    ->disabled($isMember)
                                     ->live(onBlur: true)
                                     ->columnSpanFull(),
                                 Toggle::make('cenaze_fonu')
@@ -175,7 +194,9 @@ class MemberForm
                                 && $record?->status !== $value)
                             ->inline()
                             ->default('pending')
-                            ->required(),
+                            ->required()
+                            // Members see their status read-only; only admin changes it.
+                            ->disabled($isMember),
                         DateTimePicker::make('zustimmung_at')
                             ->label('Zustimmung am')
                             ->disabledOn('edit'),
@@ -187,12 +208,18 @@ class MemberForm
                             ->disabledOn('edit'),
                         Toggle::make('profile_photo_zustimmung')
                             ->label('Foto-Einwilligung')
+                            // Photo consent is meaningless without a stored photo;
+                            // hide it (and its timestamp) when none exists — both panels.
+                            ->visible(fn (?Member $record): bool => $record?->profile_photo_path !== null)
                             ->disabledOn('edit'),
                         DateTimePicker::make('profile_photo_zustimmung_at')
                             ->label('Foto-Einwilligung am')
+                            ->visible(fn (?Member $record): bool => $record?->profile_photo_path !== null)
                             ->disabledOn('edit'),
                         Textarea::make('admin_notiz')
-                            ->label('Interne Notiz'),
+                            ->label('Interne Notiz')
+                            // Internal note is admin-only; never shown to members.
+                            ->visible(! $isMember),
                     ]),
 
                 Section::make('Beitrag & Bankverbindung')

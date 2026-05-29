@@ -50,7 +50,11 @@ class MemberPanelAccountsTest extends TestCase
             ->assertSee('First Family')
             ->assertSee('Second Family')
             ->assertDontSee($other->member_number)
-            ->assertDontSee('Other Person');
+            ->assertDontSee('Other Person')
+            // Default columns mirror the admin list.
+            ->assertSee('E-Mail')
+            ->assertSee('Beitrag/Mo.')
+            ->assertSee('Eingegangen am');
     }
 
     public function test_member_panel_home_redirects_to_memberships_list(): void
