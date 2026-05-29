@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Widgets\MembersChart;
 use App\Models\Member;
 use App\Models\User;
+use App\Support\SystemInfo;
 use Filament\Panel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,6 +28,21 @@ class FilamentPanelAccessTest extends TestCase
         $panel = (new Panel())->id('member');
 
         $this->assertTrue((new User(['email' => 'member@example.com']))->canAccessPanel($panel));
+    }
+
+    public function test_login_pages_show_system_info_label(): void
+    {
+        $label = SystemInfo::version().' - Update: '.SystemInfo::updatedAt().' - by';
+
+        $this->get('/admin/login')
+            ->assertOk()
+            ->assertSee($label)
+            ->assertSee('Munas-Print');
+
+        $this->get('/konto/login')
+            ->assertOk()
+            ->assertSee($label)
+            ->assertSee('Munas-Print');
     }
 
     public function test_members_chart_counts_registrations_without_database_specific_sql(): void

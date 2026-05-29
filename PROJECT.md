@@ -180,7 +180,9 @@
 - [x] При видаленні запису адміністратор і член отримують email-фіксацію видалення.
 - [x] Dashboard адмінки має статистичні widgets.
 - [x] Навігація й адмінка мають DITIB branding, logo і primary color `#009689`.
+- [x] `/admin` і `/konto` використовують спільний Filament DITIB style layer `resources/views/filament/panel-style.blade.php` для brand variables, primary buttons, compact spacing і mobile login відступів; admin-only tweaks лишаються в `resources/views/filament/admin-style.blade.php`.
 - [x] Під таблицею Mitglieder справа показується technical system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`.
+- [x] Login-форми `/admin` і `/konto` показують technical system label під формою справа, щоб адмін і користувач бачили актуальну версію до входу.
 
 **Заплановано / хочемо додати:**
 - [ ] Фінальний language polish адмін-панелі німецькою.
@@ -191,6 +193,7 @@
 - Звичайний процес завершення членства: перевести запис у `inactive`, не видаляти.
 - Soft delete лишається технічно в системі, але не є адмінською UI-дією; `member_number` не звільняється навіть для inactive або soft-deleted записів.
 - Admin consent fields — SEPA/DSGVO consent і `zustimmung_at` — лишаються read-only.
+- Filament-specific brand/UI правила тримати у спільному `filament.panel-style` для всіх panels; panel-specific override файли використовувати тільки для поведінки конкретної панелі.
 
 ### Email
 

@@ -47,8 +47,17 @@ class AdminPanelProvider extends PanelProvider
                 fn () => view('filament.footer'),
             )
             ->renderHook(
+                PanelsRenderHook::SIMPLE_PAGE_END,
+                fn () => view('filament.auth-system-info'),
+                \Filament\Auth\Pages\Login::class,
+            )
+            ->renderHook(
                 PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER,
                 fn () => view('filament.system-info'),
+            )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => view('filament.panel-style'),
             )
             ->renderHook(
                 PanelsRenderHook::HEAD_END,

@@ -790,6 +790,12 @@
 - У `PROJECT.md` уточнено, що `npm run build` є тільки локальною перевіркою Vite assets і не є стандартним production/deploy кроком.
 - Зафіксовано, що для production artifact агент має запускати `scripts/build-artifact.sh`, який сам виконує `npm ci` і `npm run build` у staging-папці.
 
+### [2026-05-29 10:19] Систематизація Filament стилів для login — Codex
+- Додано technical system label під login-card `/admin` і `/konto`, вирівняний справа і прив'язаний до централізованого `SystemInfo`.
+- Винесено спільні DITIB Filament styles у `resources/views/filament/panel-style.blade.php`: brand variables, primary button override, compact schema spacing і mobile login inset.
+- Підключено shared style layer до `AdminPanelProvider` і `MemberPanelProvider`; admin-only статусні/table tweaks лишено в `resources/views/filament/admin-style.blade.php`.
+- Додано regression test, який перевіряє system label на `/admin/login` і `/konto/login`; browser QA підтвердив однакові button color, spacing і mobile layout на обох login-сторінках.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*
