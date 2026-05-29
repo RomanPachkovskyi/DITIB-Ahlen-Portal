@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Member\Pages\Auth\RequestLoginLink;
 use App\Filament\Member\Pages\Dashboard;
 use App\Support\BrandColors;
 use Filament\Http\Middleware\Authenticate;
@@ -25,7 +26,7 @@ class MemberPanelProvider extends PanelProvider
         return $panel
             ->id('member')
             ->path('konto')
-            ->login()
+            ->login(RequestLoginLink::class)
             ->colors([
                 'primary' => BrandColors::primary(),
             ])

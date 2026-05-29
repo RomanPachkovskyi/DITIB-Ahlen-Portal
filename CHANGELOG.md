@@ -796,6 +796,18 @@
 - Підключено shared style layer до `AdminPanelProvider` і `MemberPanelProvider`; admin-only статусні/table tweaks лишено в `resources/views/filament/admin-style.blade.php`.
 - Додано regression test, який перевіряє system label на `/admin/login` і `/konto/login`; browser QA підтвердив однакові button color, spacing і mobile layout на обох login-сторінках.
 
+### [2026-05-29 10:51] Magic-link вхід для `/konto` — Codex
+- Розділено auth UX: `/admin/login` лишився password login із heading `Admin-Anmeldung`, а `/konto/login` став email-only flow із кнопкою `Zugangslink senden`.
+- Додано `member_login_tokens`, `MemberMagicLoginService`, `MemberMagicLoginController`, custom Filament member auth page і одноразові magic links на 60 хвилин із token hash у БД та `used_at`.
+- Додано `MemberLoginLinkMail` і Markdown email view у наявному mail branding layer; SMTP-помилки логуються без розкриття email presence.
+- Підготовлено production SQL для phpMyAdmin: `deploy-artifacts/production-member-login-tokens-release-20260529.sql`; `scripts/export-production-sql.php` оновлено для повних SQL export.
+- Додано regression tests для admin/member login UI, відправки magic-link листа, невідомого email без enumeration, valid/expired/used token behavior, shared-email memberships і заборони admin-доступу для member user.
+
+### [2026-05-29 10:55] Link zur Registrierung на `/konto/login` — Codex
+- Додано під кнопкою `/konto/login` текст `Noch kein Mitgliedskonto? Jetzt registrieren` із посиланням на `https://mitglied.ditib-ahlen-projekte.de/`.
+- Посилання додано тільки в member magic-link login flow; `/admin/login` не змінено.
+- Додано regression assertion для тексту й URL реєстрації на `/konto/login`.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

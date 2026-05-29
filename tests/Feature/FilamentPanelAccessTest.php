@@ -36,11 +36,19 @@ class FilamentPanelAccessTest extends TestCase
 
         $this->get('/admin/login')
             ->assertOk()
+            ->assertSee('Admin-Anmeldung')
+            ->assertSee('Passwort')
             ->assertSee($label)
             ->assertSee('Munas-Print');
 
         $this->get('/konto/login')
             ->assertOk()
+            ->assertSee('Mitgliedskonto öffnen')
+            ->assertSee('Zugangslink senden')
+            ->assertSee('Noch kein Mitgliedskonto?')
+            ->assertSee('Jetzt registrieren')
+            ->assertSee('https://mitglied.ditib-ahlen-projekte.de/', false)
+            ->assertDontSee('Passwort')
             ->assertSee($label)
             ->assertSee('Munas-Print');
     }

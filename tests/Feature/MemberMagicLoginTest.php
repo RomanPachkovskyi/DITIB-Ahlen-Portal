@@ -1,0 +1,136 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Filament\Member\Pages\Auth\RequestLoginLink;
+use App\Filament\Member\Resources\MemberAccounts\MemberAccountResource;
+use App\Mail\MemberLoginLinkMail;
+use App\Models\Member;
+use App\Models\MemberLoginToken;
+use App\Services\MemberMagicLoginService;
+use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Livewire\Livewire;
+use Tests\TestCase;
+
+class MemberMagicLoginTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_member_login_page_sends_link_for_registered_member_email(): void
+    {
+        Mail::fake();
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->makeMember(['email' => 'Family@Example.com']);
+
+        Livewire::test(RequestLoginLink::class)
+            ->set('data.email', 'family@example.com')
+            ->call('authenticate')
+            ->assertSet('linkRequestSent', true);
+
+        $this->assertDatabaseHas('member_login_tokens', [
+            'email' => 'family@example.com',
+            'used_at' => null,
+        ]);
+
+        Mail::assertSent(MemberLoginLinkMail::class, function (MemberLoginLinkMail $mail): bool {
+            return str_contains($mail->loginUrl, '/konto/zugang/');
+        });
+    }
+
+    public function test_member_login_page_does_not_reveal_unknown_email(): void
+    {
+        Mail::fake();
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+
+        Livewire::test(RequestLoginLink::class)
+            ->set('data.email', 'unknown@example.com')
+            ->call('authenticate')
+            ->assertSet('linkRequestSent', true);
+
+        $this->assertDatabaseCount('member_login_tokens', 0);
+        Mail::assertNothingSent();
+    }
+
+    public function test_valid_magic_link_logs_member_in_once(): void
+    {
+        $this->makeMember(['email' => 'family@example.com']);
+        $link = app(MemberMagicLoginService::class)->createForEmail('family@example.com');
+
+        $this->assertNotNull($link);
+
+        $this->get($link['url'])
+            ->assertRedirect(MemberAccountResource::getUrl(panel: 'member'));
+
+        $this->assertAuthenticated();
+        $this->assertSame('family@example.com', auth()->user()?->email);
+
+        $this->get($link['url'])
+            ->assertRedirect(Filament::getPanel('member')->getLoginUrl());
+    }
+
+    public function test_expired_magic_link_does_not_log_member_in(): void
+    {
+        $this->makeMember(['email' => 'family@example.com']);
+        $plainToken = 'expired-token';
+
+        MemberLoginToken::create([
+            'email' => 'family@example.com',
+            'token_hash' => app(MemberMagicLoginService::class)->hashToken($plainToken),
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $this->get(route('member.magic-login.consume', ['token' => $plainToken]))
+            ->assertRedirect(Filament::getPanel('member')->getLoginUrl());
+
+        $this->assertGuest();
+    }
+
+    public function test_magic_link_opens_all_memberships_for_shared_email(): void
+    {
+        $first = $this->makeMember(['email' => 'family@example.com', 'full_name' => 'First Family']);
+        $second = $this->makeMember(['email' => 'family@example.com', 'full_name' => 'Second Family']);
+        $other = $this->makeMember(['email' => 'other@example.com', 'full_name' => 'Other Family']);
+        $link = app(MemberMagicLoginService::class)->createForEmail('family@example.com');
+
+        $this->get($link['url']);
+
+        $this->get(MemberAccountResource::getUrl(panel: 'member'))
+            ->assertOk()
+            ->assertSee($first->member_number)
+            ->assertSee($second->member_number)
+            ->assertDontSee($other->member_number);
+    }
+
+    public function test_member_magic_login_does_not_grant_admin_access(): void
+    {
+        $this->makeMember(['email' => 'member@example.com']);
+        $link = app(MemberMagicLoginService::class)->createForEmail('member@example.com');
+
+        $this->get($link['url']);
+
+        $this->get('/admin')
+            ->assertForbidden();
+    }
+
+    private function makeMember(array $attributes = []): Member
+    {
+        return Member::create(array_merge([
+            'anrede' => 'Herr',
+            'full_name' => 'Max Mustermann',
+            'street' => 'Musterstrasse 1',
+            'city' => 'Ahlen',
+            'state' => 'Nordrhein-Westfalen',
+            'postal_code' => '59227',
+            'birth_date' => '1990-01-01',
+            'email' => 'max@example.com',
+            'phone' => '+492382123456',
+            'zahlungsart' => 'barzahlung',
+            'monatsbeitrag' => 25,
+            'unterschrift' => '',
+            'dsgvo_zustimmung' => true,
+            'status' => 'pending',
+        ], $attributes));
+    }
+}

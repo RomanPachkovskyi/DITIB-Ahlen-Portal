@@ -50,6 +50,21 @@
         width: 100%;
     }
 
+    .ditib-konto-register-link {
+        margin-top: calc(var(--spacing) * 3);
+        color: #6b7280;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        text-align: center;
+    }
+
+    .ditib-konto-register-link a {
+        color: var(--ditib-brand-primary);
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
     @media (max-width: 640px) {
         .fi-simple-layout .fi-simple-main-ctn {
             padding-left: 1rem;

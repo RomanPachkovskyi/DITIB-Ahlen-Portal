@@ -150,15 +150,18 @@
 - [x] Resource query і route binding scoped за email поточного користувача; записи з іншими email не відкриваються через URL.
 - [x] Перегляд власних/родинних/фірмових записів read-only; self-service edit і photo replace у v1 не дозволені.
 - [x] Фото профілю показується у view кожного доступного запису через protected route `members.profile-photo`.
+- [x] `/konto/login` використовує email-only magic-link flow: користувач вводить email, отримує одноразове посилання на пошту, link дійсний 60 хвилин і використовується один раз.
+- [x] Magic-link токени зберігаються в `member_login_tokens` тільки як SHA-256 hash; `used_at` блокує повторне використання.
+- [x] Якщо email не знайдений у `members`, UI показує нейтральне повідомлення без розкриття, чи є така адреса в базі.
 
 **Заплановано / хочемо додати:**
-- [ ] Клієнтський access flow для production: magic link або інший простий спосіб входу без ручного створення паролів.
-- [ ] Робочий варіант magic link: Laravel signed temporary URL через `URL::temporarySignedRoute()`, орієнтовний термін дії 30 хвилин; остаточний UX входу треба погодити перед реалізацією.
-- [ ] Production QA `/konto`, включно з profile photo display, після реалізації access flow.
+- [ ] Production QA `/konto`, включно з magic-link email delivery, одноразовим входом і profile photo display, після deploy access flow.
 - [ ] `Änderungsantrag`: запит на зміну даних для конкретного `member_id` / `member_number`, вибраного зі списку доступних записів користувача.
 
 **Важливі рішення:**
 - Email визначає доступ до списку записів, але не є ідентифікатором заявки на зміну.
+- `/konto` не використовує password login для членів; ручні паролі лишаються тільки для admin flow.
+- Для magic-link не показувати явну помилку “email не знайдено”, щоб не розкривати membership presence.
 - Кожна create/view/update дія для майбутнього `Änderungsantrag` повинна повторно перевіряти на backend, що обраний `member_id` належить до `Member` запису з email authenticated user.
 - Self-service edit або self-service photo replace не додавати без окремого approval/change-request workflow.
 
@@ -181,6 +184,7 @@
 - [x] Dashboard адмінки має статистичні widgets.
 - [x] Навігація й адмінка мають DITIB branding, logo і primary color `#009689`.
 - [x] `/admin` і `/konto` використовують спільний Filament DITIB style layer `resources/views/filament/panel-style.blade.php` для brand variables, primary buttons, compact spacing і mobile login відступів; admin-only tweaks лишаються в `resources/views/filament/admin-style.blade.php`.
+- [x] `/admin/login` лишається password-based login із heading `Admin-Anmeldung`; `/konto/login` має окремий member magic-link текст і не показує password field.
 - [x] Під таблицею Mitglieder справа показується technical system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`.
 - [x] Login-форми `/admin` і `/konto` показують technical system label під формою справа, щоб адмін і користувач бачили актуальну версію до входу.
 
@@ -203,18 +207,19 @@
 - [x] Email адміну про нову заявку.
 - [x] Email клієнту при підтвердженні реєстрації (`active`).
 - [x] Email адміну і клієнту при видаленні запису члена.
+- [x] Email із одноразовим `/konto` Zugangslink для magic-link входу.
 - [x] Логіка відправки відділена від Livewire через event/listener layer.
 - [x] Централізований branding layer для Laravel Markdown emails: `config/mail.php` -> `mail.brand.*`, `resources/views/vendor/mail/`, `resources/views/emails/`.
 - [x] Artifact build виправлений, щоб mail override templates не випадали через exclude `vendor`.
 
 **Заплановано / хочемо додати:**
 - [ ] Якщо Gmail/Outlook/Apple Mail покажуть недостатній контроль верстки, перейти на власний HTML email template (`view:`) окремим етапом.
-- [ ] Листи, пов'язані з майбутнім `/konto` access flow.
 
 **Важливі рішення:**
 - На поточному Plesk artifact-deploy немає стабільного queue worker; `ShouldQueue` не використовувати для production email flow.
 - При SMTP-помилці збереження анкети не має ламатися; помилка має логуватись.
 - Окремі email views не повинні містити логотип, footer або глобальні стилі — тільки зміст конкретного повідомлення.
+- Magic-link email використовує той самий Markdown mail branding layer; окремий view містить тільки зміст конкретного листа.
 
 ### PDF І Документи
 
@@ -268,6 +273,7 @@
 - [x] `scripts/build-artifact.sh` збирає production artifact у staging-папці в `/tmp`.
 - [x] `scripts/build-artifact.sh` автоматично піднімає technical version у `config/system-version.json`.
 - [x] Production photo data живе поза Laravel-проєктом у `Home directory/ditib-portal-data/member-photos`.
+- [x] Для magic-link access migration підготовлено phpMyAdmin SQL `deploy-artifacts/production-member-login-tokens-release-20260529.sql`.
 
 **Заплановано / хочемо додати:**
 - [ ] При кожній новій migration готувати SQL-файл у `deploy-artifacts/` для phpMyAdmin.
