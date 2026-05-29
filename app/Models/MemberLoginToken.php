@@ -30,4 +30,24 @@ class MemberLoginToken extends Model
     {
         return $this->used_at === null && $this->expires_at->isFuture();
     }
+
+    /**
+     * Delete used or expired tokens.
+     *
+     * These rows store ip_address and user_agent (PII) and have no further
+     * purpose once spent, so we prune them to keep the table from becoming an
+     * open PII archive. Called automatically whenever a new token is issued,
+     * and also exposed via the member:prune-login-tokens command.
+     */
+    public static function pruneSpent(int $keepHours = 0): int
+    {
+        $threshold = now()->subHours(max(0, $keepHours));
+
+        return static::query()
+            ->where(function ($query) use ($threshold) {
+                $query->whereNotNull('used_at')->where('used_at', '<=', $threshold);
+            })
+            ->orWhere('expires_at', '<=', $threshold)
+            ->delete();
+    }
 }

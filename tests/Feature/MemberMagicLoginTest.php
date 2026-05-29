@@ -152,6 +152,32 @@ class MemberMagicLoginTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_issuing_a_new_token_auto_prunes_spent_tokens(): void
+    {
+        $this->makeMember(['email' => 'family@example.com']);
+
+        $used = MemberLoginToken::create([
+            'email' => 'family@example.com',
+            'token_hash' => str_repeat('a', 64),
+            'expires_at' => now()->addHour(),
+            'used_at' => now()->subMinute(),
+        ]);
+
+        $expired = MemberLoginToken::create([
+            'email' => 'family@example.com',
+            'token_hash' => str_repeat('b', 64),
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $link = app(MemberMagicLoginService::class)->createForEmail('family@example.com');
+
+        $this->assertNotNull($link);
+        $this->assertDatabaseMissing('member_login_tokens', ['id' => $used->id]);
+        $this->assertDatabaseMissing('member_login_tokens', ['id' => $expired->id]);
+        // Only the freshly issued, still-active token remains.
+        $this->assertDatabaseCount('member_login_tokens', 1);
+    }
+
     private function makeMember(array $attributes = []): Member
     {
         return Member::create(array_merge([

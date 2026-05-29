@@ -36,6 +36,11 @@ class MemberMagicLoginService
             return null;
         }
 
+        // Auto-clean spent tokens whenever a new one is issued, so used/expired
+        // rows (which hold ip_address/user_agent PII) never accumulate. No cron
+        // or manual command is required for routine cleanup.
+        MemberLoginToken::pruneSpent();
+
         $plainToken = Str::random(64);
 
         $token = MemberLoginToken::create([
