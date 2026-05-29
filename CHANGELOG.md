@@ -752,6 +752,44 @@
 - Додано regression tests для блокування Step 4 при неповній анкеті, duplicate guard перед фото і duplicate guard на фінальному submit.
 - Оновлено `PROJECT.md` з новою логікою та уточненням: технічна версія піднімається автоматично тільки при `scripts/build-artifact.sh` або `scripts/export-production-sql.php`; artifact build у цій сесії не запускався.
 
+### [2026-05-29 08:54] Актуалізація PROJECT.md як джерела планів — Codex
+- Зафіксовано правило: усі плани, ідеї, побажання, відкриті рішення і roadmap-нотатки ведуться в `PROJECT.md`.
+- Виправлено неточності в стеку: PDF/dompdf і `spatie/laravel-settings` позначені як заплановані кандидати, а не встановлені залежності; canvas-підпис позначено як майбутній.
+- Додано консолідовану секцію backlog: документація, публічна форма, `/konto`, Änderungsantrag, PDF/settings, локалізація, Excel export, audit log, майбутні покращення фото й email.
+- Оновлено статуси `/konto`, duplicate guard, profile photo disk, release checks і production photo extension check як уже виконані/актуальні записи.
+
+### [2026-05-29 09:03] Спрощення production deploy документації — Codex
+- Прибрано з `PROJECT.md` шумні історичні згадки про Plesk Git/Deploy actions, deploy keys і помилки shell execution.
+- Залишено коротке актуальне пояснення: серверні shell-команди недоступні за умовами хостингу, тому production deploy виконується через artifact upload у Plesk File Manager/FTP і SQL import через phpMyAdmin.
+
+### [2026-05-29 09:06] Очищення AGENTS.md від дублювання deploy-процесу — Codex
+- Зафіксовано `AGENTS.md` як єдиний загальний instruction-документ для всіх AI-агентів; окремі agent-файли не мають дублювати правила.
+- Скорочено production deploy у `AGENTS.md` до guardrail-рівня, а повний процес лишено в `PROJECT.md`.
+- Оновлено правила changelog і формулювання `/konto` access model для shared-email сценарію.
+
+### [2026-05-29 09:09] Очищення README.md і CLAUDE.md — Codex
+- Замінено стандартний Laravel `README.md` на короткий опис порталу, локального запуску, production guardrails і посилань на канонічні документи.
+- Скорочено `CLAUDE.md` до compatibility pointer: Claude Code має читати `AGENTS.md`, `PROJECT.md` і `CHANGELOG.md`, але не тримати окремі дубльовані правила.
+- Перевірено узгодженість із новою схемою документації: правила агентів у `AGENTS.md`, архітектура/плани/deploy у `PROJECT.md`, історія змін у `CHANGELOG.md`.
+
+### [2026-05-29 09:15] Перенесення корисних нотаток зі старих тематичних документів — Codex
+- Перенесено в `PROJECT.md` актуальні деталі з `Правки і зміни на сайті.md`: PLZ/OpenPLZ table/import, робочий варіант magic-link входу, контактний блок для майбутнього дизайну і audit-log UI filters.
+- Перенесено з `FOTO_UPLOAD_TZ.md` актуальні photo notes: HEIC/HEIF fallback, photo UX labels/helper text, Filament upload caveat, майбутні photo metadata fields і manual QA checklist.
+- Свідомо не переносились застарілі або помилкові записи: FilePond як photo flow, “dompdf/spatie вже встановлено” і PDF через production queue worker.
+
+### [2026-05-29 09:37] Об'єднання функціонального статусу і планів у PROJECT.md — Codex
+- Замінено окремі блоки `Плани, Побажання І Backlog` і `Статус реалізації` на єдиний розділ `Функціональні Блоки І Розвиток`.
+- Для кожного функціонального модуля зафіксовано в одному місці: що працює зараз, що заплановано/хочемо додати, і які рішення важливо не порушити.
+- Прибрано дублювання етапів реалізації; історична хронологія лишається в `CHANGELOG.md`, а `PROJECT.md` тепер показує актуальний функціональний стан.
+
+### [2026-05-29 09:41] Видалення старих тематичних документів — Codex
+- Видалено `FOTO_UPLOAD_TZ.md` і `Правки і зміни на сайті.md`, бо актуальні рішення, плани і статуси вже перенесені в `PROJECT.md`.
+- Документація скорочена до канонічного набору: `AGENTS.md`, `PROJECT.md`, `CHANGELOG.md`, `README.md` і compatibility `CLAUDE.md`.
+
+### [2026-05-29 09:49] Уточнення різниці між frontend build і production artifact — Codex
+- У `PROJECT.md` уточнено, що `npm run build` є тільки локальною перевіркою Vite assets і не є стандартним production/deploy кроком.
+- Зафіксовано, що для production artifact агент має запускати `scripts/build-artifact.sh`, який сам виконує `npm ci` і `npm run build` у staging-папці.
+
 ---
 
 *Цей файл ведеться вручну всіма агентами. Не видаляти, не перейменовувати.*

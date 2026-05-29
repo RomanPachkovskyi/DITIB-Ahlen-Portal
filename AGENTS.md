@@ -1,8 +1,9 @@
 # AGENTS.md — AI Agent Instructions
 ## DITIB-Ahlen-Portal
 
-> **Цей файл читається автоматично кожним AI агентом при відкритті проекту.**
-> Тут — операційні правила, команди, середовище.
+> **Цей файл — єдиний загальний instruction-документ для всіх AI агентів у цьому репозиторії.**
+> Не створювати окремі паралельні правила на кшталт `CLAUDE.md`, `GEMINI.md` тощо. Якщо конкретному інструменту потрібен compatibility-файл, він має тільки посилатися на `AGENTS.md`, не дублювати правила.
+> Тут — операційні правила, команди й середовище. Актуальний стан, архітектура, плани, побажання і повний deploy-процес ведуться в `PROJECT.md`.
 
 ---
 
@@ -10,8 +11,8 @@
 
 | Файл | Призначення | Коли читати |
 |------|-------------|-------------|
-| **`AGENTS.md`** ← ти тут | Правила для агентів, команди, середовище | Завжди, першим |
-| **`PROJECT.md`** | Архітектура, стек, функціональність, деплой | Перед початком роботи над кодом |
+| **`AGENTS.md`** ← ти тут | Єдині правила для всіх агентів, команди, середовище | Завжди, першим |
+| **`PROJECT.md`** | Архітектура, стек, функціональність, деплой, плани і побажання | Перед початком роботи над кодом |
 | **`CHANGELOG.md`** | Хронологія всіх змін з підписами агентів | Перед змінами і після |
 
 **Обов'язковий порядок для нового агента:**
@@ -61,7 +62,8 @@ Laravel 13 + Filament v5 портал членів громади DITIB Ahlen.
 - З браузера має бути доступна тільки папка `public/`, не корінь Laravel-проєкту
 - `public/build` — це лише Vite assets (CSS/JS), не сам застосунок
 - Production DB: MySQL у Plesk; SQLite використовується тільки локально
-- Production deploy stack: **artifact upload через Plesk File Manager/FTP + SQL import через phpMyAdmin**. Не питати щоразу про SSH; вважати SSH/Terminal недоступним, якщо користувач прямо не скаже інше.
+- Production deploy stack: **artifact upload через Plesk File Manager/FTP + SQL import через phpMyAdmin**. Серверні shell-команди на хостингу недоступні за умовами хостера; не планувати production deploy навколо серверних `composer`, `npm`, `php artisan migrate` або cache-команд.
+- Повний production deploy-процес описаний у `PROJECT.md`; не дублювати його тут.
 - `.env` створюється вручну на сервері та ніколи не комітиться
 - `APP_KEY` на production згенерувати один раз і не міняти: він потрібен для encrypted IBAN/BIC
 
@@ -122,44 +124,20 @@ database/migrations/
 
 ---
 
-## Artifact deploy — стабільний локальний процес
+## Production deploy — коротке правило для агентів
 
-Production-архів збирається тільки командою:
+Повний процес ведеться в `PROJECT.md`. Тут лишається тільки operational guardrail.
+
+Production-архів збирається тільки командою з робочої папки:
 
 ```bash
 cd ~/Project/DITIB-Ahlen/portal
 scripts/build-artifact.sh
 ```
 
-Скрипт працює через тимчасову staging-папку в `/tmp`:
-- копіює туди проект без `.env`, `*.md`, `==logs/`, `node_modules/`, локальної SQLite та локальних runtime/cache файлів;
-- у staging виконує `composer install --no-dev --optimize-autoloader`;
-- у staging виконує `npm ci` і `npm run build`;
-- нормалізує права доступу перед пакуванням: директорії `755`, файли `644`, `artisan` і shell-скрипти `755`;
-- пакує готовий Laravel artifact із production `vendor/` та `public/build/`;
-- видаляє staging-папку.
+Не запускати `composer install --no-dev` або `npm ci` у робочій папці для production-збірки. Скрипт робить це у staging-папці в `/tmp`, щоб локальні `vendor/`, `node_modules/` і `public/build/` не ламали dev-цикл.
 
-**Важливо для агентів:** не запускати `composer install --no-dev` і `npm ci` у робочій папці проекту для production-збірки. Це ламає локальний dev-цикл, бо прибирає dev-залежності на кшталт PHPUnit. Після `scripts/build-artifact.sh` локальні `vendor/`, `node_modules/` і `public/build/` мають залишатись недоторканими.
-
-**Важливо для Plesk:** artifact не повинен містити root `./` з правами `700`, інакше Apache дає `403 Forbidden` на весь сайт після розпакування. Перед release перевірити:
-
-```bash
-tar -tvzf deploy-artifacts/ditib-ahlen-portal-*.tar.gz | head
-```
-
-Перший рядок має бути `drwxr-xr-x` для `./`.
-
-Стабільний цикл:
-
-```bash
-./vendor/bin/phpunit
-scripts/build-artifact.sh
-# завантажити deploy-artifacts/ditib-ahlen-portal-*.tar.gz на Plesk
-# якщо є нові міграції: імпортувати відповідний SQL через phpMyAdmin
-# продовжувати локальні правки без відновлення залежностей
-```
-
-**Production DB зміни:** не планувати `php artisan migrate` на сервері як стандартний шлях. Для кожної нової міграції готувати SQL-файл у `deploy-artifacts/` і виконувати його через phpMyAdmin. SQL має також додавати запис у таблицю `migrations`, щоб Laravel не вважав міграцію невиконаною в майбутньому.
+Production DB зміни виконуються через SQL-файли для phpMyAdmin, не через серверний `php artisan migrate`. Якщо додається міграція, потрібно підготувати відповідний SQL у `deploy-artifacts/` і зафіксувати це в `PROJECT.md`/`CHANGELOG.md`.
 
 ---
 
@@ -175,7 +153,7 @@ scripts/build-artifact.sh
 
 **Правила changelog:**
 - Дата і час — реальні
-- AgentName: `Codex`, `Codex`, `Gemini`
+- AgentName: `Codex`, `Claude Code`, `Gemini`
 - Один запис на сесію роботи
 - Нові записи — завжди знизу
 - Не редагувати чужі записи
@@ -203,7 +181,7 @@ scripts/build-artifact.sh
 
 - IBAN, BIC — `'encrypted'` cast → зашифровані в БД
 - `$hidden` у моделі не використовувати для IBAN/BIC — блокує Filament
-- Члени бачать тільки свої дані (Filament Panel ізоляція)
+- Члени в `/konto` бачать тільки записи з email authenticated user; один email може мати кілька записів родини/фірми
 - `.env` з `APP_KEY` — ніколи в git
 
 ---

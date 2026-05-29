@@ -1,7 +1,7 @@
 # PROJECT.md — Архітектура і стан
 ## DITIB-Ahlen-Portal
 
-> Тут — архітектура, стек, функціональність, деплой. Актуальний стан проекту.
+> Тут — архітектура, стек, функціональність, деплой, актуальний стан, плани і побажання щодо продукту.
 > Правила для агентів → `AGENTS.md` | Історія змін → `CHANGELOG.md`
 
 ---
@@ -11,8 +11,10 @@
 | Файл | Призначення |
 |------|-------------|
 | **`AGENTS.md`** | Правила для агентів, команди, середовище — читати першим |
-| **`PROJECT.md`** ← ти тут | Архітектура, стек, функціональність, деплой |
+| **`PROJECT.md`** ← ти тут | Архітектура, стек, функціональність, деплой, актуальні плани й побажання |
 | **`CHANGELOG.md`** | Хронологія всіх змін — що, коли, хто зробив |
+
+**Правило з 2026-05-29:** усі плани, ідеї, побажання, відкриті рішення і roadmap-нотатки фіксуються тут, у `PROJECT.md`. Окремі тематичні документи можна створювати тільки для короткого робочого аналізу; після завершення задачі важливі рішення треба перенести сюди, щоб не розсинхронізувати документацію.
 
 ---
 
@@ -46,77 +48,232 @@
 | База даних (local) | SQLite | — |
 | База даних (production) | MySQL | Plesk |
 | Email | Laravel Mail → SMTP, Markdown Mailables + централізований branding layer | — |
-| PDF | barryvdh/laravel-dompdf | встановлено |
+| PDF | не встановлено; кандидат `barryvdh/laravel-dompdf` | заплановано |
 | Image processing | intervention/image + GD | для private profile photos |
-| Browser crop | Cropper.js + Alpine.js | local PoC для optional profile photos |
-| Підпис | Alpine.js canvas | вбудований |
-| Налаштування адміна | spatie/laravel-settings | Етап 3 |
-| Черги (майбутні jobs/PDF) | Laravel Queue (database driver), без production worker зараз | Етап 3+ |
+| Browser crop | Cropper.js + Alpine.js | public optional profile photo flow |
+| Підпис | Alpine.js canvas | заплановано |
+| Налаштування адміна | кандидат `spatie/laravel-settings` | заплановано для підпису/печатки |
+| Черги (майбутні jobs/PDF) | Laravel Queue (database driver), без production worker зараз | заплановано тільки якщо з'явиться стабільний production worker |
 
 > **Важливо для Filament v5:** `Section` знаходиться в `Filament\Schemas\Components\Section`, НЕ в `Filament\Forms\Components`.
 
 ---
 
-## Функціональність
+## Функціональні Блоки І Розвиток
 
-### Публічна форма (`/`)
-- 4-крокова форма Mitgliedsantrag (тільки DE, TR — Етап 4)
-- Крок 1: Persönliche Daten (ПІБ, народження, громадянство, сім'я, Cenaze Fonu, Gemeinderegister, берuf, Heimatstadt)
-- Крок 2: Adresse & Kontakt; телефон приймає міжнародний формат `+49...`, німецький формат із `0...`, німецький формат без першого `0` для номерів із Vorwahl, а також короткі місцеві Ahlen-номери, які нормалізуються з Vorwahl `02382`
-- Крок 2: необов'язкове поле Instagram приймає `username`, `@username` або Instagram URL; у БД зберігається нормалізований username без `@`
-- Крок 3: Beitrag & Zahlungsweise (мін. €10, пресети 10/15/20/25 € як компактні pill-кнопки, ручний ввід кроком 1 €, стандартна Zahlungsweise `Dauerauftrag`, умовні SEPA-поля тільки для `Lastschrift`, SEPA-згода, DSGVO-згода)
-- Пресети внеску на desktop/tablet показуються в один ряд на ширину блоку; на mobile — 2x2 з центруванням
-- `Weiter` виконує м'яку валідацію на переходах 1 → 2 і 2 → 3: помилки поточного кроку показуються, але користувач може перейти далі й дозаповнити форму
-- Перехід 3 → 4 (`Foto`) дозволений тільки після валідної анкети на кроках 1-3; якщо є помилки, форма повертає користувача до першого проблемного кроку, щоб не витрачати час на optional фото
-- Перед входом на крок 4 виконується duplicate guard за `birth_date + normalized phone`; якщо такий запис уже існує, форма повертається на крок 2 і показує помилку біля телефону
-- При фінальному `Antrag absenden` перевіряються всі кроки; якщо є помилки, форма автоматично повертає користувача до першого проблемного кроку
-- При фінальному `Antrag absenden` duplicate guard повторюється перед `Member::create()`, щоб дубль не можна було створити через обхід UI або повторний submit
-- Step indicators не клікабельні; кроки з помилками позначаються білим кружком із червоною рамкою поверх progress-line
-- Сіре summary-повідомлення над формою показується тільки тоді, коли помилки лишились у попередніх кроках
-- PLZ dropdown не має очищати validation errors для `postal_code`, `city`, `state`; інакше inline-помилки адреси зникають при кліку на `Weiter`
-- У Blade/Alpine `x-on:input` handlers використовують `$event.target`, не `this`, бо Alpine `this` не є DOM input і дає console errors
-- Одразу під формою по центру показується технічний system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`, де `Munas-Print` веде на `https://munas.online/`
-- У футері публічної форми є `Impressum` і `Datenschutz` із відкриттям у нових вкладках
-- Radio/checkbox controls у публічній формі використовують reusable class `ditib-choice-input`; колір береться з brand CSS variable `--ditib-brand-primary`, який прокидається з `App\Support\BrandColors`
-- Крок 4: optional Foto; camera/gallery input → Cropper.js v2 → client-side JPEG 800x800 → Livewire `croppedPhoto`; submit без фото працює як раніше
-- Фото не публікується і потрібне тільки для внутрішньої Mitgliederverwaltung; якщо фото додано, потрібна окрема Foto-Einwilligung checkbox
-- Якщо фото додано, після створення `Member` воно зберігається через `ProfilePhotoService` у private storage на базі `member_number`; фото не потрапляє в email
-- ~~Unterschrift~~ → перенесено в майбутній етап
-- Після відправки → сторінка підтвердження з member_number, технічний статус `pending`, який в адмінці показується як `Neu`
+Цей розділ є єдиним місцем для функціонального стану порталу: що вже працює, що хочемо доростити, і які рішення важливо не порушити. Історія змін ведеться в `CHANGELOG.md`.
 
-### Кабінет члена (`/konto`) — Filament MemberPanel
-- Вхід через email (Filament auth)
-- `/konto` перенаправляє на список `Meine Mitgliedschaften`
-- Detail URLs використовують `member_number` як public route key, наприклад `/konto/mitgliedschaften/DA-2026-0001`; внутрішній DB `id` у URL не використовується
-- Access model v1: `User.email` є ключем доступу; якщо на одну пошту зареєстровано кілька членів, користувач бачить усі `Member` записи з цією поштою
-- Користувач не бачить записи з іншими email; route binding member resource також scoped за email поточного користувача
-- Перегляд власних/родинних/фірмових записів read-only; self-service edit і photo replace у v1 не дозволені
-- Фото профілю показується у view кожного доступного запису через protected route `members.profile-photo`
-- Production QA для `/konto` photo display відкладено: клієнтський доступ/посилання на пошту для кабінету ще не реалізовані й будуть окремою великою задачею
-- Подача запиту на зміну (Änderungsantrag) — майбутній етап; кожен запит має бути прив'язаний до конкретного `member_id` / `member_number`, який користувач обирає зі списку своїх доступних записів, а не просто до email
+### Документація
 
-### Адмін-панель (`/admin`) — Filament AdminPanel
-- Список членів з пошуком, фільтром по статусу, badge-кольорами
-- Member View/Edit URLs використовують `member_number` як public route key, наприклад `/admin/members/DA-2026-0001`; внутрішній DB `id` лишається тільки PK
-- Таблиця Mitglieder за замовчуванням показує 25 записів на сторінку
-- Перегляд і редагування кожного запису (секції: Дані, Банк, Статус)
-- Схвалення / відхилення заявок: системні відкриті стани `pending` (`Neu`) і `processing` (`Verarbeitung`), адмін переводить запис у `active` або `inactive`
-- Клік по рядку таблиці відкриває перегляд запису; редагування доступне тільки через `Bearbeiten`
-- У таблиці швидкі дії: `Bearbeiten` і окремо зміна статусу тільки на `Aktiv` або `Inaktiv`; `Anzeigen` і `Löschen` не показуються в row actions
-- Масові дії в таблиці використовуються тільки для зміни статусу вибраних записів на `Aktiv` або `Inaktiv`; масове видалення не показується
-- На сторінці редагування кнопки `Änderungen speichern` і `Abbrechen` доступні зверху і знизу форми; save-кнопки мають brand primary style `#009689`, hover `teal-700`, білий текст
-- Global search у header адмін-панелі вимкнено; замість нього показується кнопка `Neue Registrierung`, яка відкриває production-форму `https://mitglied.ditib-ahlen-projekte.de/` у новій вкладці
-- Header-кнопка `Erstellen` на сторінці Mitglieder не показується; нові члени мають реєструватись через публічну форму
-- Пошук над таблицею Mitglieder розширено до `24rem`
-- Під таблицею Mitglieder справа показується технічний system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`, де `Munas-Print` веде на `https://munas.online/`
-- У footer адмін-панелі є `Impressum` і `Datenschutz` із відкриттям у нових вкладках
-- При зміні статусу на `active` член отримує email про прийняття
-- Звичайний адмін-процес для завершення членства: перевести запис у `inactive`, не видаляти
-- Soft delete лишається технічно в системі, але не є адмінською UI-дією; номер не звільняється навіть для inactive або soft-deleted записів
-- Фото профілю показується тільки у View/Edit, у секції `Persönliche Daten` над `Mitgliedsnummer`; фото винесено в окремий верхній layout і не належить до двоколонкової сітки полів; у таблицю Mitglieder фото не додано
-- На edit page адмін може завантажити/замінити або видалити фото; усі операції йдуть через private `ProfilePhotoService`, без public storage
-- При видаленні запису адміністратор і член отримують email-фіксацію видалення
-- Обробка запитів на зміну даних
+**Працює зараз:**
+- [x] `AGENTS.md` — єдиний загальний instruction-документ для всіх AI-агентів.
+- [x] `PROJECT.md` — основний документ для архітектури, поточного стану, функціонального розвитку, deploy і планів.
+- [x] `CHANGELOG.md` — обов'язкова хронологія кожної сесії змін.
+- [x] `README.md` — короткий опис репозиторію, запуску і посилань на канонічні документи.
+- [x] `CLAUDE.md` — compatibility pointer для Claude Code без дублювання правил.
+
+**Заплановано / хочемо додати:**
+- [x] Після підтвердження видалено старі тематичні документи `FOTO_UPLOAD_TZ.md` і `Правки і зміни на сайті.md`; актуальні рішення перенесені в `PROJECT.md`.
+
+**Важливі рішення:**
+- Усі майбутні плани, ідеї, побажання й відкриті рішення фіксуються в `PROJECT.md`, не в окремих roadmap-файлах.
+- Тематичні документи можна створювати тільки як короткі робочі чернетки; після завершення задачі важливі рішення переносити сюди.
+
+### Публічна Форма Реєстрації (`/`)
+
+**Працює зараз:**
+- [x] 4-крокова форма Mitgliedsantrag: `Persönliche Daten`, `Adresse & Kontakt`, `Beitrag & Zahlungsweise`, optional `Foto`.
+- [x] Крок 1 збирає персональні дані: ПІБ, народження, громадянство, сім'я, Cenaze Fonu, Gemeinderegister, Beruf, Heimatstadt.
+- [x] Крок 2 збирає адресу й контакт; телефон приймає міжнародний формат `+49...`, німецький формат із `0...`, німецький формат без першого `0` для номерів із Vorwahl, а також короткі місцеві Ahlen-номери, які нормалізуються з Vorwahl `02382`.
+- [x] Instagram optional: приймає `username`, `@username` або Instagram URL; у БД зберігається нормалізований username без `@`.
+- [x] PLZ autocomplete працює через локальну таблицю `postal_codes`; дані імпортуються з OpenPLZ командою `php artisan plz:import-openplz`; якщо PLZ не знайдено, користувач може ввести місто вручну і вибрати Bundesland.
+- [x] Крок 3 збирає внесок і оплату: мін. EUR 10, пресети 10/15/20/25 EUR, ручний ввід кроком 1 EUR, стандартна Zahlungsweise `Dauerauftrag`, умовні SEPA-поля тільки для `Lastschrift`.
+- [x] SEPA-згода і DSGVO-згода фіксуються з `zustimmung_at`; admin edit показує їх read-only.
+- [x] `Weiter` виконує м'яку валідацію на переходах 1 -> 2 і 2 -> 3: помилки поточного кроку показуються, але користувач може перейти далі й дозаповнити форму.
+- [x] Перехід 3 -> 4 (`Foto`) дозволений тільки після валідної анкети на кроках 1-3; якщо є помилки, форма повертає користувача до першого проблемного кроку.
+- [x] Duplicate guard перед входом на `Foto` і перед final submit блокує дубль за `birth_date + normalized phone`; email і full_name не використовуються як blocking criteria.
+- [x] При final submit форма перевіряє всі кроки й повертає користувача до першого проблемного кроку.
+- [x] Step indicators не клікабельні; кроки з помилками позначаються білим кружком із червоною рамкою поверх progress-line.
+- [x] Сіре summary-повідомлення над формою показується тільки тоді, коли помилки лишились у попередніх кроках.
+- [x] PLZ dropdown не очищає validation errors для `postal_code`, `city`, `state`.
+- [x] У Blade/Alpine `x-on:input` handlers використовують `$event.target`, не `this`.
+- [x] Публічна форма має footer links `Impressum` і `Datenschutz` у нових вкладках.
+- [x] Radio/checkbox controls використовують reusable class `ditib-choice-input` і brand CSS variable `--ditib-brand-primary`.
+- [x] Після відправки показується сторінка підтвердження з `member_number`; технічний статус нового запису `pending`, в адмінці показується як `Neu`.
+- [x] Під формою показується technical system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`.
+
+**Заплановано / хочемо додати:**
+- [ ] Unterschrift canvas у формі; поточне поле `unterschrift` у БД є legacy/future placeholder.
+- [ ] Двомовність DE + TR для public UI.
+- [ ] Окремий дизайн-polish форми без зміни основної логіки кроків, duplicate guard і DSGVO/SEPA consent.
+- [ ] Майбутній header/contact block: `DİTİB Türkisch-Islamische Gemeinde zu Ahlen e. V. / Ahlen Ulu Camii`; контакти `Rottmannstr. 62, 59229 Ahlen`, `02382 / 61599`, `info@ditib-ahlen-projekte.de`.
+
+**Важливі рішення:**
+- Email не є унікальним: один email дозволений для кількох членів родини/фірми.
+- Duplicate guard не використовує ім'я через ризик різних турецьких/німецьких написань і помилок введення.
+- Додаткові зміни duplicate guard мають зберігати правило: blocking criterion зараз `birth_date + normalized phone`.
+
+### Фото Профілю
+
+**Працює зараз:**
+- [x] Optional Step 4 `Foto` у public form: camera/gallery input -> Cropper.js v2 -> client-side JPEG 800x800 -> Livewire `croppedPhoto`.
+- [x] Submit без фото працює як раніше.
+- [x] Якщо фото додано, потрібна окрема Foto-Einwilligung checkbox; без фото ця згода не потрібна.
+- [x] Після створення `Member` фото зберігається через `ProfilePhotoService` у private storage на базі `member_number`.
+- [x] Фото не публікується, не потрапляє в email, не експортується в Excel і потрібне тільки для внутрішньої Mitgliederverwaltung.
+- [x] Фото зберігається на private disk `member_photos`; production root задається через `MEMBER_PHOTOS_ROOT` поза Laravel-проєктом.
+- [x] Admin бачить фото у View/Edit, може завантажити/замінити або видалити фото; таблиця Mitglieder фото не показує.
+- [x] `/konto` view показує фото доступних записів через protected route `members.profile-photo`.
+- [x] Production deploy фото-функції виконано; admin upload/replace/delete і public crop/preview перевірені; `/konto` production QA відкладено до access-flow задачі.
+
+**Заплановано / хочемо додати:**
+- [ ] Audit log для фото: хто і коли завантажив, замінив або видалив фото.
+- [ ] Процес відкликання photo consent із `/konto`, якщо пізніше буде self-service edit/change-request.
+- [ ] Optional workflow `Foto geprüft`, якщо фото пізніше використовуватимуться для друку, PDF-пакетів або карток і потрібна ручна перевірка якості.
+- [ ] Якщо знадобиться audit/metadata для фото, майбутня міграція може додати `profile_photo_mime` і `profile_photo_size`; зараз цих полів у `members` немає.
+
+**Важливі рішення:**
+- Public photo flow не повертати на старий план FilePond; фактична реалізація — Cropper.js + Alpine + Livewire.
+- Базовий photo output — JPEG 800x800; WebP не використовувати як baseline v1 через ризики сумісності з PDF/браузерами/серверним оточенням.
+- HEIC/HEIF не гарантується як baseline support; якщо браузер не може прочитати, повернути або стиснути фото, користувач має бачити зрозумілу помилку і мати можливість продовжити реєстрацію без фото.
+- Foto UX labels: `Mit Kamera aufnehmen`, `Foto auswählen`, `Übernehmen`, `Anderes Foto`, `Foto entfernen`; helper text: `Bitte laden Sie ein aktuelles Porträtfoto hoch, keine Ausweise oder Dokumente.`
+- Для admin upload не покладатися на Filament `imageCropAspectRatio('1:1')` як hard validation; фінальний квадрат, нормалізацію і replace/delete гарантує `ProfilePhotoService`.
+- Manual QA для майбутніх фото-змін: iPhone Safari camera/gallery, Android Chrome camera/gallery, велике фото, rotated portrait/EXIF orientation, повільна мережа, submit без фото, submit після crop і submit після crop error з видаленням фото.
+
+### Кабінет Члена (`/konto`)
+
+**Працює зараз:**
+- [x] Filament MemberPanel доступний на `/konto`.
+- [x] `/konto` перенаправляє на список `Meine Mitgliedschaften`.
+- [x] Access model v1: `User.email` є ключем доступу; якщо на одну пошту зареєстровано кілька членів, користувач бачить усі `Member` записи з цією поштою.
+- [x] Detail URLs використовують `member_number`, наприклад `/konto/mitgliedschaften/DA-2026-0001`; внутрішній DB `id` у URL не використовується.
+- [x] Resource query і route binding scoped за email поточного користувача; записи з іншими email не відкриваються через URL.
+- [x] Перегляд власних/родинних/фірмових записів read-only; self-service edit і photo replace у v1 не дозволені.
+- [x] Фото профілю показується у view кожного доступного запису через protected route `members.profile-photo`.
+
+**Заплановано / хочемо додати:**
+- [ ] Клієнтський access flow для production: magic link або інший простий спосіб входу без ручного створення паролів.
+- [ ] Робочий варіант magic link: Laravel signed temporary URL через `URL::temporarySignedRoute()`, орієнтовний термін дії 30 хвилин; остаточний UX входу треба погодити перед реалізацією.
+- [ ] Production QA `/konto`, включно з profile photo display, після реалізації access flow.
+- [ ] `Änderungsantrag`: запит на зміну даних для конкретного `member_id` / `member_number`, вибраного зі списку доступних записів користувача.
+
+**Важливі рішення:**
+- Email визначає доступ до списку записів, але не є ідентифікатором заявки на зміну.
+- Кожна create/view/update дія для майбутнього `Änderungsantrag` повинна повторно перевіряти на backend, що обраний `member_id` належить до `Member` запису з email authenticated user.
+- Self-service edit або self-service photo replace не додавати без окремого approval/change-request workflow.
+
+### Адмін-Панель (`/admin`)
+
+**Працює зараз:**
+- [x] Filament AdminPanel доступний на `/admin`.
+- [x] Список членів має пошук, фільтр по статусу, badge-кольори і default pagination 25 записів.
+- [x] Member View/Edit URLs використовують `member_number`, наприклад `/admin/members/DA-2026-0001`; внутрішній DB `id` лишається тільки PK.
+- [x] Перегляд і редагування запису розділені; клік по рядку відкриває View, редагування доступне через `Bearbeiten`.
+- [x] Системні відкриті стани: `pending` (`Neu`) і `processing` (`Verarbeitung`); адмін переводить запис у `active` або `inactive`.
+- [x] У таблиці швидкі дії: `Bearbeiten` і зміна статусу тільки на `Aktiv` або `Inaktiv`; `Anzeigen` і `Löschen` не показуються в row actions.
+- [x] Масові дії використовуються тільки для зміни статусу на `Aktiv` або `Inaktiv`; mass delete не показується.
+- [x] На edit page кнопки `Änderungen speichern` і `Abbrechen` доступні зверху і знизу форми; save-кнопки мають brand primary style.
+- [x] Global search у header вимкнено; замість нього є `Neue Registrierung`, яка відкриває production-form у новій вкладці.
+- [x] Header-кнопка `Erstellen` на сторінці Mitglieder не показується; нові члени мають реєструватись через публічну форму.
+- [x] Footer адмінки має `Impressum` і `Datenschutz`.
+- [x] При зміні статусу на `active` член отримує email про прийняття.
+- [x] При видаленні запису адміністратор і член отримують email-фіксацію видалення.
+- [x] Dashboard адмінки має статистичні widgets.
+- [x] Навігація й адмінка мають DITIB branding, logo і primary color `#009689`.
+- [x] Під таблицею Mitglieder справа показується technical system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`.
+
+**Заплановано / хочемо додати:**
+- [ ] Фінальний language polish адмін-панелі німецькою.
+- [ ] Сторінка налаштувань для підпису відповідальної особи DITIB і печатки організації; кандидат — `spatie/laravel-settings`, пакет ще не встановлено.
+- [ ] UI/workflow для обробки `Änderungsantrag`; базова таблиця `change_requests` уже існує.
+
+**Важливі рішення:**
+- Звичайний процес завершення членства: перевести запис у `inactive`, не видаляти.
+- Soft delete лишається технічно в системі, але не є адмінською UI-дією; `member_number` не звільняється навіть для inactive або soft-deleted записів.
+- Admin consent fields — SEPA/DSGVO consent і `zustimmung_at` — лишаються read-only.
+
+### Email
+
+**Працює зараз:**
+- [x] Registration emails відправляються синхронно через SMTP при submit форми.
+- [x] Email клієнту після відправки форми.
+- [x] Email адміну про нову заявку.
+- [x] Email клієнту при підтвердженні реєстрації (`active`).
+- [x] Email адміну і клієнту при видаленні запису члена.
+- [x] Логіка відправки відділена від Livewire через event/listener layer.
+- [x] Централізований branding layer для Laravel Markdown emails: `config/mail.php` -> `mail.brand.*`, `resources/views/vendor/mail/`, `resources/views/emails/`.
+- [x] Artifact build виправлений, щоб mail override templates не випадали через exclude `vendor`.
+
+**Заплановано / хочемо додати:**
+- [ ] Якщо Gmail/Outlook/Apple Mail покажуть недостатній контроль верстки, перейти на власний HTML email template (`view:`) окремим етапом.
+- [ ] Листи, пов'язані з майбутнім `/konto` access flow.
+
+**Важливі рішення:**
+- На поточному Plesk artifact-deploy немає стабільного queue worker; `ShouldQueue` не використовувати для production email flow.
+- При SMTP-помилці збереження анкети не має ламатися; помилка має логуватись.
+- Окремі email views не повинні містити логотип, footer або глобальні стилі — тільки зміст конкретного повідомлення.
+
+### PDF І Документи
+
+**Працює зараз:**
+- [x] Approval email працює синхронно без PDF.
+
+**Заплановано / хочемо додати:**
+- [ ] PDF підтвердження членства; кандидат — `barryvdh/laravel-dompdf`, пакет ще не встановлено.
+- [ ] PDF має містити заповнені дані анкети, а пізніше — підпис клієнта, підпис відповідальної особи DITIB і печатку організації.
+- [ ] Сторінка налаштувань для підпису/печатки пов'язана з PDF-функцією.
+
+**Важливі рішення:**
+- Для PDF усі зображення (підпис клієнта, підпис відповідальної особи, печатка, optional photo) передавати як Base64 або іншим стабільним способом, сумісним із Plesk.
+- Якщо фото відсутнє, PDF має пропускати photo block без placeholder.
+- Майбутній PDF не має вводити queue worker як production requirement, доки Plesk worker не стане стабільно доступним.
+
+### Локалізація
+
+**Працює зараз:**
+- [x] Поточна UI-мова — німецька.
+
+**Заплановано / хочемо додати:**
+- [ ] Турецька локалізація: middleware/cookie або інший locale flow.
+- [ ] `lang/de.json` і `lang/tr.json`.
+- [ ] Перемикач мови.
+- [ ] Автовизначення мови браузера і запам'ятовування вибору в cookie.
+
+**Важливі рішення:**
+- Німецька лишається default language, якщо вибір користувача або browser locale не визначені.
+
+### Експорт І Audit Log
+
+**Працює зараз:**
+- [x] Немає production Excel export і глобального audit log; це свідомо ще не реалізовано.
+
+**Заплановано / хочемо додати:**
+- [ ] Експорт таблиці членів громади в `.xlsx` із адмінки.
+- [ ] Глобальний audit log: хто, що, коли створив/змінив/видалив/підтвердив.
+- [ ] Мінімальний audit scope: нова реєстрація, зміна статусу, редагування полів, soft delete/delete, admin login, email-помилки, admin replace/delete profile photo.
+- [ ] Окрема адмін-сторінка audit log із фільтрами по користувачу, типу дії, сутності та даті.
+
+**Важливі рішення:**
+- Фото в Excel export не додавати.
+- Для audit log не показувати IBAN/BIC відкрито; або маскувати, або не логувати значення цих полів.
+
+### Deploy І Production Operations
+
+**Працює зараз:**
+- [x] Artifact deploy через Plesk File Manager/FTP.
+- [x] SQL changes через phpMyAdmin.
+- [x] `scripts/build-artifact.sh` збирає production artifact у staging-папці в `/tmp`.
+- [x] `scripts/build-artifact.sh` автоматично піднімає technical version у `config/system-version.json`.
+- [x] Production photo data живе поза Laravel-проєктом у `Home directory/ditib-portal-data/member-photos`.
+
+**Заплановано / хочемо додати:**
+- [ ] При кожній новій migration готувати SQL-файл у `deploy-artifacts/` для phpMyAdmin.
+
+**Важливі рішення:**
+- Серверні shell-команди на хостингу недоступні за умовами хостера; не планувати production deploy навколо серверних `composer`, `npm`, `php artisan migrate`, `config:cache`, `route:cache`, `view:cache`.
+- На сервер деплоїться весь Laravel-застосунок, не тільки `public/build`.
+- `.env` створюється вручну на сервері й ніколи не комітиться.
+- Production `APP_KEY` генерується один раз і не змінюється, бо потрібен для encrypted IBAN/BIC.
 
 ---
 
@@ -142,7 +299,7 @@
 | email | string | **не unique** — один email дозволений для кількох членів (сім'я) |
 | phone | string | |
 | instagram | string | nullable, зберігається нормалізований username без `@`; форма приймає username, `@username` або Instagram URL |
-| profile_photo_path | string | nullable, relative path у private disk `local`, без public URL |
+| profile_photo_path | string | nullable, relative path у private disk `member_photos`, без public URL |
 | profile_photo_uploaded_at | timestamp | nullable |
 | profile_photo_zustimmung | boolean | default false, окрема згода на optional profile photo |
 | profile_photo_zustimmung_at | timestamp | nullable |
@@ -152,7 +309,7 @@
 | iban | text | **encrypted**, nullable |
 | bic | text | **encrypted**, nullable |
 | kreditinstitut | string | nullable |
-| unterschrift | text | base64 PNG, hidden |
+| unterschrift | text | legacy/future placeholder для base64 PNG підпису, hidden; canvas-підпис ще не реалізований |
 | sepa_zustimmung | boolean | |
 | dsgvo_zustimmung | boolean | |
 | zustimmung_at | timestamp | |
@@ -168,6 +325,16 @@
 | next_number | unsigned big integer | наступний кандидат для `member_number` |
 
 Номери членів видаються тільки через `MemberNumberSequence` у DB transaction з `lockForUpdate()`. Allocator додатково перевіряє `members` разом із soft-deleted записами й переступає вже зайняті номери, якщо sequence колись відстане після ручної правки.
+
+### Таблиця `postal_codes`
+
+| Поле | Тип | Примітка |
+|------|-----|---------|
+| plz | string | індекс, indexed |
+| ort | string | місто/населений пункт |
+| bundesland | string | федеральна земля |
+
+Дані для PLZ autocomplete імпортуються з OpenPLZ через artisan-команду `php artisan plz:import-openplz`. Команда очищає `postal_codes` і заново завантажує реальні німецькі locality records з `openplzapi.org`; за попереднім імпортом очікуваний порядок величини — близько 50 тис. записів.
 
 ### Таблиця `change_requests`
 
@@ -193,7 +360,7 @@
 - `$hidden` у моделі НЕ використовувати для IBAN/BIC (блокує Filament форму)
 - Члени в `/konto` бачать тільки записи з `members.email`, що збігається з email authenticated user; якщо один email використано для кількох членів родини/фірми, усі ці записи вважаються доступними цьому користувачу
 - Згода SEPA і DSGVO фіксується з timestamp при відправці форми; у публічній формі тексти згод мають посилання на `https://ditib-ahlen-projekte.de/datenschutz`
-- Авторитетний legal text для порталу і лендінгу ведеться в `../main/docs/legal-texts.md`; перед релізом фото-функції сторінка Datenschutz на лендінгу має відповідати цьому тексту
+- Авторитетний legal text для порталу і лендінгу ведеться в `../main/docs/legal-texts.md`; сторінка Datenschutz на лендінгу має залишатися синхронізованою з цим текстом, особливо для Mitgliedsantrag, SEPA/IBAN, членських даних і optional profile photos
 - Optional profile photos зберігаються тільки на private disk `member_photos`; локально root за замовчуванням `storage/app/private`, на production root задається через `MEMBER_PHOTOS_ROOT` поза папкою Laravel-проєкту (`Home directory/ditib-portal-data`); у БД лежить тільки relative path `member-photos/...`; direct public URL, `public/storage` і email-usage не використовуються
 - Optional profile photos мають окрему згоду: якщо користувач додає фото на Step 4, `profile_photo_zustimmung` є обов'язковим і фіксується з `profile_photo_zustimmung_at`; без фото ця згода не потрібна
 - Admin preview для profile photos використовує protected route `members.profile-photo` із cache busting `?v=profile_photo_uploaded_at`; Filament temporary/private URLs не використовуються для постійного перегляду фото
@@ -268,7 +435,7 @@ public function getRouteKeyName(): string
 
 Внутрішній `id` лишається primary key і не має штучно збігатися з `member_number`. Це важливо для FK-зв'язків, performance і нормальної роботи Eloquent. Публічний ідентифікатор для адміна/члена — тільки `member_number`.
 
-Перед production release цієї зміни обов'язково перевірити:
+Release-check для цієї зміни:
 
 ```sql
 SELECT COUNT(*) AS members_without_member_number
@@ -276,7 +443,7 @@ FROM members
 WHERE member_number IS NULL OR member_number = '';
 ```
 
-Очікувано: `0`. Якщо результат не 0, спочатку потрібно backfill для старих записів, інакше вони не відкриються через новий URL. Для phpMyAdmin підготовлено перевірочний файл `deploy-artifacts/production-check-member-number-route-key-readiness.sql`.
+Очікувано: `0`. Якщо результат не 0, спочатку потрібен backfill для старих записів, інакше вони не відкриються через новий URL. Для phpMyAdmin був підготовлений перевірочний файл `deploy-artifacts/production-check-member-number-route-key-readiness.sql`; production readiness уже підтверджено 2026-05-20 без записів із порожнім `member_number`.
 
 ### Email — архітектура і брендування
 
@@ -295,6 +462,8 @@ WHERE member_number IS NULL OR member_number = '';
 **Діагноз 2026-05-06:** локальні листи рендеряться з логотипом, але production artifact не містив `resources/views/vendor/mail/`. Причина: `scripts/build-artifact.sh` копіював проект через `tar --exclude='./vendor'`, а на локальному tar цей exclude також прибирав вкладену папку `resources/views/vendor/mail/`. Через це production використовував стандартні Laravel Markdown mail templates без нашого header/logo. Скрипт виправлено: після staging-copy mail override templates явно повертаються в `resources/views/vendor/mail/`. Після наступного artifact deploy потрібно перевірити, що ця папка є на сервері.
 
 Майбутнє оновлення: якщо Gmail/Outlook/Apple Mail покажуть, що Markdown theme недостатньо контролює вигляд, можна перейти з `markdown:` на власний `view:` HTML email template. Це буде окремий етап, не змішаний із поточним SMTP/Mailable layer.
+
+---
 
 ## Локальна розробка
 
@@ -317,14 +486,11 @@ cd ~/Project/DITIB-Ahlen/portal && php artisan serve --port=8000
 
 **Фіксовані локальні порти DITIB Ahlen:** лендінг `../main` працює через Docker на `http://localhost:8082`, портал `../portal` працює через Homebrew PHP на `http://localhost:8000`. Портал не переносити в Docker Desktop і не запускати на `8083`, `5173` або `8383`.
 
-**Build локально:**
-```bash
-npm run build
-```
+**Frontend assets build:**
 
-Перед пакуванням staging нормалізує права доступу: директорії `755`, файли `644`, `artisan` і shell-скрипти `755`. Це важливо для Plesk/Apache: root `./` всередині tar не може мати права `700`, інакше після розпакування сайт дає `403 Forbidden`.
+`npm run build` створює тільки Vite assets у `public/build/` (CSS/JS). Це не окремий статичний сайт, не повний build Laravel-застосунку і не production deploy package.
 
-`npm run build` створює тільки Vite assets у `public/build/` (CSS/JS). Це не окремий статичний сайт і не повний build застосунку. Laravel-порталу для роботи потрібні PHP-код, `vendor/`, `routes/`, `resources/`, `storage/`, `.env` і база даних.
+Окремо запускати `npm run build` потрібно тільки для локальної перевірки frontend assets після змін у CSS/JS/Vite. Для production artifact це не є окремим ручним кроком: `scripts/build-artifact.sh` сам виконує `npm ci` і `npm run build` у staging-папці.
 
 ---
 
@@ -341,9 +507,9 @@ npm run build
 | Deploy | Artifact deploy через File Manager/FTP |
 | DB changes | SQL-файли через phpMyAdmin |
 
-**Обраний робочий процес з 2026-05-06:** artifact deploy + SQL/phpMyAdmin. Причина: Plesk Git успішно копіює файли, але additional deployment actions не можуть запускати shell-команди через `execv("/bin/bash") failed system error: Permission denied`. Тому production-артефакт збирається локально або в GitHub Actions і завантажується на сервер уже з `vendor/` та `public/build/`; зміни БД виконуються окремими SQL-файлами через phpMyAdmin.
+**Обраний робочий процес з 2026-05-06:** artifact deploy + SQL/phpMyAdmin. За умовами хостингу серверні shell-команди для цього проекту недоступні, тому production-артефакт збирається локально і завантажується на сервер уже з `vendor/` та `public/build/`; зміни БД виконуються окремими SQL-файлами через phpMyAdmin.
 
-Для агентів: не питати щоразу про SSH/Terminal. Стандартний production stack цього проекту — **Plesk File Manager/FTP для файлів і phpMyAdmin для БД**. SSH/Terminal вважати недоступним, якщо користувач явно не змінить це рішення.
+Для агентів: стандартний production stack цього проекту — **Plesk File Manager/FTP для файлів і phpMyAdmin для БД**. Не планувати deploy навколо серверних shell-команд, якщо користувач явно не змінить це рішення.
 
 ### Artifact deploy — поточний процес
 
@@ -361,6 +527,8 @@ composer install --no-dev --optimize-autoloader
 npm ci
 npm run build
 ```
+
+Перед пакуванням staging нормалізує права доступу: директорії `755`, файли `644`, `artisan` і shell-скрипти `755`. Це важливо для Plesk/Apache: root `./` всередині tar не може мати права `700`, інакше після розпакування сайт дає `403 Forbidden`.
 
 Перед staging-copy скрипт автоматично піднімає технічну версію в `config/system-version.json` через `scripts/update-system-version.php`. Після цього створюється архів у форматі `deploy-artifacts/ditib-ahlen-portal-vX.XXX-YYYYMMDD-HHMMSS.tar.gz`. Звичайні code/doc changes без запуску `scripts/build-artifact.sh` або `scripts/export-production-sql.php` не піднімають версію вручну.
 
@@ -403,13 +571,15 @@ npm run build
 8. Якщо нових файлів у `database/migrations/` немає, **БД не чіпати**: не імпортувати SQL і не запускати migrate.
 9. Перевірити форму, `/admin`, старі реєстрації в адмінці і одну тестову валідаційну помилку у формі.
 
-Перед першим production release фото-функції перевірити PHP extensions на Plesk без SSH:
+Якщо після перенесення/зміни Plesk-середовища потрібно повторно перевірити PHP extensions для фото без серверних shell-команд:
 
 1. Завантажити `deploy-artifacts/check-photo-extensions.php` у `mitglied.ditib-ahlen-projekte.de/public/check-photo-extensions.php`.
 2. Відкрити `https://mitglied.ditib-ahlen-projekte.de/check-photo-extensions.php`.
 3. Має бути `OK` для `gd_extension`, `fileinfo_extension`, `gd_imagecreatetruecolor`, `gd_imagejpeg`; `exif_extension` бажаний для коректнішої orientation-обробки.
 4. Файл також покаже `member_photos_root_candidate`; його можна використати як `MEMBER_PHOTOS_ROOT`, якщо `member_photos_root_exists` і `member_photos_root_writable` показують `OK`.
 5. Після перевірки одразу видалити цей файл із production.
+
+Цей check уже використовувався перед фото-release 2026-05-20; повторювати його потрібно тільки після зміни hosting/PHP configuration або при проблемах із обробкою фото.
 
 Для Plesk backup: внутрішній backup має включати і файли, і базу даних. Критична папка для фото: `Home directory/ditib-portal-data/member-photos`. Перевірка 2026-05-20 підтвердила, що Plesk backup subscription включає створену `ditib-portal-data/member-photos` поруч із `httpdocs` і `mitglied.ditib-ahlen-projekte.de`. Цю папку не можна очищати при redeploy і треба відновлювати разом із MySQL, бо в БД зберігаються тільки relative paths.
 
@@ -438,24 +608,6 @@ MEMBER_PHOTOS_ROOT=/var/www/vhosts/ditib-ahlen-projekte.de/ditib-portal-data
 Повний SQL export через `scripts/export-production-sql.php` автоматично піднімає технічну версію в `config/system-version.json`.
 
 Важливо: локальний SQLite (`database/database.sqlite`) ніколи не переносити на production.
-
-### Plesk Git settings
-
-Цей варіант поки не є основним через помилку shell execution. Залишено як довідку, якщо хостинг пізніше увімкне Deploy actions/Terminal.
-
-У Plesk обирати **Install from remote repository**, не `Install Skeleton`.
-
-| Поле | Значення |
-|------|----------|
-| Repository URL | `git@github.com:RomanPachkovskyi/DITIB-Ahlen-Portal.git` |
-| SSH public key | додати цей ключ у GitHub repo → Settings → Deploy keys |
-| Deploy key permissions | Read-only достатньо |
-| Repository name | `DITIB-Ahlen-Portal` або `DITIB-Ahlen-Portal.git` |
-| Deployment mode | `Automatic` після першої перевірки; `Manual` можна для першого тесту |
-| Server path | `/mitglied.ditib-ahlen-projekte.de` |
-| Additional deployment actions | увімкнути |
-
-Server path має бути коренем Laravel-проєкту (`/mitglied.ditib-ahlen-projekte.de`), **не** `/mitglied.ditib-ahlen-projekte.de/public`. `public` задається окремо в Hosting Settings як Document Root.
 
 ### Як влаштований сервер
 
@@ -500,21 +652,9 @@ Production потребує MySQL у Plesk:
 
 SQLite (`database/database.sqlite`) використовується тільки локально. Для production не переносити локальний SQLite-файл на сервер.
 
-**Стан на 2026-05-06:** MySQL database/user створені в Plesk, серверний `.env` створений. Поточний deploy-стек зафіксований як artifact upload через File Manager/FTP + SQL import через phpMyAdmin.
+**Стан:** MySQL database/user створені в Plesk, серверний `.env` створений. Поточний deploy-стек зафіксований як artifact upload через File Manager/FTP + SQL import через phpMyAdmin.
 
-**Перший manual deploy 2026-05-05:** deploy key validation успішний, файли скопійовані в `mitglied.ditib-ahlen-projekte.de`, але Deploy actions не виконались:
-
-```text
-execv("/bin/bash") failed system error: Permission denied
-```
-
-Це означає, що Git deploy працює, але Plesk/subscription user не має права запускати `/bin/bash`, через який Plesk виконує additional deployment actions. Поки це не виправлено, `composer install`, `npm ci`, `npm run build`, `php artisan migrate --force` і cache-команди не запускаються.
-
-Через це Git deploy/Deploy actions лишаються довідковим, не основним шляхом. Не планувати production deploy навколо SSH, Terminal або `php artisan migrate --force`, якщо це рішення не буде явно переглянуте.
-
-### Plesk Deploy actions — не активний процес
-
-Plesk Git/Deploy actions залишені тільки як історична довідка. Поточний робочий процес не використовує серверні shell-команди, `composer`, `npm`, `php artisan migrate --force` або cache-команди на production.
+Серверні shell-команди на хостингу недоступні за умовами хостера. Тому production-процес не використовує серверні `composer`, `npm`, `php artisan migrate --force`, `config:cache`, `route:cache`, `view:cache` або інші shell-команди.
 
 Для production:
 
@@ -604,7 +744,7 @@ VITE_APP_NAME="${APP_NAME}"
 php artisan key:generate --show
 ```
 
-Якщо SSH/Terminal на сервері недоступні, це повністю замінює серверний `php artisan key:generate`. Після цього `APP_KEY` не міняти.
+Це замінює серверний `php artisan key:generate` у поточному hosting-процесі без shell-команд. Після цього `APP_KEY` не міняти.
 
 Якщо SMTP ще не готовий, `MAIL_PASSWORD` можна тимчасово залишити порожнім, але email-повідомлення не будуть працювати повноцінно.
 
@@ -628,41 +768,3 @@ MAIL_LOGO_URL=...
 Для першого тесту можна тимчасово залишити mail налаштування мінімальними, але перед перевіркою реєстраційних листів потрібно прописати реальний SMTP. Реєстраційні листи відправляються синхронно під час submit, бо на поточному Plesk artifact-deploy немає стабільного queue worker-а.
 
 Брендування листів централізоване в `config/mail.php` → `mail.brand.*`. Для production мінімально перевірити `MAIL_BRAND_URL="${APP_URL}"`, публічний HTTPS `MAIL_LOGO_URL` і коректний footer. Якщо в майбутньому знадобиться повний pixel-control для Outlook/Gmail, перейти на окремий HTML-шаблон (`view:`), але поточний стандартний шар Laravel Markdown не змішувати з ручними HTML-вставками в окремих листах.
-
----
-
-## Статус реалізації
-
-### Етап 1 ✅ ВИКОНАНО
-- [x] Репозиторій створено, структура папок
-- [x] Laravel 13 + Filament v5 встановлені
-- [x] Міграції: `members` (всі поля), `change_requests`
-- [x] Модель `Member`: encrypted IBAN/BIC, auto member_number, всі fillable/casts
-- [x] AdminPanel (`/admin`) — MemberResource з View/Edit/List, member_number першим
-- [x] MemberPanel (`/konto`) — базова панель створена
-- [x] Публічна форма (`/`) — 4-крокова, всі поля анкети, умовний SEPA, валідація 16+
-
-### Етап 2 ✅ ВИКОНАНО
-- [x] Автовизначення PLZ → місто і федеральна земля (OpenPLZ API)
-- [x] Email клієнту після відправки форми (синхронно через SMTP, без queue worker)
-- [x] Email адміну про нову заявку
-- [x] Централізований branding layer для Laravel Markdown emails
-
-### Етап 3 ✅ ВИКОНАНО
-- [x] Dashboard адмінки зі статистикою (widgets)
-- [x] Іконки навігації + логотип DITIB в адмінці
-- [x] Email клієнту при підтвердженні реєстрації (Event + synchronous listener)
-- [x] Email адміну і клієнту при видаленні запису члена
-- [x] DSGVO-згода та SEPA-згода перенесені на Крок 3 форми
-- [ ] spatie/laravel-settings — сторінка налаштувань (підпис, печатка)
-- [ ] PDF підтвердження членства (Base64 для зображень)
-
-### Етап 4 🔲
-- [x] Фото профілю: production deploy виконано; admin upload/replace/delete і public form crop/preview перевірені; `/konto` display QA відкладено до окремої задачі клієнтського доступу до кабінету
-- [ ] Unterschrift canvas у формі реєстрації (Крок 4)
-- [ ] Кабінет члена — Änderungsantrag по конкретному `member_id` / `member_number` зі списку доступних записів, не по email
-- [ ] Двомовність (DE + TR): Middleware SetLocale, lang/de.json, lang/tr.json
-- [ ] Експорт таблиці членів громади з адмінки в Excel-файл (`.xlsx`) із завантаженням на ПК
-- [x] Artifact deploy обрано як поточний процес: staging-збірка `vendor/` + `public/build/` + Laravel-код без зміни локальних dev-залежностей, завантаження через File Manager/FTP; міграції БД виконуються окремо через SQL/phpMyAdmin
-
-> Зміни в статусі — оновлювати тут і писати в `CHANGELOG.md`
