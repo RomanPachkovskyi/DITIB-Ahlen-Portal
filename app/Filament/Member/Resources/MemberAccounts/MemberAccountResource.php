@@ -10,6 +10,7 @@ use App\Filament\Resources\Members\Schemas\MemberFormContext;
 use App\Models\Member;
 use App\Support\MemberStatus;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -139,11 +140,27 @@ class MemberAccountResource extends Resource
             ->recordUrl(fn (Member $record): ?string => static::isInactive($record)
                 ? null
                 : static::getUrl('view', ['record' => $record]))
+            // Active rows open the detail view; inactive rows open the info modal
+            // on a click anywhere in the row (mobile-friendly).
+            ->recordAction(fn (Member $record): ?string => static::isInactive($record) ? 'inactiveInfo' : null)
             ->recordActions([
                 ViewAction::make()
                     ->label('Anzeigen')
                     ->color('gray')
                     ->hidden(fn (Member $record): bool => static::isInactive($record)),
+                // Inactive rows are dimmed and not openable; this info action
+                // explains why and how to reactivate (admin contact). Mobile-
+                // friendly modal instead of a hover tooltip.
+                Action::make('inactiveInfo')
+                    ->label('Info')
+                    ->icon(Heroicon::OutlinedInformationCircle)
+                    ->color('gray')
+                    ->visible(fn (Member $record): bool => static::isInactive($record))
+                    ->modalHeading('Mitgliedschaft inaktiv')
+                    ->modalIcon(Heroicon::OutlinedInformationCircle)
+                    ->modalContent(view('filament.members.inactive-info'))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Schließen'),
             ]);
     }
 

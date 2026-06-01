@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Member\Resources\MemberAccounts\MemberAccountResource;
 use App\Filament\Member\Resources\MemberAccounts\Pages\EditMemberAccount;
+use App\Filament\Member\Resources\MemberAccounts\Pages\ListMemberAccounts;
 use App\Models\Member;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -259,6 +260,17 @@ class MemberSelfEditTest extends TestCase
             ->assertSee($active->member_number)
             ->assertSee($inactive->member_number)
             ->assertSee('opacity-50', false);
+    }
+
+    public function test_inactive_row_shows_info_action_with_contact_only(): void
+    {
+        $this->actingAsMember('family@example.com');
+        $active = $this->makeMember(['email' => 'family@example.com', 'status' => 'active', 'full_name' => 'Aktiv']);
+        $inactive = $this->makeMember(['email' => 'family@example.com', 'status' => 'inactive', 'full_name' => 'Inaktiv']);
+
+        Livewire::test(ListMemberAccounts::class)
+            ->assertTableActionVisible('inactiveInfo', $inactive)
+            ->assertTableActionHidden('inactiveInfo', $active);
     }
 
     public function test_member_cannot_edit_record_of_another_email(): void

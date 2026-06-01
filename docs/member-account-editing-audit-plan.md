@@ -139,7 +139,7 @@ Consent fields у загальному випадку read-only. Виняток 
 - create/delete у `/konto` лишаються заборонені;
 - inactive записи показуються у списку (напівпрозорі, зі статусом), але `canView()` і `canEdit()` для них повертають `false` — клієнт не може ні відкрити detail, ні редагувати, навіть через прямий URL; усі питання по inactive — до адміна;
 - `getEloquentQuery()` повертає всі записи з email клієнта (включно з inactive, щоб список їх показав); блокування inactive — на рівні `canView()/canEdit()` і route binding, не на рівні query;
-- inactive-only email не отримує login link (немає що відкривати), натомість inactive-notice email.
+- magic-link надсилається завжди (і для inactive-only email теж); пояснення про inactive-статус дає Info-модалка біля dimmed-запису, окремого листа не створюємо.
 - save у member-edit має використовувати явний server-side allowlist, наприклад `Arr::only($data, MemberFormContext::memberEditableFields())`;
 - навіть якщо Livewire request підкине `status`, `admin_notiz`, `member_number`, `email`, consent fields або інше недозволене поле, backend має його проігнорувати;
 - після allowlist застосовується системна status transition у `processing`, а не дані з request.
@@ -165,18 +165,15 @@ Consent fields у загальному випадку read-only. Виняток 
 - якщо email невідомий, UI показує нейтральне повідомлення;
 - якщо email є в `members`, відправляється magic link.
 
-Нова логіка:
+Фінальна логіка (Рішення Roman):
 
-- якщо email є тільки в `inactive` записах, magic link не відправляти;
-- натомість надіслати email із поясненням, що запис зараз не активний і треба звернутися до DITIB Ahlen;
-- UI в браузері все одно має лишатися нейтральним, щоб не розкривати, чи є така адреса в базі.
-- якщо email належить admin-акаунту (`ADMIN_EMAILS` / `User::isAdmin()`), member magic-link не створювати. Це мінімальний захист від ситуації, де magic-link створює web-session для `User`, який має admin-права.
+- magic-link надсилається незалежно від статусу — і коли всі записи email inactive, лінк теж приходить (не плодимо окремий тип листа);
+- після входу inactive-записи показуються dimmed, не відкриваються і не редагуються (`canView`/`canEdit` = false);
+- біля кожного dimmed-запису є дія `Info` (іконка) → мобільно-зручна модалка з поясненням: запис неактивний, клієнт сам статус не змінює, для реактивації звернутися до DITIB Ahlen + контакти;
+- UI логіну лишається нейтральним для невідомого email;
+- якщо email належить admin-акаунту (`User::isAdminEmail()`), member magic-link не створювати (реалізовано).
 
-Напрямок тексту листа німецькою:
-
-> Ihr Mitgliedskonto ist derzeit nicht aktiv. Bitte wenden Sie sich an uns, damit wir den Status gemeinsam prüfen können.
-
-Рішення Roman (1, уточнено): inactive записи в `/konto` показуються у списку напівпрозорими (dimmed) разом зі статусом, але клієнт не може ні відкрити їх (detail), ні редагувати — рядок візуально присутній, але неактивний. Magic-link дозволяти, якщо є хоча б один не-inactive запис. Якщо всі записи email inactive → magic-link не слати (нема чого відкривати), надіслати inactive-notice.
+Раніше розглядався окремий inactive-notice email — від нього відмовились на користь Info-модалки в кабінеті.
 
 ## Спільна Schema Архітектура
 
@@ -480,15 +477,13 @@ Admin changes:
 - SEPA re-consent при переході `zahlungsart` → `lastschrift` (нова згода + timestamp).
 - Після save повертати на view.
 
-### Phase 4: Inactive Login Handling
+### Phase 4: Inactive Handling — ЗРОБЛЕНО
 
-- Оновити `MemberMagicLoginService`.
-- Додати inactive-account email mailable/template.
-- Залишити browser UI нейтральним.
-- Не створювати login token для inactive-only email.
-- Не створювати member login token для admin emails.
-- Додати cleanup для expired/used `member_login_tokens`, бо таблиця містить `ip_address` і `user_agent`.
-- Додати tests.
+- [x] Не створювати member login token для admin emails (`User::isAdminEmail()`).
+- [x] Cleanup expired/used `member_login_tokens` (PII) — авто при видачі + команда.
+- [x] Inactive-записи в `/konto`: dimmed, не відкриваються/не редагуються.
+- [x] Info-дія (модалка) біля dimmed-запису з поясненням + контакти DITIB Ahlen.
+- [x] Magic-link шлеться незалежно від статусу; окремий inactive-notice email НЕ робимо (Рішення Roman); login UI лишається нейтральним для невідомого email.
 
 ### Phase 5: Audit Logging
 
@@ -526,7 +521,7 @@ Feature tests:
 - member не може редагувати `email` у v1;
 - `monatsbeitrag` нижче EUR 10 відхиляється у member edit;
 - перехід `zahlungsart` → `lastschrift` без SEPA re-consent не зберігається;
-- inactive-only email отримує inactive notice, не magic link;
+- inactive-запис показує Info-дію у списку `/konto`; не відкривається і не редагується;
 - admin email не отримує member magic-link token;
 - admin edit створює audit logs;
 - admin status actions створюють audit logs;
@@ -569,7 +564,7 @@ Manual QA:
 
 ## Рішення Roman (зафіксовано 2026-05-29)
 
-1. **Mixed-email → inactive показуємо dimmed, але заблоковані.** Inactive записи зʼявляються у списку `/konto` напівпрозорими, зі статусом, але клієнт не може їх ні відкрити, ні редагувати (блокування у `canView()/canEdit()` + route binding, не у query). Magic-link дозволяється, якщо є хоча б один не-inactive запис; якщо всі inactive → magic-link не слати + inactive-notice email.
+1. **Mixed-email → inactive показуємо dimmed, але заблоковані.** Inactive записи зʼявляються у списку `/konto` напівпрозорими, зі статусом, але клієнт не може їх ні відкрити, ні редагувати (блокування у `canView()/canEdit()` + route binding, не у query). Magic-link шлеться незалежно від статусу; окремого inactive-notice листа немає — пояснення дає Info-модалка біля dimmed-запису (контакти DITIB Ahlen).
 2. **Список `/konto` = як у admin.** Ті самі колонки (`member_number`, name, `status` badge, city). Це безпечно, бо admin-таблиця не виводить нічого справді прихованого: `admin_notiz` не є колонкою. Наслідок: `status` видимий клієнту (read-only) і в списку, і в detail; справді прихований тільки `admin_notiz`. `status` клієнт ніколи не редагує.
 3. **`email` — не редагується клієнтом у v1** (ключ доступу). Пізніше тільки через double opt-in. (Залишається без змін.)
 4. **`monatsbeitrag` редагований, мінімум EUR 10** — центральне правило для public/admin/member. Member може і збільшувати, і зменшувати, але не нижче EUR 10.

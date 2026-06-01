@@ -891,3 +891,10 @@
 - За рішенням Roman: внесок і банк-дані веде член через `/konto`, тож для admin весь блок `Beitrag & Bankverbindung` тепер read-only (`disabled` на рівні секції в admin-контексті `MemberForm`; member-контекст лишається редагованим). Безпека + єдине джерело правди.
 - Disabled-поля admin не дегідруються → admin save їх не перезаписує; інваріант моделі (без lastschrift — без банк-даних) лишається на `$member->zahlungsart`.
 - Тести: admin — `monatsbeitrag`/`zahlungsart` disabled; member — enabled. Весь набір — 102 тести зелений.
+
+### [2026-06-01 11:10] Phase 4: Info-модалка для inactive у /konto — Claude Code
+- Рішення Roman: magic-link шлеться незалежно від статусу, окремий inactive-notice email НЕ робимо.
+- Біля dimmed inactive-запису в списку `/konto` додано дію `Info` (іконка, лише для inactive) → мобільно-зручна модалка `resources/views/filament/members/inactive-info.blade.php`: запис неактивний, клієнт сам статус не змінює, для реактивації звернутися до DITIB Ahlen + контакти (тел./email/адреса з tap-лінками).
+- Phase 4 закрито без нових типів листів; admin-email guard і token cleanup уже були раніше.
+- Тест: `inactiveInfo` дія visible для inactive, hidden для active. Весь набір — 103 тести зелений.
+- Клік по всьому inactive-рядку відкриває Info-модалку (`recordAction` → `inactiveInfo`); активні рядки далі ведуть на перегляд. Іконки в модалці зафіксовано 20×20 (SVG-атрибути + inline-стилі, незалежно від Tailwind-build).
