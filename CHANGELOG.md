@@ -869,3 +869,25 @@
 - Під списком `/konto` додано technical system label (render-hook `RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER` → `filament.system-info`), як під таблицею Mitglieder в адмінці; версія/дата підтягуються з `config/system-version.json`.
 - Додано `tests/Feature/MemberSelfEditTest.php` (7 кейсів: edit→processing, no-op, forge protected, lastschrift-guard, inactive view/edit заборонено, dimmed list, чужий email) + тест label під списком `/konto`. Весь набір — 95 тестів зелений.
 - Оновлено `PROJECT.md` (факти Phase 3 + label + залишок 3c/Phase 4/5/6).
+
+### [2026-05-29 18:45] SEPA re-consent для member-edit (3c) — Claude Code
+- Рішення Roman: DSGVO і SEPA розділені. Додано окрему колонку `members.sepa_zustimmung_at` (міграція `2026_05_29_151717_add_sepa_zustimmung_at_to_members_table`), `zustimmung_at` лишається часом заявки/DSGVO.
+- Member-edit: будь-яка зміна банк-даних (`zahlungsart`→`lastschrift` або зміна `iban`/`bic`/`kontoinhaber`/`kreditinstitut` при lastschrift) вимагає підтвердження SEPA-мандата через checkbox (`sepa_reconsent`, видимий тільки в member edit при lastschrift). На save: `sepa_zustimmung=true` + `sepa_zustimmung_at=now()`; без підтвердження зміна не зберігається. `sepa_zustimmung*` лишаються system-controlled (поза allowlist), `zustimmung_at` не чіпається.
+- `MemberForm` показує `SEPA-Zustimmung am` (read-only) коли є SEPA-згода.
+- Checkbox re-consent з'являється лише коли банк-дані фактично відрізняються від збереженого запису (`MemberForm::bankDataChanged()` через `$get` vs `$record`), а не одразу при lastschrift. Видимість дзеркалить серверну умову «банк змінився», тож UI і backend узгоджені; `dehydrated(true)` тримає server-логіку незалежно від видимості.
+- Банк-поля (`zahlungsart`/`kontoinhaber`/`iban`/`bic`/`kreditinstitut`) переведено на `->live()` (замість `onBlur`): зміна синхронізується одразу, тож checkbox з'являється без потреби «клікнути деінде», і нове значення гарантовано доходить до сервера при save (закрито щілину «зберіг без згоди»).
+- Замінено проміжний блок-guard Phase 3 на повний re-consent flow.
+- Виправлено: публічна реєстрація Lastschrift тепер ставить `sepa_zustimmung_at=now()` (раніше мандат був true, а дата порожня). Бекфіл існуючих SEPA-членів `sepa_zustimmung_at = zustimmung_at` додано в deploy-SQL і застосовано локально.
+- Підготовлено phpMyAdmin SQL `deploy-artifacts/production-add-sepa-zustimmung-at-release-20260529.sql` (ALTER + backfill).
+- Тести: 4 нові 3c-кейси (switch з/без re-consent, зміна IBAN з/без, non-bank без re-consent, `zustimmung_at` недоторканий). Весь набір — 98 тестів зелений.
+
+### [2026-05-29 19:05] Інваріант: без Lastschrift — без SEPA-мандата і банк-даних — Claude Code
+- Виявлено: при `Lastschrift → Barzahlung` старий SEPA-мандат лишався (`sepa_zustimmung=true`, timestamp, `iban` у БД).
+- Рішення Roman: очищати і згоду, і банк-дані. Реалізовано як `Member` saving-hook (доменний інваріант для admin/member/public): якщо `zahlungsart` ≠ `lastschrift` → `sepa_zustimmung=false`, `sepa_zustimmung_at=null`, `iban`/`bic`/`kontoinhaber`/`kreditinstitut`=null.
+- Менше PII (DSGVO-мінімізація), нема «застряглого» мандата у Status & Verwaltung.
+- Додано тест `switching_away_from_lastschrift_clears_mandate_and_bank_data`. Весь набір — 99 тестів зелений.
+
+### [2026-06-01 10:30] Блок Beitrag & Bankverbindung read-only для admin — Claude Code
+- За рішенням Roman: внесок і банк-дані веде член через `/konto`, тож для admin весь блок `Beitrag & Bankverbindung` тепер read-only (`disabled` на рівні секції в admin-контексті `MemberForm`; member-контекст лишається редагованим). Безпека + єдине джерело правди.
+- Disabled-поля admin не дегідруються → admin save їх не перезаписує; інваріант моделі (без lastschrift — без банк-даних) лишається на `$member->zahlungsart`.
+- Тести: admin — `monatsbeitrag`/`zahlungsart` disabled; member — enabled. Весь набір — 102 тести зелений.

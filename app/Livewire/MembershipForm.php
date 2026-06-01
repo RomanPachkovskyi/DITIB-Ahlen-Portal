@@ -494,6 +494,7 @@ class MembershipForm extends Component
                     'kreditinstitut' => $this->zahlungsart === 'lastschrift' ? ($this->kreditinstitut ?: null) : null,
                     'unterschrift' => '', // TODO: canvas підпис
                     'sepa_zustimmung' => $this->zahlungsart === 'lastschrift',
+                    'sepa_zustimmung_at' => $this->zahlungsart === 'lastschrift' ? now() : null,
                     'dsgvo_zustimmung' => $this->dsgvo_zustimmung,
                     'zustimmung_at' => now(),
                     'status' => 'pending',

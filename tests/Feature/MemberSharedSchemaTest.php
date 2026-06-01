@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Filament\Member\Resources\MemberAccounts\MemberAccountResource;
 use App\Filament\Resources\Members\MemberResource;
+use App\Filament\Resources\Members\Pages\EditMember;
 use App\Models\Member;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class MemberSharedSchemaTest extends TestCase
@@ -74,6 +76,22 @@ class MemberSharedSchemaTest extends TestCase
             ->assertSee('Status')
             // No photo → admin also does not see Foto-Einwilligung.
             ->assertDontSee('Foto-Einwilligung');
+    }
+
+    public function test_admin_cannot_edit_contribution_or_bank_block(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs(User::create([
+            'name' => 'Admin',
+            'email' => 'rpachkovskyi@gmail.com',
+            'password' => 'secret',
+        ]));
+
+        $member = $this->makeMember(['email' => 'someone@example.com']);
+
+        Livewire::test(EditMember::class, ['record' => $member->member_number])
+            ->assertFormFieldIsDisabled('monatsbeitrag')
+            ->assertFormFieldIsDisabled('zahlungsart');
     }
 
     private function makeMember(array $attributes = []): Member

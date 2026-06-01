@@ -519,6 +519,11 @@ class MembershipFormTest extends TestCase
 
         $this->assertSame('DE42400501500068000959', Member::where('email', 'erika@example.com')->value('iban'));
 
+        // SEPA mandate at registration must carry its own consent timestamp.
+        $erika = Member::where('email', 'erika@example.com')->first();
+        $this->assertTrue($erika->sepa_zustimmung);
+        $this->assertNotNull($erika->sepa_zustimmung_at);
+
         Event::assertDispatched(MemberRegistered::class);
     }
 

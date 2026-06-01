@@ -152,7 +152,8 @@
 - [x] Self-service edit (Phase 3 core): сторінка `EditMemberAccount`, кнопка `Bearbeiten` на `Vorschau`, redirect на view після save. Доступ — лише власні **не-inactive** записи (`canView`/`canEdit`). Save проходить через server-side allowlist `MemberFormContext::onlyMemberEditable()`; будь-яка реальна зміна переводить `pending`/`active` у `processing`; no-op save статус не змінює.
 - [x] Inactive записи у списку `/konto` показуються dimmed (`opacity-50`) і не клікабельні; `canView`/`canEdit` для них `false` (не відкрити навіть прямим URL).
 - [x] Під списком `/konto` показується technical system label (`vX.XXX - Update: DD.MM.YYYY - by Munas-Print`), так само як під таблицею Mitglieder в адмінці (render-hook `RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER` → `filament.system-info`).
-- [x] Перехід `zahlungsart` → `lastschrift` без наявної SEPA-згоди у member-edit поки **блокується** (повний re-consent UX — окремий під-зріз 3c). Photo replace через `/konto` у v1 не ввімкнено.
+- [x] SEPA re-consent (3c): будь-яка зміна банк-даних у member-edit (`zahlungsart`→`lastschrift` або зміна `iban`/`bic`/`kontoinhaber`/`kreditinstitut` при lastschrift) вимагає підтвердження SEPA-мандата через checkbox; на save ставиться `sepa_zustimmung=true` + окрема колонка `sepa_zustimmung_at=now()`. `zustimmung_at` (DSGVO/заявка) не чіпається. Без підтвердження зміна не зберігається. Photo replace через `/konto` у v1 не ввімкнено.
+- [x] Доменний інваріант (`Member` saving-hook, діє для admin/member/public): якщо `zahlungsart` не `lastschrift`, то `sepa_zustimmung`, `sepa_zustimmung_at`, `iban`, `bic`, `kontoinhaber`, `kreditinstitut` автоматично очищаються — без Lastschrift не лишається ні SEPA-мандата, ні банк-даних (менше PII, нема «застряглого» мандата).
 - [x] Список `/konto` має ті самі дефолтні колонки, що admin: `Nr. / Name / Status / E-Mail / Ort / Beitrag/Mo. / Eingegangen am`.
 - [x] Фото-consent поля (`Foto-Einwilligung` тумблер і `Foto-Einwilligung am`) показуються лише коли є збережене фото (`profile_photo_path !== null`) — для обох панелей.
 - [x] Фото профілю показується у view кожного доступного запису через protected route `members.profile-photo`.
@@ -166,7 +167,8 @@
 - [ ] Production QA `/konto`, включно з magic-link email delivery, одноразовим входом і profile photo display, після deploy access flow.
 - [x] Shared member schema для `/konto` — зроблено (Phase 2): спільний `MemberForm` із контекстами admin/member.
 - [x] Self-service edit для `/konto` (Phase 3 core) — зроблено: edit власних не-inactive записів, allowlist save, статус→`processing`, dimmed/заблоковані inactive.
-- [ ] Залишок навколо self-service edit: SEPA re-consent UX при переході на `lastschrift` (3c); audit log змін (Phase 5); email адміну після member-edit (Phase 6); inactive-login suppression + notice (Phase 4).
+- [x] SEPA re-consent UX (3c) — зроблено: окрема колонка `sepa_zustimmung_at`, checkbox-підтвердження при зміні банк-даних.
+- [ ] Залишок навколо self-service edit: audit log змін (Phase 5); email адміну після member-edit (Phase 6); inactive-login suppression + notice (Phase 4).
 - [ ] Детальний робочий план цієї задачі ведеться в тимчасовому документі `docs/member-account-editing-audit-plan.md`; після реалізації фінальні рішення перенести назад у `PROJECT.md`.
 - [ ] `Änderungsantrag` / approval workflow лишається можливим майбутнім напрямком, але поточний план self-service edit базується на прямому редагуванні з audit log і статусом `processing`.
 
@@ -212,6 +214,7 @@
 - Звичайний процес завершення членства: перевести запис у `inactive`, не видаляти.
 - Soft delete лишається технічно в системі, але не є адмінською UI-дією; `member_number` не звільняється навіть для inactive або soft-deleted записів.
 - Admin consent fields — SEPA/DSGVO consent і `zustimmung_at` — лишаються read-only.
+- Весь блок `Beitrag & Bankverbindung` (внесок + банк-дані) у admin edit — **read-only**; ці дані веде член через `/konto` (єдине джерело правди + безпека). Реалізовано `disabled` на рівні секції в member-контексті `MemberForm`.
 - Filament-specific brand/UI правила тримати у спільному `filament.panel-style` для всіх panels; panel-specific override файли використовувати тільки для поведінки конкретної панелі.
 
 ### Email
@@ -293,6 +296,7 @@
 - [x] `scripts/build-artifact.sh` автоматично піднімає technical version у `config/system-version.json`.
 - [x] Production photo data живе поза Laravel-проєктом у `Home directory/ditib-portal-data/member-photos`.
 - [x] Для magic-link access migration підготовлено phpMyAdmin SQL `deploy-artifacts/production-member-login-tokens-release-20260529.sql`.
+- [x] Для колонки `sepa_zustimmung_at` підготовлено phpMyAdmin SQL `deploy-artifacts/production-add-sepa-zustimmung-at-release-20260529.sql` (виконати при наступному deploy).
 
 **Заплановано / хочемо додати:**
 - [ ] При кожній новій migration готувати SQL-файл у `deploy-artifacts/` для phpMyAdmin.
@@ -339,6 +343,7 @@
 | kreditinstitut | string | nullable |
 | unterschrift | text | legacy/future placeholder для base64 PNG підпису, hidden; canvas-підпис ще не реалізований |
 | sepa_zustimmung | boolean | |
+| sepa_zustimmung_at | timestamp | nullable; час SEPA-згоди, окремий від `zustimmung_at` (DSGVO/заявка); ставиться при member SEPA re-consent |
 | dsgvo_zustimmung | boolean | |
 | zustimmung_at | timestamp | |
 | status | enum | pending / processing / active / inactive; `pending` показується як `Neu`, `processing` як `Verarbeitung` |
@@ -385,6 +390,7 @@
 - Public URLs для `Member` використовують `member_number` через Laravel route model binding (`Member::getRouteKeyName()`), не auto-increment `id`
 - `inactive` — нормальний адміністративний статус для колишніх/неактивних членів; не видаляти записи через UI
 - SEPA/DSGVO consent fields і `zustimmung_at` у admin edit є read-only фактами; адмін не редагує згоду клієнта
+- Блок `Beitrag & Bankverbindung` у admin edit read-only; внесок і банк-дані змінює лише член через `/konto`
 - `$hidden` у моделі НЕ використовувати для IBAN/BIC (блокує Filament форму)
 - Члени в `/konto` бачать тільки записи з `members.email`, що збігається з email authenticated user; якщо один email використано для кількох членів родини/фірми, усі ці записи вважаються доступними цьому користувачу
 - Admin і member ділять одну таблицю `users` і один web guard; щоб magic-link не створив admin-capable сесію, member magic-link не видається для admin email (`User::isAdminEmail()` перевіряється і в `createForEmail()`, і в `consume()`). Розділення на окремий member guard — майбутнє покращення

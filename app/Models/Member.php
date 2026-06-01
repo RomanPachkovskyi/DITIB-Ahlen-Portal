@@ -48,6 +48,7 @@ class Member extends Model
         'kreditinstitut',
         'unterschrift',
         'sepa_zustimmung',
+        'sepa_zustimmung_at',
         'dsgvo_zustimmung',
         'zustimmung_at',
         'status',
@@ -58,6 +59,7 @@ class Member extends Model
         'birth_date' => 'date',
         'zustimmung_at' => 'datetime',
         'sepa_zustimmung' => 'boolean',
+        'sepa_zustimmung_at' => 'datetime',
         'dsgvo_zustimmung' => 'boolean',
         'monatsbeitrag' => 'decimal:2',
         'cenaze_fonu' => 'boolean',
@@ -82,6 +84,20 @@ class Member extends Model
         static::creating(function (Member $member) {
             if (empty($member->member_number)) {
                 $member->member_number = MemberNumberSequence::issueForMembers();
+            }
+        });
+
+        // Domain invariant: a SEPA mandate and bank data only exist while the
+        // payment method is Lastschrift. Switching to Barzahlung/Dauerauftrag
+        // (admin, member or public form) clears them — no stale mandate, less PII.
+        static::saving(function (Member $member) {
+            if ($member->zahlungsart !== 'lastschrift') {
+                $member->sepa_zustimmung = false;
+                $member->sepa_zustimmung_at = null;
+                $member->iban = null;
+                $member->bic = null;
+                $member->kontoinhaber = null;
+                $member->kreditinstitut = null;
             }
         });
 

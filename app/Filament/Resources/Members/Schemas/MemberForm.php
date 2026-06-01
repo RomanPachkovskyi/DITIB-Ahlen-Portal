@@ -7,6 +7,7 @@ use App\Support\Iban;
 use App\Support\Instagram;
 use App\Support\MemberStatus;
 use App\Support\PhoneNumber;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
@@ -27,6 +28,20 @@ class MemberForm
     {
         // Admin entry point — unchanged behaviour.
         return self::build($schema, MemberFormContext::AdminEdit);
+    }
+
+    /**
+     * Whether the bank-related form fields differ from the stored record.
+     * Mirrors the server-side rule in EditMemberAccount so the SEPA re-consent
+     * checkbox appears exactly when consent will be required.
+     */
+    protected static function bankDataChanged($get, Member $record): bool
+    {
+        return $get('zahlungsart') !== $record->zahlungsart
+            || Iban::normalize($get('iban')) !== (string) $record->iban
+            || (string) $get('bic') !== (string) $record->bic
+            || (string) $get('kontoinhaber') !== (string) $record->kontoinhaber
+            || (string) $get('kreditinstitut') !== (string) $record->kreditinstitut;
     }
 
     /**
@@ -203,6 +218,10 @@ class MemberForm
                         Toggle::make('sepa_zustimmung')
                             ->label('SEPA-Lastschriftmandat')
                             ->disabledOn('edit'),
+                        DateTimePicker::make('sepa_zustimmung_at')
+                            ->label('SEPA-Zustimmung am')
+                            ->visible(fn ($get): bool => (bool) $get('sepa_zustimmung'))
+                            ->disabledOn('edit'),
                         Toggle::make('dsgvo_zustimmung')
                             ->label('Datenschutzerklärung')
                             ->disabledOn('edit'),
@@ -224,6 +243,9 @@ class MemberForm
 
                 Section::make('Beitrag & Bankverbindung')
                     ->columns(2)
+                    // Beitrag/Bankverbindung is member-managed via /konto; for admin
+                    // the whole block is read-only (security + single source of truth).
+                    ->disabled(! $isMember)
                     ->schema([
                         TextInput::make('monatsbeitrag')
                             ->label('Monatlicher Mitgliedsbeitrag (€)')
@@ -252,7 +274,10 @@ class MemberForm
                             ->visible(fn ($get) => $get('zahlungsart') === 'lastschrift')
                             ->required(fn ($get) => $get('zahlungsart') === 'lastschrift')
                             ->regex('/^[\pL\s\-]+$/u')
-                            ->live(onBlur: true),
+                            // live() (not onBlur): bank changes must sync immediately so
+                            // the SEPA re-consent checkbox appears and the change reaches
+                            // the server even if the user clicks Save without blurring.
+                            ->live(),
                         TextInput::make('iban')
                             ->label('IBAN')
                             ->visible(fn ($get) => $get('zahlungsart') === 'lastschrift')
@@ -264,17 +289,34 @@ class MemberForm
                                     $fail('Ungültige IBAN.');
                                 }
                             })
-                            ->live(onBlur: true)
+                            ->live()
                             ->columnSpanFull(),
                         TextInput::make('bic')
                             ->label('BIC')
                             ->visible(fn ($get) => $get('zahlungsart') === 'lastschrift')
-                            ->live(onBlur: true),
+                            ->live(),
                         TextInput::make('kreditinstitut')
                             ->label('Kreditinstitut')
                             ->visible(fn ($get) => $get('zahlungsart') === 'lastschrift')
                             ->regex('/^[\pL\s\-]+$/u')
-                            ->live(onBlur: true),
+                            ->live(),
+                        // Member self-edit only: a fresh SEPA mandate must be
+                        // confirmed whenever bank data changes (Roman's
+                        // decision 5). Not a Member column — EditMemberAccount
+                        // reads it and sets sepa_zustimmung + sepa_zustimmung_at.
+                        Checkbox::make('sepa_reconsent')
+                            ->label('Ich bestätige das SEPA-Lastschriftmandat für diese Bankverbindung.')
+                            ->dehydrated(true)
+                            // Member edit only, and only once the bank data actually
+                            // differs from the stored record — this mirrors the
+                            // server-side "bank changed" rule, so the checkbox shows
+                            // exactly when consent is required (no nagging otherwise).
+                            ->visible(fn ($get, ?Member $record, string $operation): bool => $isMember
+                                && $operation === 'edit'
+                                && $get('zahlungsart') === 'lastschrift'
+                                && $record instanceof Member
+                                && self::bankDataChanged($get, $record))
+                            ->columnSpanFull(),
                     ]),
 
             ]);

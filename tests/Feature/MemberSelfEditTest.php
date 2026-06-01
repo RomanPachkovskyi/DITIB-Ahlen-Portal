@@ -66,7 +66,7 @@ class MemberSelfEditTest extends TestCase
         $this->assertSame('family@example.com', $member->email);
     }
 
-    public function test_switching_to_lastschrift_without_consent_is_blocked(): void
+    public function test_switching_to_lastschrift_without_reconsent_is_blocked(): void
     {
         $this->actingAsMember('family@example.com');
         $member = $this->makeMember([
@@ -83,10 +83,158 @@ class MemberSelfEditTest extends TestCase
                 'iban' => 'DE89370400440532013000',
             ])
             ->call('save')
-            ->assertHasFormErrors(['zahlungsart']);
+            ->assertHasFormErrors(['sepa_reconsent']);
 
         $member->refresh();
         $this->assertSame('barzahlung', $member->zahlungsart);
+        $this->assertFalse($member->sepa_zustimmung);
+    }
+
+    public function test_switching_to_lastschrift_with_reconsent_records_sepa_consent_only(): void
+    {
+        $this->actingAsMember('family@example.com');
+        $member = $this->makeMember([
+            'email' => 'family@example.com',
+            'status' => 'active',
+            'zahlungsart' => 'barzahlung',
+            'sepa_zustimmung' => false,
+            'zustimmung_at' => '2026-01-01 10:00:00',
+        ]);
+
+        Livewire::test(EditMemberAccount::class, ['record' => $member->member_number])
+            ->fillForm([
+                'zahlungsart' => 'lastschrift',
+                'kontoinhaber' => 'Max Mustermann',
+                'iban' => 'DE89370400440532013000',
+            ])
+            ->set('data.sepa_reconsent', true)
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $member->refresh();
+        $this->assertSame('lastschrift', $member->zahlungsart);
+        $this->assertTrue($member->sepa_zustimmung);
+        $this->assertNotNull($member->sepa_zustimmung_at);
+        // DSGVO / application consent timestamp is untouched.
+        $this->assertSame('2026-01-01 10:00:00', $member->zustimmung_at->format('Y-m-d H:i:s'));
+        $this->assertSame('processing', $member->status);
+    }
+
+    public function test_changing_iban_while_lastschrift_requires_reconsent(): void
+    {
+        $this->actingAsMember('family@example.com');
+        $member = $this->makeMember([
+            'email' => 'family@example.com',
+            'status' => 'active',
+            'zahlungsart' => 'lastschrift',
+            'sepa_zustimmung' => true,
+            'kontoinhaber' => 'Max Mustermann',
+            'iban' => 'DE89370400440532013000',
+            'kreditinstitut' => 'Testbank',
+        ]);
+
+        // Without re-consent: blocked.
+        Livewire::test(EditMemberAccount::class, ['record' => $member->member_number])
+            ->fillForm(['iban' => 'DE02120300000000202051'])
+            ->call('save')
+            ->assertHasFormErrors(['sepa_reconsent']);
+
+        $member->refresh();
+        $this->assertSame('DE89370400440532013000', $member->iban);
+
+        // With re-consent: saved and SEPA timestamp refreshed.
+        Livewire::test(EditMemberAccount::class, ['record' => $member->member_number])
+            ->fillForm(['iban' => 'DE02120300000000202051'])
+            ->set('data.sepa_reconsent', true)
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $member->refresh();
+        $this->assertSame('DE02120300000000202051', $member->iban);
+        $this->assertNotNull($member->sepa_zustimmung_at);
+    }
+
+    public function test_non_bank_change_while_lastschrift_needs_no_reconsent(): void
+    {
+        $this->actingAsMember('family@example.com');
+        $member = $this->makeMember([
+            'email' => 'family@example.com',
+            'status' => 'active',
+            'zahlungsart' => 'lastschrift',
+            'sepa_zustimmung' => true,
+            'kontoinhaber' => 'Max Mustermann',
+            'iban' => 'DE89370400440532013000',
+            'sepa_zustimmung_at' => '2026-01-01 10:00:00',
+        ]);
+
+        Livewire::test(EditMemberAccount::class, ['record' => $member->member_number])
+            ->fillForm(['full_name' => 'Neuer Name'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $member->refresh();
+        $this->assertSame('Neuer Name', $member->full_name);
+        // SEPA consent timestamp not touched by a non-bank change.
+        $this->assertSame('2026-01-01 10:00:00', $member->sepa_zustimmung_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_member_can_edit_contribution_and_bank_block(): void
+    {
+        $this->actingAsMember('family@example.com');
+        $member = $this->makeMember(['email' => 'family@example.com', 'status' => 'active']);
+
+        Livewire::test(EditMemberAccount::class, ['record' => $member->member_number])
+            ->assertFormFieldIsEnabled('monatsbeitrag')
+            ->assertFormFieldIsEnabled('zahlungsart');
+    }
+
+    public function test_sepa_reconsent_checkbox_appears_only_after_bank_data_changes(): void
+    {
+        $this->actingAsMember('family@example.com');
+        $member = $this->makeMember([
+            'email' => 'family@example.com',
+            'status' => 'active',
+            'zahlungsart' => 'lastschrift',
+            'sepa_zustimmung' => true,
+            'kontoinhaber' => 'Max Mustermann',
+            'iban' => 'DE89370400440532013000',
+            'kreditinstitut' => 'Testbank',
+        ]);
+
+        Livewire::test(EditMemberAccount::class, ['record' => $member->member_number])
+            ->assertFormFieldIsHidden('sepa_reconsent')
+            ->fillForm(['iban' => 'DE02120300000000202051'])
+            ->assertFormFieldIsVisible('sepa_reconsent');
+    }
+
+    public function test_switching_away_from_lastschrift_clears_mandate_and_bank_data(): void
+    {
+        $this->actingAsMember('family@example.com');
+        $member = $this->makeMember([
+            'email' => 'family@example.com',
+            'status' => 'active',
+            'zahlungsart' => 'lastschrift',
+            'sepa_zustimmung' => true,
+            'sepa_zustimmung_at' => '2026-01-01 10:00:00',
+            'kontoinhaber' => 'Max Mustermann',
+            'iban' => 'DE89370400440532013000',
+            'bic' => 'COBADEFFXXX',
+            'kreditinstitut' => 'Testbank',
+        ]);
+
+        Livewire::test(EditMemberAccount::class, ['record' => $member->member_number])
+            ->fillForm(['zahlungsart' => 'barzahlung'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $member->refresh();
+        $this->assertSame('barzahlung', $member->zahlungsart);
+        $this->assertFalse($member->sepa_zustimmung);
+        $this->assertNull($member->sepa_zustimmung_at);
+        $this->assertNull($member->iban);
+        $this->assertNull($member->bic);
+        $this->assertNull($member->kontoinhaber);
+        $this->assertNull($member->kreditinstitut);
     }
 
     public function test_member_cannot_open_or_edit_inactive_record(): void

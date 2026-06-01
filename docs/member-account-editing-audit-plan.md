@@ -116,7 +116,7 @@ Konto зараз використовує окрему коротку schema:
 
 - `admin_notiz`.
 
-Consent fields у загальному випадку read-only. Виняток (Рішення Roman 4): якщо клієнт перемикає `zahlungsart` на `lastschrift`, потрібне нове підтвердження SEPA-згоди — клієнт наново бере на себе відповідальність, `sepa_zustimmung` і відповідний timestamp фіксуються заново. Без цього підтвердження перехід на `lastschrift` не зберігається. DSGVO/photo consent клієнт у v1 не змінює.
+Consent fields у загальному випадку read-only. Виняток (Рішення Roman 5): re-consent SEPA потрібен при будь-якій зміні банк-даних (`zahlungsart`→`lastschrift` або зміна `iban`/`bic`/`kontoinhaber`/`kreditinstitut` при активному lastschrift) — клієнт наново бере відповідальність, `sepa_zustimmung=true` і окрема колонка `sepa_zustimmung_at=now()`. `zustimmung_at` (час заявки/DSGVO) не чіпати — DSGVO і SEPA розділені. Без підтвердження зміна не зберігається. DSGVO/photo consent клієнт у v1 не змінює.
 
 ## Логіка Редагування В `/konto`
 
@@ -573,4 +573,6 @@ Manual QA:
 2. **Список `/konto` = як у admin.** Ті самі колонки (`member_number`, name, `status` badge, city). Це безпечно, бо admin-таблиця не виводить нічого справді прихованого: `admin_notiz` не є колонкою. Наслідок: `status` видимий клієнту (read-only) і в списку, і в detail; справді прихований тільки `admin_notiz`. `status` клієнт ніколи не редагує.
 3. **`email` — не редагується клієнтом у v1** (ключ доступу). Пізніше тільки через double opt-in. (Залишається без змін.)
 4. **`monatsbeitrag` редагований, мінімум EUR 10** — центральне правило для public/admin/member. Member може і збільшувати, і зменшувати, але не нижче EUR 10.
-5. **`zahlungsart` → `lastschrift` вимагає нової SEPA-згоди.** Клієнт при кожній такій зміні наново бере відповідальність: показати SEPA-consent checkbox, зберегти `sepa_zustimmung` + новий timestamp; без підтвердження перехід на `lastschrift` не зберігається. `sepa_zustimmung` лишається system-controlled (не вільне поле allowlist) — встановлюється тільки через цей явний consent-крок.
+5. **Зміна банк-даних вимагає нової SEPA-згоди (3c).** Re-consent потрібен при **будь-якій зміні банк-даних**: перехід `zahlungsart` → `lastschrift` АБО зміна `iban`/`bic`/`kontoinhaber`/`kreditinstitut`, коли активний `lastschrift`. Клієнт наново бере відповідальність: показати SEPA-consent checkbox (видимий при lastschrift у member edit), вимагати `accepted`; на save виставити `sepa_zustimmung = true` і записати **окрему колонку `sepa_zustimmung_at = now()`**. `zustimmung_at` НЕ чіпати — це час заявки/DSGVO-згоди (Рішення Roman: DSGVO і SEPA розділені). Без підтвердження зміна банк-даних/перехід на lastschrift не зберігається. `sepa_zustimmung` лишається system-controlled (не вільне поле allowlist) — ставиться тільки через цей явний consent-крок.
+   - Нова колонка `sepa_zustimmung_at` (timestamp, nullable) — потрібна міграція + production SQL для phpMyAdmin (Phase 8).
+   - Поточний стан до 3c (Phase 3 core): перехід на lastschrift без наявної згоди просто блокується; повний checkbox-UX — це 3c.
