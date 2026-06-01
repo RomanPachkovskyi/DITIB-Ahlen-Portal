@@ -22,6 +22,8 @@
 <x-slot:footer>
 <x-mail::footer>
 © {{ date('Y') }} {{ config('mail.brand.footer', config('mail.brand.name', config('app.name'))) }}
+
+[ditib-ahlen-projekte.de](https://ditib-ahlen-projekte.de/)
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>

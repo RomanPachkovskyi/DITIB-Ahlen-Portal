@@ -36,6 +36,14 @@ class MemberMagicLoginService
             return null;
         }
 
+        // Revoke any still-active tokens for this email so only the newest link
+        // is valid at any given time.
+        MemberLoginToken::query()
+            ->where('email', $email)
+            ->whereNull('used_at')
+            ->where('expires_at', '>', now())
+            ->delete();
+
         // Auto-clean spent tokens whenever a new one is issued, so used/expired
         // rows (which hold ip_address/user_agent PII) never accumulate. No cron
         // or manual command is required for routine cleanup.

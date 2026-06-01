@@ -150,7 +150,7 @@
 - [x] Detail URLs використовують `member_number`, наприклад `/konto/mitgliedschaften/DA-2026-0001`; внутрішній DB `id` у URL не використовується.
 - [x] Resource query і route binding scoped за email поточного користувача; записи з іншими email не відкриваються через URL.
 - [x] `/konto` використовує спільну з admin схему (`MemberForm::build(..., MemberFormContext::MemberView)`): клієнт бачить майже повну картку (`Persönliche Daten` / `Status & Verwaltung` / `Beitrag & Bankverbindung`), мінус admin-only поля. `status` показується read-only, `admin_notiz` прихований, `email` read-only.
-- [x] Self-service edit (Phase 3 core): сторінка `EditMemberAccount`, кнопка `Bearbeiten` на `Vorschau`, redirect на view після save. Доступ — лише власні **не-inactive** записи (`canView`/`canEdit`). Save проходить через server-side allowlist `MemberFormContext::onlyMemberEditable()`; будь-яка реальна зміна переводить `pending`/`active` у `processing`; no-op save статус не змінює.
+- [x] Self-service edit (Phase 3 core): сторінка `EditMemberAccount`, кнопка `Bearbeiten` на `Vorschau`, redirect на view після save. Доступ — лише власні **не-inactive** записи (`canView`/`canEdit`). Save проходить через server-side allowlist `MemberFormContext::onlyMemberEditable()`; будь-яка реальна зміна переводить `pending`/`active` у `processing`; no-op save статус не змінює. View і edit у `/konto` обидва використовують `MemberFormContext::MemberView` — поля обмежені на рівні секцій (`disabled`), окремий `MemberEdit` контекст не потрібен.
 - [x] Inactive записи у списку `/konto` показуються dimmed (`opacity-50`) і не клікабельні; `canView`/`canEdit` для них `false` (не відкрити навіть прямим URL). Біля такого рядка є дія `Info` (іконка) → модалка з поясненням статусу і контактами DITIB Ahlen (мобільно-зручно, без окремого листа).
 - [x] Під списком `/konto` показується technical system label (`vX.XXX - Update: DD.MM.YYYY - by Munas-Print`), так само як під таблицею Mitglieder в адмінці (render-hook `RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER` → `filament.system-info`).
 - [x] SEPA re-consent (3c): будь-яка зміна банк-даних у member-edit (`zahlungsart`→`lastschrift` або зміна `iban`/`bic`/`kontoinhaber`/`kreditinstitut` при lastschrift) вимагає підтвердження SEPA-мандата через checkbox; на save ставиться `sepa_zustimmung=true` + окрема колонка `sepa_zustimmung_at=now()`. `zustimmung_at` (DSGVO/заявка) не чіпається. Без підтвердження зміна не зберігається. Photo replace через `/konto` у v1 не ввімкнено.
@@ -159,7 +159,7 @@
 - [x] Фото-consent поля (`Foto-Einwilligung` тумблер і `Foto-Einwilligung am`) показуються лише коли є збережене фото (`profile_photo_path !== null`) — для обох панелей.
 - [x] Фото профілю показується у view кожного доступного запису через protected route `members.profile-photo`.
 - [x] `/konto/login` використовує email-only magic-link flow: користувач вводить email, отримує одноразове посилання на пошту, link дійсний 60 хвилин і використовується один раз.
-- [x] Magic-link токени зберігаються в `member_login_tokens` тільки як SHA-256 hash; `used_at` блокує повторне використання.
+- [x] Magic-link токени зберігаються в `member_login_tokens` тільки як SHA-256 hash; `used_at` блокує повторне використання. Для одного email одночасно може існувати тільки один активний токен: при видачі нового всі попередні активні токени того ж email видаляються (`createForEmail()` до запису нового).
 - [x] Якщо email не знайдений у `members`, UI показує нейтральне повідомлення без розкриття, чи є така адреса в базі.
 - [x] Member magic-link не видається для admin email (`User::isAdminEmail()`): admin і member ділять один `User`/web guard, тому magic-link для admin email створив би admin-capable сесію. `createForEmail()` і `consume()` відмовляють такому email, UI лишається нейтральним, спроба логується як security warning. Admin входить тільки через `/admin`.
 - [x] Spent (used/expired) magic-link токени видаляються автоматично при кожній видачі нового лінка через `MemberLoginToken::pruneSpent()`, тому `ip_address`/`user_agent` не накопичуються; cron не потрібен. Опційна команда `php artisan member:prune-login-tokens` (`--keep-hours=N`) лишається тільки для разового ops-purge.
@@ -169,7 +169,7 @@
 - [x] Shared member schema для `/konto` — зроблено (Phase 2): спільний `MemberForm` із контекстами admin/member.
 - [x] Self-service edit для `/konto` (Phase 3 core) — зроблено: edit власних не-inactive записів, allowlist save, статус→`processing`, dimmed/заблоковані inactive.
 - [x] SEPA re-consent UX (3c) — зроблено: окрема колонка `sepa_zustimmung_at`, checkbox-підтвердження при зміні банк-даних.
-- [ ] Залишок навколо self-service edit: audit log змін (Phase 5); email адміну після member-edit (Phase 6); inactive-login suppression + notice (Phase 4).
+- [ ] Залишок навколо self-service edit: audit log змін (Phase 5); email адміну після member-edit (Phase 6).
 - [ ] Детальний робочий план цієї задачі ведеться в тимчасовому документі `docs/member-account-editing-audit-plan.md`; після реалізації фінальні рішення перенести назад у `PROJECT.md`.
 - [ ] `Änderungsantrag` / approval workflow лишається можливим майбутнім напрямком, але поточний план self-service edit базується на прямому редагуванні з audit log і статусом `processing`.
 
@@ -206,6 +206,7 @@
 - [x] Під кнопкою `Anmelden` на `/admin/login` є лінк `Sind Sie Mitglied? Zum Mitgliedskonto →` на `/konto` (для тих, хто випадково зайшов на admin-логін).
 - [x] Під таблицею Mitglieder справа показується technical system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`.
 - [x] Login-форми `/admin` і `/konto` показують technical system label під формою справа, щоб адмін і користувач бачили актуальну версію до входу.
+- [x] Блок `Beitrag & Bankverbindung` в admin edit — **read-only** (member веде ці дані сам через `/konto`).
 
 **Заплановано / хочемо додати:**
 - [ ] Фінальний language polish адмін-панелі німецькою.
@@ -216,7 +217,7 @@
 - Звичайний процес завершення членства: перевести запис у `inactive`, не видаляти.
 - Soft delete лишається технічно в системі, але не є адмінською UI-дією; `member_number` не звільняється навіть для inactive або soft-deleted записів.
 - Admin consent fields — SEPA/DSGVO consent і `zustimmung_at` — лишаються read-only.
-- Весь блок `Beitrag & Bankverbindung` (внесок + банк-дані) у admin edit — **read-only**; ці дані веде член через `/konto` (єдине джерело правди + безпека). Реалізовано `disabled` на рівні секції в member-контексті `MemberForm`.
+- Весь блок `Beitrag & Bankverbindung` у admin edit — **read-only** (`disabled` на рівні секції в `MemberForm`); ці дані веде тільки член через `/konto`.
 - Filament-specific brand/UI правила тримати у спільному `filament.panel-style` для всіх panels; panel-specific override файли використовувати тільки для поведінки конкретної панелі.
 
 ### Email
@@ -276,7 +277,7 @@
 **Працює зараз:**
 - [x] Немає production Excel export і глобального audit log; це свідомо ще не реалізовано.
 - [x] Існує legacy/future таблиця `change_requests`, але вона не є audit log і зараз не використовується як єдина система логування.
-- [x] Cleanup для `member_login_tokens` реалізовано: spent токени видаляються автоматично при видачі нового лінка (`MemberLoginToken::pruneSpent()`) + опційна команда `member:prune-login-tokens`. Це закриває retention тільки для login-токенів; глобальний audit log і його retention ще не реалізовані.
+- [x] Cleanup для `member_login_tokens` реалізовано: при видачі нового лінка (1) відкликаються всі попередні активні токени email, (2) spent (used/expired) токени видаляються через `MemberLoginToken::pruneSpent()`. Таблиця ніколи не накопичує ні активні токени, ні PII-рядки. Опційна команда `member:prune-login-tokens` — тільки для разового ops-purge. Закриває retention для login-токенів; глобальний audit log і його retention ще не реалізовані.
 
 **Заплановано / хочемо додати:**
 - [ ] Експорт таблиці членів громади в `.xlsx` із адмінки.
@@ -396,7 +397,7 @@
 - `$hidden` у моделі НЕ використовувати для IBAN/BIC (блокує Filament форму)
 - Члени в `/konto` бачать тільки записи з `members.email`, що збігається з email authenticated user; якщо один email використано для кількох членів родини/фірми, усі ці записи вважаються доступними цьому користувачу
 - Admin і member ділять одну таблицю `users` і один web guard; щоб magic-link не створив admin-capable сесію, member magic-link не видається для admin email (`User::isAdminEmail()` перевіряється і в `createForEmail()`, і в `consume()`). Розділення на окремий member guard — майбутнє покращення
-- `member_login_tokens` зберігає тільки SHA-256 hash токена + `ip_address`/`user_agent` (PII); spent (used/expired) токени автоматично видаляються при видачі нового лінка (`MemberLoginToken::pruneSpent()`), щоб ця таблиця не ставала відкритим архівом PII
+- `member_login_tokens` зберігає тільки SHA-256 hash токена + `ip_address`/`user_agent` (PII); при видачі нового лінка: (1) всі попередні активні токени того ж email видаляються — для одного email діє тільки один активний лінк; (2) spent (used/expired) токени видаляються через `MemberLoginToken::pruneSpent()`, щоб таблиця не ставала архівом PII
 - Майбутній member self-service edit зобовʼязаний використовувати server-side allowlist `MemberFormContext::onlyMemberEditable()` (deny-by-default); hidden/disabled поля у Filament НЕ вважаються захистом, бо Livewire-запит можна підробити. Заборонені для member-edit: `email`, `member_number`, `status`, `admin_notiz`, усі consent/timestamp і photo-path поля
 - Згода SEPA і DSGVO фіксується з timestamp при відправці форми; у публічній формі тексти згод мають посилання на `https://ditib-ahlen-projekte.de/datenschutz`
 - Авторитетний legal text для порталу і лендінгу ведеться в `../main/docs/legal-texts.md`; сторінка Datenschutz на лендінгу має залишатися синхронізованою з цим текстом, особливо для Mitgliedsantrag, SEPA/IBAN, членських даних і optional profile photos

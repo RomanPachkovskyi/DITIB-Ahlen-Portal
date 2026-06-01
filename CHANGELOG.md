@@ -887,20 +887,30 @@
 - Менше PII (DSGVO-мінімізація), нема «застряглого» мандата у Status & Verwaltung.
 - Додано тест `switching_away_from_lastschrift_clears_mandate_and_bank_data`. Весь набір — 99 тестів зелений.
 
-### [2026-06-01 10:30] Блок Beitrag & Bankverbindung read-only для admin — Claude Code
+### [2026-06-01 08:46] Блок Beitrag & Bankverbindung read-only для admin — Claude Code
 - За рішенням Roman: внесок і банк-дані веде член через `/konto`, тож для admin весь блок `Beitrag & Bankverbindung` тепер read-only (`disabled` на рівні секції в admin-контексті `MemberForm`; member-контекст лишається редагованим). Безпека + єдине джерело правди.
 - Disabled-поля admin не дегідруються → admin save їх не перезаписує; інваріант моделі (без lastschrift — без банк-даних) лишається на `$member->zahlungsart`.
 - Тести: admin — `monatsbeitrag`/`zahlungsart` disabled; member — enabled. Весь набір — 102 тести зелений.
 
-### [2026-06-01 11:10] Phase 4: Info-модалка для inactive у /konto — Claude Code
+### [2026-06-01 09:28] Phase 4: Info-модалка для inactive у /konto — Claude Code
 - Рішення Roman: magic-link шлеться незалежно від статусу, окремий inactive-notice email НЕ робимо.
 - Біля dimmed inactive-запису в списку `/konto` додано дію `Info` (іконка, лише для inactive) → мобільно-зручна модалка `resources/views/filament/members/inactive-info.blade.php`: запис неактивний, клієнт сам статус не змінює, для реактивації звернутися до DITIB Ahlen + контакти (тел./email/адреса з tap-лінками).
 - Phase 4 закрито без нових типів листів; admin-email guard і token cleanup уже були раніше.
 - Тест: `inactiveInfo` дія visible для inactive, hidden для active. Весь набір — 103 тести зелений.
 - Клік по всьому inactive-рядку відкриває Info-модалку (`recordAction` → `inactiveInfo`); активні рядки далі ведуть на перегляд. Іконки в модалці зафіксовано 20×20 (SVG-атрибути + inline-стилі, незалежно від Tailwind-build). Картку контактів переведено на рідний `<x-filament::section>` (коректна темна тема).
 
-### [2026-06-01 12:00] Лінк на /konto зі сторінки Anketa — Claude Code
+### [2026-06-01 09:49] Лінк на /konto зі сторінки Anketa — Claude Code
 - Під version-label публічної форми додано ненав'язливий лінк `Bereits Mitglied? Zum Mitgliedskonto →` на `/konto` (для тих, хто вже має акаунт). Хедер/лого і кроки форми не чіпались.
 - Тест: `/` рендерить лінк на `/konto`. Весь набір — 104 тести зелений.
 - Під кнопкою `Anmelden` на `/admin/login` додано лінк `Sind Sie Mitglied? Zum Mitgliedskonto →` на `/konto` (для тих, хто випадково потрапив на admin-логін) — через override `content()` у `App\Filament\Admin\Pages\Auth\Login`, той самий стиль, що member-лінк. Збільшено відступ лінка на сторінці Anketa до 2rem (`mt-8`).
 - Уточнено підзаголовок `/konto/login`: «Geben Sie die in Ihrer Mitgliedschaft hinterlegte E-Mail-Adresse ein. Ist diese bei uns registriert, senden wir einen einmaligen Zugangslink an genau diese Adresse.» — щоб не складалось враження, що лінк може отримати будь-хто (нейтральність/enumeration-захист збережено).
+
+### [2026-06-01 10:33] Security: відкликання попередніх активних magic-link токенів — Claude Code
+- Виявлено: `createForEmail()` викликав тільки `pruneSpent()` (used/expired), тобто повторний запит лінка лишав попередній активний токен дійсним — для одного email могло існувати кілька одночасно валідних лінків.
+- Виправлення: перед створенням нового токена `createForEmail()` видаляє всі активні (не used, не expired) токени того ж email. Для одного email тепер завжди тільки один активний лінк.
+- Додано тест `issuing a new token revokes previous active token`. Весь набір — 105 тестів зелений.
+- Оновлено PROJECT.md: рядки 162, 280, 400 тепер точно відображають двоетапний cleanup (revoke active + prune spent).
+
+### [2026-06-01 09:57] Email-покращення: кнопка в approved-листі + посилання на лендінг у футері — Claude Code
+- `member-approved-notification.blade.php`: додано кнопку «Zum Mitgliedskonto» з посиланням на `https://mitglied.ditib-ahlen-projekte.de/konto` — щоб новий член міг одразу зайти в акаунт.
+- `vendor/mail/html/message.blade.php` та `text/message.blade.php`: у футері під copyright-рядком додано посилання на лендінг `https://ditib-ahlen-projekte.de/` — присутнє в усіх листах системи.

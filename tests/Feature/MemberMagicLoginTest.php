@@ -152,6 +152,22 @@ class MemberMagicLoginTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_issuing_a_new_token_revokes_previous_active_token(): void
+    {
+        $this->makeMember(['email' => 'active@example.com']);
+
+        $previous = MemberLoginToken::create([
+            'email' => 'active@example.com',
+            'token_hash' => str_repeat('c', 64),
+            'expires_at' => now()->addHour(),
+        ]);
+
+        app(MemberMagicLoginService::class)->createForEmail('active@example.com');
+
+        $this->assertDatabaseMissing('member_login_tokens', ['id' => $previous->id]);
+        $this->assertDatabaseCount('member_login_tokens', 1);
+    }
+
     public function test_issuing_a_new_token_auto_prunes_spent_tokens(): void
     {
         $this->makeMember(['email' => 'family@example.com']);
