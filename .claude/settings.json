@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Bash(php artisan db:wipe*)",
+      "Bash(*db:wipe*)",
+      "Bash(php artisan migrate:fresh*)",
+      "Bash(*migrate:fresh*)",
+      "Bash(php artisan migrate:reset*)",
+      "Bash(*migrate:reset*)",
+      "Bash(php artisan migrate:refresh*)",
+      "Bash(*migrate:refresh*)",
+      "Bash(git reset --hard*)",
+      "Bash(*git reset --hard*)",
+      "Bash(git push --force*)",
+      "Bash(*git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(*git push -f*)",
+      "Bash(git clean -f*)",
+      "Bash(*git clean -f*)"
+    ],
+    "ask": [
+      "Bash(php artisan migrate:rollback*)",
+      "Bash(*migrate:rollback*)",
+      "Bash(php artisan migrate*)",
+      "Bash(*DROP TABLE*)",
+      "Bash(*DROP DATABASE*)",
+      "Bash(*TRUNCATE*)"
+    ]
+  }
+}

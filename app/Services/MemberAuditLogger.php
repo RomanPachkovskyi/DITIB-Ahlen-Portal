@@ -118,8 +118,9 @@ class MemberAuditLogger
     {
         $actor = Auth::user();
         $actorType ??= $this->detectActorType($actor);
-        $request = request();
 
+        // We deliberately do not store ip_address / user_agent: for this portal
+        // it is enough to record WHO acted (admin vs member vs system). Less PII.
         return MemberAuditLog::create([
             'member_id' => $member->id,
             'actor_user_id' => $actor?->id,
@@ -127,8 +128,6 @@ class MemberAuditLogger
             'actor_name' => $actor?->name ?? $actor?->email,
             'event' => $event,
             'description' => $description,
-            'ip_address' => $request?->ip(),
-            'user_agent' => $request ? Str::limit((string) $request->userAgent(), 1000, '') : null,
             ...$extra,
         ]);
     }

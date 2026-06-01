@@ -50,7 +50,7 @@ Konto зараз використовує окрему коротку schema:
 - Якщо клієнт змінив хоч одне поле, запис переходить у `processing` (`Verarbeitung`).
 - Адмін отримує email, що клієнт відредагував свої дані.
 - Усі зміни мають логуватися і від admin, і від member.
-- Для IBAN/BIC у логах і email показуємо тільки факт зміни, без старих/нових значень.
+- Для IBAN/BIC у логах і email показуємо лише маску `****1234` (останні 4 цифри), повний номер не зберігаємо. (Рішення Roman: маски достатньо.)
 - Member-edit має мати server-side allowlist дозволених полів. Не можна покладатися тільки на hidden/disabled поля у Filament schema.
 - Email не редагується клієнтом у v1, бо email є ключем доступу до `/konto`.
 - Admin emails не мають отримувати member magic-link доступ через спільний `User`/web guard.
@@ -339,8 +339,7 @@ Member resource:
 - `old_value_masked`, nullable;
 - `new_value_masked`, nullable;
 - `sensitive`: boolean;
-- `ip_address`, nullable;
-- `user_agent`, nullable;
+- ~~`ip_address`~~ / ~~`user_agent`~~ — НЕ зберігаємо (Рішення Roman): достатньо actor_type (admin/member/system);
 - `meta` JSON, nullable;
 - `created_at`.
 
@@ -386,7 +385,7 @@ DSGVO/retention:
 - маскувати sensitive values;
 - записати один log row на кожне змінене поле;
 - підтримувати event-only logs для photo/status actions;
-- фіксувати actor/source/ip/user-agent.
+- фіксувати actor/source (ip/user-agent НЕ зберігаємо).
 
 ## Email Адміну Після Зміни Клієнтом
 

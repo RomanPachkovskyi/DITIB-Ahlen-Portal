@@ -137,7 +137,7 @@ class MemberAccountResource extends Resource
             ])
             ->defaultSort('member_number')
             // Inactive rows are shown dimmed and are not clickable.
-            ->recordClasses(fn (Member $record): ?string => static::isInactive($record) ? 'opacity-50' : null)
+            ->recordClasses(fn (Member $record): ?string => static::isInactive($record) ? 'ditib-inactive-row' : null)
             ->recordUrl(fn (Member $record): ?string => static::isInactive($record)
                 ? null
                 : static::getUrl('view', ['record' => $record]))

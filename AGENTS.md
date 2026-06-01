@@ -174,6 +174,7 @@ Production DB зміни виконуються через SQL-файли для
 10. **Гілка** — завжди `main` для цього репо
 11. **Не чіпати** `~/Project/DITIB-Ahlen/main/` — інший проект
 12. **Filament v5** — `Section` → `Filament\Schemas\Components\Section` (не Forms)
+13. **⛔ Деструктивні команди — ніколи без явного дозволу.** Заборонено `php artisan db:wipe`, `migrate:fresh`, `migrate:reset`, `migrate:refresh`, `git reset --hard`, `git push --force/-f`, `git clean -f`, raw `DROP/TRUNCATE`. Локальна БД може містити незбережені дані, а резервної копії немає. Для правок схеми — тільки targeted, reversible кроки (нова migration, точковий `DROP TABLE` однієї таблиці з підтвердженням). Ці заборони продубльовані в `.claude/settings.json` (`permissions.deny`).
 
 ---
 

@@ -259,7 +259,7 @@ class MemberSelfEditTest extends TestCase
             ->assertOk()
             ->assertSee($active->member_number)
             ->assertSee($inactive->member_number)
-            ->assertSee('opacity-50', false);
+            ->assertSee('ditib-inactive-row', false);
     }
 
     public function test_inactive_row_shows_info_action_with_contact_only(): void

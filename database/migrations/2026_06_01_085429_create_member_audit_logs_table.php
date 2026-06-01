@@ -23,8 +23,6 @@ return new class extends Migration
             $table->json('changed_fields')->nullable();
             $table->json('old_values')->nullable();
             $table->json('new_values')->nullable();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
             $table->timestamp('created_at')->useCurrent();
 
             $table->index(['member_id', 'created_at']);
@@ -46,8 +44,6 @@ return new class extends Migration
                     'changed_fields' => null,
                     'old_values' => null,
                     'new_values' => null,
-                    'ip_address' => null,
-                    'user_agent' => null,
                     'created_at' => $member->created_at,
                 ])->all();
 

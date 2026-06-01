@@ -167,4 +167,11 @@
             border-radius: 0.75rem;
         }
     }
+
+    /* Member panel (/konto) only: inactive membership rows are muted in the list.
+       Applied via recordClasses in MemberAccountResource; admin list is untouched.
+       Hover and the info modal are left as-is. */
+    .ditib-inactive-row {
+        opacity: 0.5;
+    }
 </style>

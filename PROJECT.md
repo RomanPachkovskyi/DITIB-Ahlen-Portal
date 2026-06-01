@@ -182,7 +182,7 @@
 - Magic-link надсилається незалежно від статусу (inactive-only теж отримує лінк) — окремого inactive-notice листа не робимо. Натомість у списку `/konto` біля кожного dimmed inactive-запису є дія `Info` (іконка), що відкриває мобільно-зручну модалку: запис неактивний, клієнт сам статус не змінює, для реактивації звернутися до DITIB Ahlen + контакти (тел. `02382 / 61599`, `info@ditib-ahlen-projekte.de`, адреса). Рішення Roman: не плодити типи листів, пояснювати прямо в кабінеті.
 - Member magic-link не створює login token для admin email (реалізовано через `User::isAdminEmail()`); поточний shared `User`/web guard є свідомим тимчасовим компромісом, кращий майбутній варіант — окремий guard/model для членів.
 - Кожна create/view/update дія для майбутнього `Änderungsantrag` повинна повторно перевіряти на backend, що обраний `member_id` належить до `Member` запису з email authenticated user.
-- Від клієнта приховуємо тільки `admin_notiz`; `status` клієнт БАЧИТЬ read-only (і в списку, і в картці), але ніколи не редагує. IBAN/BIC зміни в audit/email фіксувати тільки як факт зміни без старого/нового значення. (Рішення Roman 2026-05-29, оновлює попередню чернетку, де `status` ховався.)
+- Від клієнта приховуємо тільки `admin_notiz`; `status` клієнт БАЧИТЬ read-only (і в списку, і в картці), але ніколи не редагує. IBAN/BIC у audit/email показуємо лише як маску `****1234` (Рішення Roman: повний номер не зберігаємо/не світимо, маски достатньо). (Рішення Roman 2026-05-29 щодо `status`.)
 - Server-side allowlist дозволених member-полів уже реалізований як єдине джерело правди: `App\Filament\Resources\Members\Schemas\MemberFormContext` (`memberEditableFields()` / `onlyMemberEditable()`) з принципом deny-by-default — будь-яке нове `fillable`/системне поле автоматично заборонене для member-edit, доки явно не додане в allowlist. `email`, `member_number`, `status`, `admin_notiz` і consent/timestamp fields не редагуються клієнтом у v1. Майбутня сторінка self-service edit зобовʼязана пропускати дані через `MemberFormContext::onlyMemberEditable()`, а не покладатися на hidden/disabled поля Filament.
 
 ### Адмін-Панель (`/admin`)
@@ -401,9 +401,10 @@
 | event | string(80) | тип події: create/update/status/photo/delete |
 | description | string | короткий текст для timeline, напр. `Telefonnummer geändert`, `Account bestätigt` |
 | changed_fields | json nullable | labels змінених полів |
-| old_values, new_values | json nullable | значення для audit/debug; IBAN/BIC тільки masked |
-| ip_address, user_agent | nullable | PII; потребує retention/anonymization policy |
+| old_values, new_values | json nullable | значення для audit/debug; IBAN/BIC лише masked `****1234` |
 | created_at | timestamp | використовується для timeline, нові записи зверху |
+
+> `ip_address`/`user_agent` свідомо НЕ зберігаються (Рішення Roman): достатньо фіксувати, хто діяв (admin/member/system), бо редагувати можуть тільки ці двоє. Менше PII.
 
 ---
 

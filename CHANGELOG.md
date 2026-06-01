@@ -958,3 +958,29 @@
 ### [2026-06-01 12:11] Light theme colors for audit log timeline — Codex
 - Виправлено світлу тему `Logs`: dark-стилі тепер прив'язані до `.dark` класу Filament, а не до системного `prefers-color-scheme`, тому дата і текст видимі на світлому фоні.
 - Прибрано вертикальну лінію timeline; лишились окремі бірюзові маркери, як у референсі.
+
+### [2026-06-01 14:00] Audit log: прибрано ip/user_agent, зафіксовано маску IBAN — Claude Code
+- Рішення Roman: у `member_audit_logs` ip_address/user_agent НЕ зберігаємо — достатньо actor_type (admin/member/system), бо редагувати можуть лише ці двоє. Менше PII, частково знімає DSGVO-retention борг по логах.
+- Прибрано колонки `ip_address`/`user_agent` з міграції, моделі, logger, inline+окремого backfill і production SQL. Локальну БД переприкладено (db:wipe + migrate).
+- Рішення Roman: маска IBAN/BIC `****1234` лишається як є — узгоджено формулювання в `PROJECT.md` і плані (раніше було «без старих/нових значень», що суперечило реалізації).
+- Тести: 110 passed (MemberAuditLogTest не залежав від ip/ua).
+
+### [2026-06-01 14:30] Guardrails проти деструктивних команд + dev-seeders — Claude Code
+- ПРИЧИНА: `db:wipe` стер локальну БД (резервної копії не було). Корінь — `.claude/settings.local.json` мав `allow: Bash(php artisan *)`, тож небезпечні artisan-команди виконувались без питання.
+- `.claude/settings.json` (комітиться): `permissions.deny` для `db:wipe`/`migrate:fresh`/`migrate:reset`/`migrate:refresh`/`git reset --hard`/`git push --force|-f`/`git clean -f`; `ask` для `migrate:rollback`/`migrate`/raw `DROP|TRUNCATE`. Deny має пріоритет над allow.
+- `.claude/settings.local.json` додано в `.gitignore` (персональний файл не комітимо).
+- `AGENTS.md` правило 13: деструктивні команди — ніколи без явного дозволу.
+- `DatabaseSeeder` тепер ідемпотентно сідить 2 admin-користувачів (відновлення після reset через `migrate --seed`).
+- Додано `DevSampleMembersSeeder` (local-only): `php artisan db:seed --class=DevSampleMembersSeeder` створює 5 тестових членів (3 на roman.2271670@gmail.com, 1 inactive; 2 з фото).
+- Тести: 110 passed.
+
+### [2026-06-01 14:50] Перевірка: лог "Account erstellt" при реєстрації — Claude Code
+- Підтверджено: публічна реєстрація (`MembershipForm`) викликає `MemberAuditLogger::created()` → кожен новий член отримує перший лог `Account erstellt`. Додано feature-тест на цей шлях (раніше був непокритий).
+- `DevSampleMembersSeeder` тепер теж пише лог створення для кожного seeded-члена (раніше через `Member::create` логи не з'являлись).
+- Бекфілнуто лог `member_created` для 5 уже створених тестових членів (ідемпотентно).
+- Тести: 111 passed.
+
+### [2026-06-01 15:10] Inactive-рядки /konto приглушені по кольору — Claude Code
+- Виправлено: `opacity-50` (Tailwind-утиліта) не діяв у списку `/konto`, бо клас не входить у зібраний CSS Filament — inactive-рядок виглядав як звичайний.
+- Додано власний клас `.ditib-inactive-row { opacity: 0.5 }` у `panel-style` (гарантовано вантажиться); `recordClasses` у `MemberAccountResource` тепер віддає його. Тільки member-панель; admin-список не зачеплено; hover і Info-модалка не змінені.
+- Тести: 111 passed.

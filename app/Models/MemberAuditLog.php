@@ -19,8 +19,6 @@ class MemberAuditLog extends Model
         'changed_fields',
         'old_values',
         'new_values',
-        'ip_address',
-        'user_agent',
     ];
 
     protected $casts = [

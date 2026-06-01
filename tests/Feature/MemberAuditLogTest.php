@@ -19,6 +19,37 @@ class MemberAuditLogTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_registration_creates_account_created_audit_log(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+
+        Livewire::test(\App\Livewire\MembershipForm::class)
+            ->set('anrede', 'Herr')
+            ->set('full_name', 'Neues Mitglied')
+            ->set('birth_date', '1990-01-01')
+            ->set('familienangehoerige', 1)
+            ->set('street', 'Musterstrasse 1')
+            ->set('postal_code', '59227')
+            ->set('city', 'Ahlen')
+            ->set('state', 'Nordrhein-Westfalen')
+            ->set('email', 'neu@example.com')
+            ->set('phone', '+49 2382 123456')
+            ->set('monatsbeitrag', 15)
+            ->set('zahlungsart', 'barzahlung')
+            ->set('dsgvo_zustimmung', true)
+            ->call('submit')
+            ->assertHasNoErrors()
+            ->assertSet('submitted', true);
+
+        $member = Member::where('email', 'neu@example.com')->firstOrFail();
+
+        $this->assertDatabaseHas('member_audit_logs', [
+            'member_id' => $member->id,
+            'event' => 'member_created',
+            'description' => 'Account erstellt',
+        ]);
+    }
+
     public function test_member_edit_creates_member_visible_audit_log(): void
     {
         $this->actingAsMember('family@example.com');
