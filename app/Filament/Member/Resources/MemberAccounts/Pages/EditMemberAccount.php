@@ -4,6 +4,7 @@ namespace App\Filament\Member\Resources\MemberAccounts\Pages;
 
 use App\Filament\Member\Resources\MemberAccounts\MemberAccountResource;
 use App\Filament\Resources\Members\Schemas\MemberFormContext;
+use App\Services\MemberAuditLogger;
 use App\Support\MemberStatus;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\EditRecord;
@@ -15,6 +16,11 @@ class EditMemberAccount extends EditRecord
 
     /** Status of the record before this save, used to decide the processing transition. */
     protected ?string $statusBeforeSave = null;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $changesBeforeProcessingTransition = [];
 
     public function getBreadcrumb(): string
     {
@@ -93,6 +99,10 @@ class EditMemberAccount extends EditRecord
             array_keys($this->record->getChanges()),
             MemberFormContext::memberEditableFields(),
         );
+        $this->changesBeforeProcessingTransition = array_intersect_key(
+            $this->record->getChanges(),
+            array_flip(MemberFormContext::memberEditableFields()),
+        );
 
         // Any real member change moves an open/active record into processing so
         // an admin reviews it. No-op saves leave the status untouched.
@@ -102,6 +112,12 @@ class EditMemberAccount extends EditRecord
             $this->record->status = MemberStatus::PROCESSING;
             $this->record->saveQuietly();
         }
+
+        app(MemberAuditLogger::class)->memberUpdated(
+            $this->record,
+            $this->changesBeforeProcessingTransition,
+            'member',
+        );
     }
 
     protected function getRedirectUrl(): string

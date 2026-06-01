@@ -4,12 +4,14 @@ namespace App\Filament\Resources\Members\Tables;
 
 use App\Filament\Resources\Members\MemberResource;
 use App\Models\Member;
+use App\Services\MemberAuditLogger;
 use App\Support\Instagram;
 use App\Support\MemberStatus;
 use App\Support\PhoneNumber;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -95,10 +97,10 @@ class MembersTable
                 TextColumn::make('zahlungsart')
                     ->label('Zahlungsart')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'barzahlung'   => 'Barzahlung',
-                        'lastschrift'  => 'Lastschrift',
+                        'barzahlung' => 'Barzahlung',
+                        'lastschrift' => 'Lastschrift',
                         'dauerauftrag' => 'Dauerauftrag',
-                        default        => $state,
+                        default => $state,
                     })
                     ->badge()
                     ->color('gray')
@@ -125,20 +127,20 @@ class MembersTable
                 SelectFilter::make('zahlungsart')
                     ->label('Zahlungsart')
                     ->options([
-                        'barzahlung'   => 'Barzahlung',
-                        'lastschrift'  => 'Lastschrift',
+                        'barzahlung' => 'Barzahlung',
+                        'lastschrift' => 'Lastschrift',
                         'dauerauftrag' => 'Dauerauftrag',
                     ]),
                 TrashedFilter::make()
                     ->label('Gelöschte Einträge'),
             ])
             ->recordActions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make()
                         ->label('Bearbeiten')
                         ->icon('heroicon-m-pencil-square')
                         ->color('gray'),
-                    \Filament\Actions\ActionGroup::make(self::statusRecordActions())
+                    ActionGroup::make(self::statusRecordActions())
                         ->dropdown(false),
                 ]),
             ])
@@ -164,13 +166,22 @@ class MembersTable
 
     private static function statusRecordAction(string $status, string $label, string $icon, string $color): Action
     {
-        return Action::make('set_status_' . $status)
+        return Action::make('set_status_'.$status)
             ->label($label)
             ->icon($icon)
             ->color($color)
             ->extraAttributes(self::statusActionAttributes($status))
             ->hidden(fn (Member $record): bool => $record->status === $status)
-            ->action(fn (Member $record): bool => $record->update(['status' => $status]))
+            ->action(function (Member $record) use ($status): bool {
+                $oldStatus = $record->status;
+                $updated = $record->update(['status' => $status]);
+
+                if ($updated) {
+                    app(MemberAuditLogger::class)->statusChanged($record, $oldStatus, $status, 'admin');
+                }
+
+                return $updated;
+            })
             ->successNotificationTitle('Status aktualisiert');
     }
 
@@ -191,13 +202,21 @@ class MembersTable
 
     private static function statusBulkAction(string $status, string $label, string $icon, string $color): BulkAction
     {
-        return BulkAction::make('bulk_set_status_' . $status)
+        return BulkAction::make('bulk_set_status_'.$status)
             ->label($label)
             ->icon($icon)
             ->color($color)
             ->extraAttributes(self::statusActionAttributes($status))
             ->requiresConfirmation()
-            ->action(fn (EloquentCollection $records) => $records->each(fn (Member $record): bool => $record->update(['status' => $status])))
+            ->action(function (EloquentCollection $records) use ($status): void {
+                $records->each(function (Member $record) use ($status): void {
+                    $oldStatus = $record->status;
+
+                    if ($record->update(['status' => $status])) {
+                        app(MemberAuditLogger::class)->statusChanged($record, $oldStatus, $status, 'admin');
+                    }
+                });
+            })
             ->deselectRecordsAfterCompletion()
             ->successNotificationTitle('Status für ausgewählte Mitglieder aktualisiert');
     }

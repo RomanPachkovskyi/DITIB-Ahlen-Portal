@@ -5,6 +5,7 @@ namespace App\Filament\Member\Resources\MemberAccounts;
 use App\Filament\Member\Resources\MemberAccounts\Pages\EditMemberAccount;
 use App\Filament\Member\Resources\MemberAccounts\Pages\ListMemberAccounts;
 use App\Filament\Member\Resources\MemberAccounts\Pages\ViewMemberAccount;
+use App\Filament\Member\Resources\MemberAccounts\Pages\ViewMemberAccountLogs;
 use App\Filament\Resources\Members\Schemas\MemberForm;
 use App\Filament\Resources\Members\Schemas\MemberFormContext;
 use App\Models\Member;
@@ -169,6 +170,7 @@ class MemberAccountResource extends Resource
         return [
             'index' => ListMemberAccounts::route('/'),
             'view' => ViewMemberAccount::route('/{record}'),
+            'logs' => ViewMemberAccountLogs::route('/{record}/logs'),
             'edit' => EditMemberAccount::route('/{record}/edit'),
         ];
     }

@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Members;
 use App\Filament\Resources\Members\Pages\CreateMember;
 use App\Filament\Resources\Members\Pages\EditMember;
 use App\Filament\Resources\Members\Pages\ListMembers;
+use App\Filament\Resources\Members\Pages\ViewMember;
+use App\Filament\Resources\Members\Pages\ViewMemberLogs;
 use App\Filament\Resources\Members\Schemas\MemberForm;
 use App\Filament\Resources\Members\Tables\MembersTable;
 use App\Models\Member;
@@ -13,6 +15,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Model;
 
 class MemberResource extends Resource
 {
@@ -28,7 +32,7 @@ class MemberResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Mitglieder';
 
-    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
+    public static function getRecordTitle(?Model $record): Htmlable|string|null
     {
         if (! $record) {
             return null;
@@ -57,10 +61,11 @@ class MemberResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListMembers::route('/'),
+            'index' => ListMembers::route('/'),
             'create' => CreateMember::route('/create'),
-            'view'   => \App\Filament\Resources\Members\Pages\ViewMember::route('/{record}'),
-            'edit'   => EditMember::route('/{record}/edit'),
+            'view' => ViewMember::route('/{record}'),
+            'logs' => ViewMemberLogs::route('/{record}/logs'),
+            'edit' => EditMember::route('/{record}/edit'),
         ];
     }
 }

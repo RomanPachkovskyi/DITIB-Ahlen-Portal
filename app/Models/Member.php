@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Mail\MemberApprovedNotification;
 use App\Mail\MemberDeletedAdminNotification;
 use App\Mail\MemberDeletedNotification;
+use App\Services\MemberAuditLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -120,6 +121,8 @@ class Member extends Model
         });
 
         static::deleting(function (Member $member) {
+            app(MemberAuditLogger::class)->deleted($member);
+
             try {
                 Mail::to('info@ditib-ahlen-projekte.de')->send(new MemberDeletedAdminNotification($member));
             } catch (Throwable $exception) {
@@ -149,5 +152,10 @@ class Member extends Model
     public function changeRequests(): HasMany
     {
         return $this->hasMany(ChangeRequest::class);
+    }
+
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(MemberAuditLog::class);
     }
 }

@@ -158,6 +158,7 @@
 - [x] Список `/konto` має ті самі дефолтні колонки, що admin: `Nr. / Name / Status / E-Mail / Ort / Beitrag/Mo. / Eingegangen am`.
 - [x] Фото-consent поля (`Foto-Einwilligung` тумблер і `Foto-Einwilligung am`) показуються лише коли є збережене фото (`profile_photo_path !== null`) — для обох панелей.
 - [x] Фото профілю показується у view кожного доступного запису через protected route `members.profile-photo`.
+- [x] У картці запису є посилання `Historie dieses Eintrags anzeigen` на окрему сторінку логів цього запису (`/{member_number}/logs`), доступну і в admin, і в `/konto`; записи показуються хронологічно, нові зверху.
 - [x] `/konto/login` використовує email-only magic-link flow: користувач вводить email, отримує одноразове посилання на пошту, link дійсний 60 хвилин і використовується один раз.
 - [x] Magic-link токени зберігаються в `member_login_tokens` тільки як SHA-256 hash; `used_at` блокує повторне використання. Для одного email одночасно може існувати тільки один активний токен: при видачі нового всі попередні активні токени того ж email видаляються (`createForEmail()` до запису нового).
 - [x] Якщо email не знайдений у `members`, UI показує нейтральне повідомлення без розкриття, чи є така адреса в базі.
@@ -169,7 +170,8 @@
 - [x] Shared member schema для `/konto` — зроблено (Phase 2): спільний `MemberForm` із контекстами admin/member.
 - [x] Self-service edit для `/konto` (Phase 3 core) — зроблено: edit власних не-inactive записів, allowlist save, статус→`processing`, dimmed/заблоковані inactive.
 - [x] SEPA re-consent UX (3c) — зроблено: окрема колонка `sepa_zustimmung_at`, checkbox-підтвердження при зміні банк-даних.
-- [ ] Залишок навколо self-service edit: audit log змін (Phase 5); email адміну після member-edit (Phase 6).
+- [x] Core audit log змін (Phase 5) — зроблено: `member_audit_logs`, `MemberAuditLogger`, per-record Logs page, masking IBAN/BIC.
+- [ ] Залишок навколо self-service edit: email адміну після member-edit (Phase 6).
 - [ ] Детальний робочий план цієї задачі ведеться в тимчасовому документі `docs/member-account-editing-audit-plan.md`; після реалізації фінальні рішення перенести назад у `PROJECT.md`.
 - [ ] `Änderungsantrag` / approval workflow лишається можливим майбутнім напрямком, але поточний план self-service edit базується на прямому редагуванні з audit log і статусом `processing`.
 
@@ -275,16 +277,19 @@
 ### Експорт І Audit Log
 
 **Працює зараз:**
-- [x] Немає production Excel export і глобального audit log; це свідомо ще не реалізовано.
+- [x] Core audit log для фактичних змін `Member` реалізований через таблицю `member_audit_logs`, модель `MemberAuditLog` і service `MemberAuditLogger`.
+- [x] У admin і `/konto` кожен запис має окрему сторінку `Logs` з хронологією змін; breadcrumb вигляду `Mitglieder / Name / Logs` або `Meine Mitgliedschaften / Name / Logs`.
+- [x] Логуються: створення акаунта з public form, member self-edit, admin edit, admin status actions/bulk status actions, admin profile photo upload/replace/delete, soft delete/delete.
+- [x] IBAN/BIC у audit log не зберігаються відкрито; у `new_values` пишеться тільки маска виду `****1234`.
+- [x] Немає production Excel export; це свідомо ще не реалізовано.
 - [x] Існує legacy/future таблиця `change_requests`, але вона не є audit log і зараз не використовується як єдина система логування.
 - [x] Cleanup для `member_login_tokens` реалізовано: при видачі нового лінка (1) відкликаються всі попередні активні токени email, (2) spent (used/expired) токени видаляються через `MemberLoginToken::pruneSpent()`. Таблиця ніколи не накопичує ні активні токени, ні PII-рядки. Опційна команда `member:prune-login-tokens` — тільки для разового ops-purge. Закриває retention для login-токенів; глобальний audit log і його retention ще не реалізовані.
 
 **Заплановано / хочемо додати:**
 - [ ] Експорт таблиці членів громади в `.xlsx` із адмінки.
-- [ ] Єдиний audit log для фактичних змін `Member`: admin edit, member edit, status actions, bulk status actions, photo upload/delete; детальний план у `docs/member-account-editing-audit-plan.md`.
-- [ ] Мінімальний audit scope: нова реєстрація, зміна статусу, редагування полів, soft delete/delete, admin login, email-помилки, admin replace/delete profile photo.
+- [ ] Розширення audit scope за межі конкретного `Member`: admin login і email-помилки.
 - [ ] Окрема адмін-сторінка audit log із фільтрами по користувачу, типу дії, сутності та даті.
-- [ ] Retention/anonymization для майбутнього audit log: він міститиме персональні дані (ім'я, адреса, телефон) навіть для несенситивних полів, тому при soft-delete/erasure члена потрібен service/command для очищення або анонімізації записів по `member_id`. (Cleanup для `member_login_tokens` уже реалізовано окремо, див. вище.)
+- [ ] Retention/anonymization для audit log: він містить персональні дані (ім'я, адреса, телефон) навіть для несенситивних полів, тому при soft-delete/erasure члена потрібен service/command для очищення або анонімізації записів по `member_id`. (Cleanup для `member_login_tokens` уже реалізовано окремо, див. вище.)
 
 **Важливі рішення:**
 - Фото в Excel export не додавати.
@@ -300,6 +305,7 @@
 - [x] Production photo data живе поза Laravel-проєктом у `Home directory/ditib-portal-data/member-photos`.
 - [x] Для magic-link access migration підготовлено phpMyAdmin SQL `deploy-artifacts/production-member-login-tokens-release-20260529.sql`.
 - [x] Для колонки `sepa_zustimmung_at` підготовлено phpMyAdmin SQL `deploy-artifacts/production-add-sepa-zustimmung-at-release-20260529.sql` (виконати при наступному deploy).
+- [x] Для таблиці `member_audit_logs` підготовлено phpMyAdmin SQL `deploy-artifacts/production-create-member-audit-logs-release-20260601.sql` (виконати при наступному deploy).
 
 **Заплановано / хочемо додати:**
 - [ ] При кожній новій migration готувати SQL-файл у `deploy-artifacts/` для phpMyAdmin.
@@ -383,6 +389,21 @@
 | reason | text | nullable |
 | status | enum | pending / approved / rejected |
 | admin_notiz | text | nullable |
+
+### Таблиця `member_audit_logs`
+
+| Поле | Тип | Примітка |
+|------|-----|---------|
+| member_id | foreignId | належить конкретному `Member`; сторінки Logs показують записи тільки цього member |
+| actor_user_id | foreignId nullable | `users.id`, якщо дія виконана authenticated user |
+| actor_type | string(30) | `admin` / `member` / `client` / `system` |
+| actor_name | string nullable | ім'я або email authenticated user |
+| event | string(80) | тип події: create/update/status/photo/delete |
+| description | string | короткий текст для timeline, напр. `Telefonnummer geändert`, `Account bestätigt` |
+| changed_fields | json nullable | labels змінених полів |
+| old_values, new_values | json nullable | значення для audit/debug; IBAN/BIC тільки masked |
+| ip_address, user_agent | nullable | PII; потребує retention/anonymization policy |
+| created_at | timestamp | використовується для timeline, нові записи зверху |
 
 ---
 

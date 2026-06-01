@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Members\Pages;
 
 use App\Filament\Resources\Members\MemberResource;
+use App\Services\MemberAuditLogger;
 use App\Services\ProfilePhotoService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -16,6 +17,8 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 class EditMember extends EditRecord
 {
     protected static string $resource = MemberResource::class;
+
+    protected ?string $statusBeforeSave = null;
 
     public function getBreadcrumb(): string
     {
@@ -62,7 +65,9 @@ class EditMember extends EditRecord
                         ]);
                     }
 
+                    $hadPhoto = $this->record->profile_photo_path !== null;
                     $profilePhotos->store($this->record, $file);
+                    app(MemberAuditLogger::class)->photoUploaded($this->record, $hadPhoto, 'admin');
                     $this->record->refresh();
                     $this->fillForm();
                     $this->dispatch('$refresh');
@@ -83,6 +88,7 @@ class EditMember extends EditRecord
                 ->modalSubmitActionLabel('Foto entfernen')
                 ->action(function (ProfilePhotoService $profilePhotos): void {
                     $profilePhotos->delete($this->record);
+                    app(MemberAuditLogger::class)->photoDeleted($this->record, 'admin');
                     $this->record->refresh();
                     $this->fillForm();
                     $this->dispatch('$refresh');
@@ -127,6 +133,8 @@ class EditMember extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        $this->statusBeforeSave = $this->record->status;
+
         unset(
             $data['sepa_zustimmung'],
             $data['dsgvo_zustimmung'],
@@ -136,6 +144,28 @@ class EditMember extends EditRecord
         );
 
         return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        $changes = $this->record->getChanges();
+
+        if (array_key_exists('status', $changes)) {
+            app(MemberAuditLogger::class)->statusChanged(
+                $this->record,
+                $this->statusBeforeSave,
+                $this->record->status,
+                'admin',
+            );
+
+            unset($changes['status']);
+        }
+
+        app(MemberAuditLogger::class)->memberUpdated(
+            $this->record,
+            $changes,
+            'admin',
+        );
     }
 
     protected function getRedirectUrl(): string

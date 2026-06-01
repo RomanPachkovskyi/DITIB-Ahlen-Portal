@@ -914,3 +914,47 @@
 ### [2026-06-01 09:57] Email-покращення: кнопка в approved-листі + посилання на лендінг у футері — Claude Code
 - `member-approved-notification.blade.php`: додано кнопку «Zum Mitgliedskonto» з посиланням на `https://mitglied.ditib-ahlen-projekte.de/konto` — щоб новий член міг одразу зайти в акаунт.
 - `vendor/mail/html/message.blade.php` та `text/message.blade.php`: у футері під copyright-рядком додано посилання на лендінг `https://ditib-ahlen-projekte.de/` — присутнє в усіх листах системи.
+
+### [2026-06-01 11:04] Member audit logs і per-record Logs сторінки — Codex
+- Додано `member_audit_logs`, `MemberAuditLog` і `MemberAuditLogger` для історії змін конкретного запису члена.
+- У admin і `/konto` в картці запису додано посилання `Historie dieses Eintrags anzeigen` на сторінку `Logs` з timeline, нові записи зверху.
+- Логуються створення акаунта, member/admin edit, status actions/bulk status actions, admin profile photo upload/replace/delete і soft delete/delete; IBAN/BIC у логах маскуються.
+- Підготовлено production SQL для phpMyAdmin: `deploy-artifacts/production-create-member-audit-logs-release-20260601.sql`; локальна міграція застосована.
+
+### [2026-06-01 11:14] Audit log link placement polish — Codex
+- Посилання `Historie dieses Eintrags anzeigen` винесено з блоку `Status & Verwaltung` в окремий centered рядок нижче цього блоку для admin і `/konto`.
+
+### [2026-06-01 11:23] Audit log link center alignment — Codex
+- Для `Historie dieses Eintrags anzeigen` додано full-width span і wrapper-level `text-center`, щоб посилання реально вирівнювалось по центру в desktop і mobile layout.
+
+### [2026-06-01 11:28] Scoped audit log link alignment CSS — Codex
+- Вирівнювання audit-link перенесено в scoped CSS `.ditib-audit-log-link .fi-in-text...`, щоб центрувати тільки `Historie dieses Eintrags anzeigen` і не зачіпати `Mitgliedsnummer`.
+
+### [2026-06-01 11:31] Inline centering for audit log link — Codex
+- Для audit-link додано inline `display:block; width:100%; text-align:center;`, щоб вирівнювання працювало в admin і `/konto` незалежно від внутрішнього Filament wrapper.
+
+### [2026-06-01 11:35] Mobile order for member card blocks — Codex
+- У shared `MemberForm` змінено порядок блоків для admin і `/konto`: `Persönliche Daten` → `Beitrag & Bankverbindung` → `Status & Verwaltung` → `Historie dieses Eintrags anzeigen`.
+
+### [2026-06-01 11:46] Two-column member card layout groups — Codex
+- Перебудовано shared `MemberForm` на дві top-level колонки: ліва містить `Persönliche Daten` + `Beitrag & Bankverbindung`, права містить `Status & Verwaltung` + `Historie dieses Eintrags anzeigen`.
+- Це зберігає правильний mobile порядок і повертає логічний desktop layout без окремого порожнього нижнього правого блока.
+
+### [2026-06-01 11:50] Backfill member-created audit logs — Codex
+- Додано idempotent migration `backfill_member_created_audit_logs`, щоб існуючі члени отримали перший timeline-запис `Account erstellt`, якщо `member_audit_logs` уже була створена до backfill-логіки.
+- Локально застосовано міграцію; перевірка SQLite показала `16` members і `16` `member_created` audit logs.
+
+### [2026-06-01 11:57] Compact audit log timeline formatting — Codex
+- Сторінку `Logs` зроблено компактнішою: менший шрифт, менші відступи, технічний card-style.
+- Для `member_updated` зміни виводяться списком із дефісом (`- Name geändert`, `- Adresse geändert`); create/status/photo події лишаються людським описом.
+
+### [2026-06-01 12:01] Visual timeline style for Logs page — Codex
+- Сторінку `Logs` перероблено з card-stack у timeline layout: лівий маркер із вертикальною лінією, дата й actor badge праворуч, нижче список змін.
+
+### [2026-06-01 12:06] Shared CSS for audit log timeline — Codex
+- Вигляд `Logs` перенесено з Tailwind utility-класів у явні scoped CSS-класи в shared `filament.panel-style`, щоб зміни реально застосовувались в admin і `/konto` незалежно від Filament/Tailwind build.
+- Очищено compiled Blade views локально (`php artisan view:clear`).
+
+### [2026-06-01 12:11] Light theme colors for audit log timeline — Codex
+- Виправлено світлу тему `Logs`: dark-стилі тепер прив'язані до `.dark` класу Filament, а не до системного `prefers-color-scheme`, тому дата і текст видимі на світлому фоні.
+- Прибрано вертикальну лінію timeline; лишились окремі бірюзові маркери, як у референсі.

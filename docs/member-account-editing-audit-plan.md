@@ -487,15 +487,15 @@ Admin changes:
 
 ### Phase 5: Audit Logging
 
-- Після стабілізації schema/edit flow створити migration через `php artisan make:migration`.
-- Додати `MemberAuditLog` model.
-- Додати `MemberAuditLogger` service.
-- Логувати member edit.
-- Логувати admin edit.
-- Логувати admin status actions і bulk actions.
-- Логувати profile photo changes.
-- Додати sensitive masking для IBAN/BIC.
-- Передбачити retention/anonymization для audit logs по `member_id`.
+- [x] Після стабілізації schema/edit flow створити migration через `php artisan make:migration`.
+- [x] Додати `MemberAuditLog` model.
+- [x] Додати `MemberAuditLogger` service.
+- [x] Логувати member edit.
+- [x] Логувати admin edit.
+- [x] Логувати admin status actions і bulk actions.
+- [x] Логувати profile photo changes.
+- [x] Додати sensitive masking для IBAN/BIC.
+- [ ] Передбачити retention/anonymization для audit logs по `member_id`.
 
 ### Phase 6: Admin Notification For Member Edits
 

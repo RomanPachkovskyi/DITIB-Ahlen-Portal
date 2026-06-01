@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Events\MemberRegistered;
 use App\Models\Member;
 use App\Models\PostalCode;
+use App\Services\MemberAuditLogger;
 use App\Services\MemberDuplicateChecker;
 use App\Services\ProfilePhotoService;
 use App\Support\Iban;
@@ -516,6 +517,8 @@ class MembershipForm extends Component
 
         $this->member_number = $member->member_number;
         $this->submitted = true;
+
+        app(MemberAuditLogger::class)->created($member, 'client');
 
         MemberRegistered::dispatch($member);
     }
