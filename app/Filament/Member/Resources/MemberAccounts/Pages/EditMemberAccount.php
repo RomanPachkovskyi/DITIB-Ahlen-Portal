@@ -3,12 +3,17 @@
 namespace App\Filament\Member\Resources\MemberAccounts\Pages;
 
 use App\Filament\Member\Resources\MemberAccounts\MemberAccountResource;
+use App\Filament\Resources\Members\MemberResource;
 use App\Filament\Resources\Members\Schemas\MemberFormContext;
+use App\Mail\MemberUpdatedByMemberNotification;
 use App\Services\MemberAuditLogger;
 use App\Support\MemberStatus;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class EditMemberAccount extends EditRecord
 {
@@ -18,9 +23,12 @@ class EditMemberAccount extends EditRecord
     protected ?string $statusBeforeSave = null;
 
     /**
+     * Decrypted editable-field values captured before the save, so we can
+     * compute real changes (and correct masking) regardless of encryption.
+     *
      * @var array<string, mixed>
      */
-    protected array $changesBeforeProcessingTransition = [];
+    protected array $oldEditableValues = [];
 
     public function getBreadcrumb(): string
     {
@@ -53,6 +61,11 @@ class EditMemberAccount extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $this->statusBeforeSave = $this->record->status;
+
+        // Snapshot original (decrypted) editable values before the form is applied.
+        foreach (MemberFormContext::memberEditableFields() as $field) {
+            $this->oldEditableValues[$field] = $this->record->getAttribute($field);
+        }
 
         // Transient confirmation field (not a Member column); read before the
         // allowlist drops it.
@@ -95,29 +108,78 @@ class EditMemberAccount extends EditRecord
 
     protected function afterSave(): void
     {
-        $changedEditableFields = array_intersect(
-            array_keys($this->record->getChanges()),
-            MemberFormContext::memberEditableFields(),
-        );
-        $this->changesBeforeProcessingTransition = array_intersect_key(
-            $this->record->getChanges(),
-            array_flip(MemberFormContext::memberEditableFields()),
-        );
+        // Compute real changes from decrypted old vs new values. This avoids the
+        // encrypted-cast false positive (random IV makes getChanges() report
+        // unchanged IBAN as changed) and yields correct masking.
+        $changes = [];
+        foreach (MemberFormContext::memberEditableFields() as $field) {
+            $old = $this->oldEditableValues[$field] ?? null;
+            $new = $this->record->getAttribute($field);
+
+            if ($this->scalarize($old) !== $this->scalarize($new)) {
+                $changes[$field] = ['old' => $old, 'new' => $new];
+            }
+        }
+
+        if ($changes === []) {
+            return; // no-op save: no status change, no log, no email
+        }
 
         // Any real member change moves an open/active record into processing so
-        // an admin reviews it. No-op saves leave the status untouched.
-        if ($changedEditableFields !== []
-            && in_array($this->statusBeforeSave, [MemberStatus::PENDING, MemberStatus::ACTIVE], true)
-        ) {
+        // an admin reviews it.
+        if (in_array($this->statusBeforeSave, [MemberStatus::PENDING, MemberStatus::ACTIVE], true)) {
             $this->record->status = MemberStatus::PROCESSING;
             $this->record->saveQuietly();
         }
 
+        // Audit log (new decrypted values → correct IBAN/BIC masking).
         app(MemberAuditLogger::class)->memberUpdated(
             $this->record,
-            $this->changesBeforeProcessingTransition,
+            array_map(fn (array $pair): mixed => $pair['new'], $changes),
             'member',
         );
+
+        $this->notifyAdmin($changes);
+    }
+
+    /**
+     * @param  array<string, array{old: mixed, new: mixed}>  $changes
+     */
+    protected function notifyAdmin(array $changes): void
+    {
+        $described = app(MemberAuditLogger::class)->describeChanges($changes);
+        $adminUrl = MemberResource::getUrl('view', ['record' => $this->record], panel: 'admin');
+
+        // Synchronous send like other project emails. An SMTP failure must not
+        // break the save — log it and move on.
+        try {
+            Mail::to('info@ditib-ahlen-projekte.de')
+                ->send(new MemberUpdatedByMemberNotification($this->record, $described, $adminUrl));
+        } catch (Throwable $exception) {
+            Log::error('Member self-edit admin notification failed.', [
+                'member_id' => $this->record->id,
+                'member_number' => $this->record->member_number,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function scalarize(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return \Illuminate\Support\Carbon::instance($value)->toDateTimeString();
+        }
+
+        return (string) $value;
     }
 
     protected function getRedirectUrl(): string

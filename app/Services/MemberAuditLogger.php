@@ -59,6 +59,31 @@ class MemberAuditLogger
     }
 
     /**
+     * Human-readable, mask-safe description of changed fields for notifications.
+     * IBAN/BIC are masked (****1234); other fields show old → new.
+     *
+     * @param  array<string, array{old: mixed, new: mixed}>  $changes
+     * @return array<int, array{label: string, old: ?string, new: ?string, sensitive: bool}>
+     */
+    public function describeChanges(array $changes): array
+    {
+        $out = [];
+
+        foreach ($changes as $field => $pair) {
+            $sensitive = in_array($field, self::SENSITIVE_FIELDS, true);
+
+            $out[] = [
+                'label' => self::FIELD_LABELS[$field] ?? Str::headline($field),
+                'old' => $sensitive ? $this->maskSensitiveValue($pair['old'] ?? null) : $this->displayValue($field, $pair['old'] ?? null),
+                'new' => $sensitive ? $this->maskSensitiveValue($pair['new'] ?? null) : $this->displayValue($field, $pair['new'] ?? null),
+                'sensitive' => $sensitive,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * @param  array<string, mixed>  $changes
      */
     public function memberUpdated(Member $member, array $changes, ?string $actorType = null): ?MemberAuditLog
@@ -218,6 +243,24 @@ class MemberAuditLogger
     {
         if ($value === null || is_bool($value) || is_numeric($value)) {
             return $value;
+        }
+
+        return (string) $value;
+    }
+
+    private function displayValue(string $field, mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'Ja' : 'Nein';
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return \Illuminate\Support\Carbon::instance($value)
+                ->format($field === 'birth_date' ? 'd.m.Y' : 'd.m.Y H:i');
         }
 
         return (string) $value;

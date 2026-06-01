@@ -165,15 +165,11 @@
 - [x] Member magic-link не видається для admin email (`User::isAdminEmail()`): admin і member ділять один `User`/web guard, тому magic-link для admin email створив би admin-capable сесію. `createForEmail()` і `consume()` відмовляють такому email, UI лишається нейтральним, спроба логується як security warning. Admin входить тільки через `/admin`.
 - [x] Spent (used/expired) magic-link токени видаляються автоматично при кожній видачі нового лінка через `MemberLoginToken::pruneSpent()`, тому `ip_address`/`user_agent` не накопичуються; cron не потрібен. Опційна команда `php artisan member:prune-login-tokens` (`--keep-hours=N`) лишається тільки для разового ops-purge.
 
+> **Self-service edit (Phases 1–6) повністю реалізовано** — функціонал описано вище в «Працює зараз». Тимчасовий робочий документ `docs/member-account-editing-audit-plan.md` після завершення консолідовано сюди й видалено.
+
 **Заплановано / хочемо додати:**
-- [ ] Production QA `/konto`, включно з magic-link email delivery, одноразовим входом і profile photo display, після deploy access flow.
-- [x] Shared member schema для `/konto` — зроблено (Phase 2): спільний `MemberForm` із контекстами admin/member.
-- [x] Self-service edit для `/konto` (Phase 3 core) — зроблено: edit власних не-inactive записів, allowlist save, статус→`processing`, dimmed/заблоковані inactive.
-- [x] SEPA re-consent UX (3c) — зроблено: окрема колонка `sepa_zustimmung_at`, checkbox-підтвердження при зміні банк-даних.
-- [x] Core audit log змін (Phase 5) — зроблено: `member_audit_logs`, `MemberAuditLogger`, per-record Logs page, masking IBAN/BIC.
-- [ ] Залишок навколо self-service edit: email адміну після member-edit (Phase 6).
-- [ ] Детальний робочий план цієї задачі ведеться в тимчасовому документі `docs/member-account-editing-audit-plan.md`; після реалізації фінальні рішення перенести назад у `PROJECT.md`.
-- [ ] `Änderungsantrag` / approval workflow лишається можливим майбутнім напрямком, але поточний план self-service edit базується на прямому редагуванні з audit log і статусом `processing`.
+- [ ] Production QA `/konto` після deploy: magic-link delivery, одноразовий вхід, profile photo, member-edit → email адміну, per-record Logs.
+- [ ] `Änderungsantrag` / approval workflow — можливий майбутній напрямок (таблиця `change_requests` існує, але не використовується); поточна реалізація — пряме редагування з audit log і статусом `processing`. Доля таблиці відкрита: лишити під майбутній approval workflow або прибрати cleanup-міграцією.
 
 **Важливі рішення:**
 - Email визначає доступ до списку записів, але не є ідентифікатором заявки на зміну.
@@ -183,7 +179,9 @@
 - Member magic-link не створює login token для admin email (реалізовано через `User::isAdminEmail()`); поточний shared `User`/web guard є свідомим тимчасовим компромісом, кращий майбутній варіант — окремий guard/model для членів.
 - Кожна create/view/update дія для майбутнього `Änderungsantrag` повинна повторно перевіряти на backend, що обраний `member_id` належить до `Member` запису з email authenticated user.
 - Від клієнта приховуємо тільки `admin_notiz`; `status` клієнт БАЧИТЬ read-only (і в списку, і в картці), але ніколи не редагує. IBAN/BIC у audit/email показуємо лише як маску `****1234` (Рішення Roman: повний номер не зберігаємо/не світимо, маски достатньо). (Рішення Roman 2026-05-29 щодо `status`.)
-- Server-side allowlist дозволених member-полів уже реалізований як єдине джерело правди: `App\Filament\Resources\Members\Schemas\MemberFormContext` (`memberEditableFields()` / `onlyMemberEditable()`) з принципом deny-by-default — будь-яке нове `fillable`/системне поле автоматично заборонене для member-edit, доки явно не додане в allowlist. `email`, `member_number`, `status`, `admin_notiz` і consent/timestamp fields не редагуються клієнтом у v1. Майбутня сторінка self-service edit зобовʼязана пропускати дані через `MemberFormContext::onlyMemberEditable()`, а не покладатися на hidden/disabled поля Filament.
+- Server-side allowlist дозволених member-полів уже реалізований як єдине джерело правди: `App\Filament\Resources\Members\Schemas\MemberFormContext` (`memberEditableFields()` / `onlyMemberEditable()`) з принципом deny-by-default — будь-яке нове `fillable`/системне поле автоматично заборонене для member-edit, доки явно не додане в allowlist. `email`, `member_number`, `status`, `admin_notiz` і consent/timestamp fields не редагуються клієнтом у v1. Self-service edit (`EditMemberAccount`) пропускає дані через `MemberFormContext::onlyMemberEditable()`, а не покладається на hidden/disabled поля Filament.
+- Валідаційні правила полів `Member` мають єдине джерело — `App\Support\MemberFieldRules` (вік ≥16, phone, IBAN-структура, Instagram, PLZ, мін. €10); нормалізація — `PhoneNumber`/`Iban`/`Instagram`. Зараз спільне між Livewire-реєстрацією і допоміжними перевірками; повне reuse тієї ж schema між public-формою (Livewire) і Filament admin/member edit — майбутній refactor (public form не Filament).
+- Member-edit рахує реальні зміни через розшифровані old/new (`getAttribute`), не `getChanges()`: інакше encrypted-cast із рандомним IV хибно позначає незмінений IBAN як «змінено», а маска бралася б із зашифрованого blob. Логер і email адміну отримують уже коректні значення.
 
 ### Адмін-Панель (`/admin`)
 
@@ -236,7 +234,7 @@
 - [x] Artifact build виправлений, щоб mail override templates не випадали через exclude `vendor`.
 
 **Заплановано / хочемо додати:**
-- [ ] Email адміну, коли клієнт змінив власні дані в `/konto`; лист містить ім'я, member number, список змінених полів і пряме посилання на admin record. IBAN/BIC не розкривати в листі, тільки позначати як змінені.
+- [x] Email адміну, коли клієнт змінив власні дані в `/konto` — `MemberUpdatedByMemberNotification`: ім'я, member_number, email, список змінених полів (старе→нове), IBAN/BIC лише маска `****1234`, пряме посилання на admin record. Шле `EditMemberAccount::afterSave()` синхронно; SMTP-помилка логується і не ламає save.
 - [ ] Якщо Gmail/Outlook/Apple Mail покажуть недостатній контроль верстки, перейти на власний HTML email template (`view:`) окремим етапом.
 
 **Важливі рішення:**

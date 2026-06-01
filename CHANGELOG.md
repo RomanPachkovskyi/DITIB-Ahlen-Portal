@@ -984,3 +984,15 @@
 - Виправлено: `opacity-50` (Tailwind-утиліта) не діяв у списку `/konto`, бо клас не входить у зібраний CSS Filament — inactive-рядок виглядав як звичайний.
 - Додано власний клас `.ditib-inactive-row { opacity: 0.5 }` у `panel-style` (гарантовано вантажиться); `recordClasses` у `MemberAccountResource` тепер віддає його. Тільки member-панель; admin-список не зачеплено; hover і Info-модалка не змінені.
 - Тести: 111 passed.
+
+### [2026-06-01 16:10] Phase 6: email адміну після member-edit — Claude Code
+- `MemberUpdatedByMemberNotification` (mailable + markdown-шаблон): при реальній зміні даних членом у `/konto` admin (`info@ditib-ahlen-projekte.de`) отримує лист — ім'я, member_number, email, список змінених полів (старе→нове), пряме посилання на admin-запис. IBAN/BIC лише маска `****1234`.
+- Вшито в `EditMemberAccount::afterSave()`: один лист на save, тільки при реальних змінах; синхронно; SMTP-помилка логується і НЕ ламає save.
+- Рефактор обчислення змін: порівнюємо розшифровані old/new (через `getAttribute`), а не `getChanges()`. Це виправляє дві проблеми — маскування IBAN бралось із зашифрованого blob, і рандомний IV шифрування хибно позначав незмінений IBAN як «змінено». Тепер і audit log, і лист коректні.
+- `MemberAuditLogger::describeChanges()` — публічний форматер (label + маска), єдине джерело для листа.
+- Тести: `MemberEditAdminNotificationTest` (notify, no-op, IBAN-маска, render, SMTP-стійкість). Весь набір — 116 passed.
+
+### [2026-06-01 16:40] Консолідація документації після Phases 1–6 — Claude Code
+- Phases 1–6 self-service edit завершені; робочий документ `docs/member-account-editing-audit-plan.md` консолідовано в `PROJECT.md` і видалено (як і передбачав сам план — тимчасовий чернетковий документ).
+- У `PROJECT.md`: прибрано посилання на план; done-`[x]` Phase-пункти з «Заплановано» прибрано (функціонал уже в «Працює зараз»); `Änderungsantrag` переформульовано (доля `change_requests` відкрита). Додано архітектурні замітки: `MemberFieldRules` як єдине джерело валідації; обчислення member-edit змін через розшифровані old/new (не `getChanges()`).
+- CHANGELOG історичні записи з назвою плану лишено як хронологію.
