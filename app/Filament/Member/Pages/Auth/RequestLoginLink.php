@@ -147,6 +147,7 @@ class RequestLoginLink extends Login
 
     public function getSubheading(): string | Htmlable | null
     {
-        return 'Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen einmaligen Zugangslink.';
+        return 'Geben Sie die in Ihrer Mitgliedschaft hinterlegte E-Mail-Adresse ein. '
+            .'Ist diese bei uns registriert, senden wir einen einmaligen Zugangslink an genau diese Adresse.';
     }
 }

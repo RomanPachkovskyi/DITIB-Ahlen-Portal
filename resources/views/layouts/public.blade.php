@@ -37,6 +37,13 @@
         <div class="mt-4">
             <x-system-info align="center" />
         </div>
+
+        <div class="mt-8 text-center">
+            <a href="{{ url('/konto') }}"
+               class="text-sm text-teal-600 hover:text-teal-700 underline underline-offset-2 transition-colors">
+                Bereits Mitglied? Zum Mitgliedskonto →
+            </a>
+        </div>
     </main>
 
     <footer class="max-w-3xl mx-auto px-4 py-8">

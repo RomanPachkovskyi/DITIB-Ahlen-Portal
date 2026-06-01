@@ -38,12 +38,16 @@ class FilamentPanelAccessTest extends TestCase
             ->assertOk()
             ->assertSee('Admin-Anmeldung')
             ->assertSee('Passwort')
+            // Visitors who land here by mistake get a pointer to the member account.
+            ->assertSee('Sind Sie Mitglied?')
+            ->assertSee(url('/konto'), false)
             ->assertSee($label)
             ->assertSee('Munas-Print');
 
         $this->get('/konto/login')
             ->assertOk()
             ->assertSee('Mitgliedskonto öffnen')
+            ->assertSee('Ist diese bei uns registriert')
             ->assertSee('Zugangslink senden')
             ->assertSee('Noch kein Mitgliedskonto?')
             ->assertSee('Jetzt registrieren')

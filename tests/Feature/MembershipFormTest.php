@@ -491,6 +491,14 @@ class MembershipFormTest extends TestCase
             ->assertHasErrors(['monatsbeitrag']);
     }
 
+    public function test_registration_page_links_to_member_account(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Zum Mitgliedskonto')
+            ->assertSee(url('/konto'), false);
+    }
+
     public function test_it_submits_direct_debit_with_messy_iban_input(): void
     {
         Event::fake([MemberRegistered::class]);

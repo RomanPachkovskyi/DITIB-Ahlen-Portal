@@ -101,6 +101,7 @@
 - [x] Radio/checkbox controls використовують reusable class `ditib-choice-input` і brand CSS variable `--ditib-brand-primary`.
 - [x] Після відправки показується сторінка підтвердження з `member_number`; технічний статус нового запису `pending`, в адмінці показується як `Neu`.
 - [x] Під формою показується technical system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`.
+- [x] Під version-label є ненав'язливий лінк `Bereits Mitglied? Zum Mitgliedskonto →` на `/konto` для тих, хто вже має акаунт.
 
 **Заплановано / хочемо додати:**
 - [ ] Unterschrift canvas у формі; поточне поле `unterschrift` у БД є legacy/future placeholder.
@@ -202,6 +203,7 @@
 - [x] Навігація й адмінка мають DITIB branding, logo і primary color `#009689`.
 - [x] `/admin` і `/konto` використовують спільний Filament DITIB style layer `resources/views/filament/panel-style.blade.php` для brand variables, primary buttons, compact spacing і mobile login відступів; admin-only tweaks лишаються в `resources/views/filament/admin-style.blade.php`.
 - [x] `/admin/login` лишається password-based login із heading `Admin-Anmeldung`; `/konto/login` має окремий member magic-link текст і не показує password field.
+- [x] Під кнопкою `Anmelden` на `/admin/login` є лінк `Sind Sie Mitglied? Zum Mitgliedskonto →` на `/konto` (для тих, хто випадково зайшов на admin-логін).
 - [x] Під таблицею Mitglieder справа показується technical system label `vX.XXX - Update: DD.MM.YYYY - by Munas-Print`.
 - [x] Login-форми `/admin` і `/konto` показують technical system label під формою справа, щоб адмін і користувач бачили актуальну версію до входу.
 

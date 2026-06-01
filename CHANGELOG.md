@@ -897,4 +897,10 @@
 - Біля dimmed inactive-запису в списку `/konto` додано дію `Info` (іконка, лише для inactive) → мобільно-зручна модалка `resources/views/filament/members/inactive-info.blade.php`: запис неактивний, клієнт сам статус не змінює, для реактивації звернутися до DITIB Ahlen + контакти (тел./email/адреса з tap-лінками).
 - Phase 4 закрито без нових типів листів; admin-email guard і token cleanup уже були раніше.
 - Тест: `inactiveInfo` дія visible для inactive, hidden для active. Весь набір — 103 тести зелений.
-- Клік по всьому inactive-рядку відкриває Info-модалку (`recordAction` → `inactiveInfo`); активні рядки далі ведуть на перегляд. Іконки в модалці зафіксовано 20×20 (SVG-атрибути + inline-стилі, незалежно від Tailwind-build).
+- Клік по всьому inactive-рядку відкриває Info-модалку (`recordAction` → `inactiveInfo`); активні рядки далі ведуть на перегляд. Іконки в модалці зафіксовано 20×20 (SVG-атрибути + inline-стилі, незалежно від Tailwind-build). Картку контактів переведено на рідний `<x-filament::section>` (коректна темна тема).
+
+### [2026-06-01 12:00] Лінк на /konto зі сторінки Anketa — Claude Code
+- Під version-label публічної форми додано ненав'язливий лінк `Bereits Mitglied? Zum Mitgliedskonto →` на `/konto` (для тих, хто вже має акаунт). Хедер/лого і кроки форми не чіпались.
+- Тест: `/` рендерить лінк на `/konto`. Весь набір — 104 тести зелений.
+- Під кнопкою `Anmelden` на `/admin/login` додано лінк `Sind Sie Mitglied? Zum Mitgliedskonto →` на `/konto` (для тих, хто випадково потрапив на admin-логін) — через override `content()` у `App\Filament\Admin\Pages\Auth\Login`, той самий стиль, що member-лінк. Збільшено відступ лінка на сторінці Anketa до 2rem (`mt-8`).
+- Уточнено підзаголовок `/konto/login`: «Geben Sie die in Ihrer Mitgliedschaft hinterlegte E-Mail-Adresse ein. Ist diese bei uns registriert, senden wir einen einmaligen Zugangslink an genau diese Adresse.» — щоб не складалось враження, що лінк може отримати будь-хто (нейтральність/enumeration-захист збережено).
