@@ -2,10 +2,12 @@
 
 namespace App\Http\Middleware;
 
+use Closure;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 
 /**
  * Extends Filament's Authenticate to redirect non-admin users to the admin
@@ -14,25 +16,24 @@ use Illuminate\Database\Eloquent\Model;
  * Root cause: admin and member panels share the same web guard. When a member
  * is logged in and clicks the "open in admin" link from an email, Filament sees
  * an authenticated user whose canAccessPanel('admin') returns false and calls
- * abort(403). This middleware converts that case into a redirect-to-login so
- * the recipient can authenticate as an admin and land on the record directly.
+ * abort(403). This middleware converts that case into a redirect-to-login.
+ *
+ * We must log out the session before redirecting because Filament's
+ * Login::mount() calls redirect()->intended() as soon as auth()->check() is
+ * true — which would send the user back here and create an infinite loop.
  */
 class AdminPanelAuthenticate extends Authenticate
 {
-    /**
-     * @param  array<string>  $guards
-     */
-    protected function authenticate($request, array $guards): void
+    public function handle($request, Closure $next, ...$guards): mixed
     {
         $guard = Filament::auth();
 
         if (! $guard->check()) {
+            // Guest: standard Filament behaviour — redirect to login.
             $this->unauthenticated($request, $guards);
 
-            return; /** @phpstan-ignore-line */
+            return null; /** @phpstan-ignore-line (unauthenticated throws) */
         }
-
-        $this->auth->shouldUse(Filament::getAuthGuard());
 
         /** @var Model $user */
         $user = $guard->user();
@@ -44,11 +45,23 @@ class AdminPanelAuthenticate extends Authenticate
             : config('app.env') === 'local';
 
         if (! $canAccess) {
-            // Redirect to admin login with the intended URL preserved so the
-            // admin can authenticate and land directly on the requested record.
-            $this->unauthenticated($request, $guards);
+            // The user is authenticated but not an admin. We log them out so
+            // the login page shows its form rather than calling
+            // redirect()->intended() (which would loop back here indefinitely).
+            // After session reset we store url.intended so the admin lands on
+            // the record after a successful login.
+            $intendedUrl = $request->url();
 
-            return; /** @phpstan-ignore-line */
+            $guard->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            $request->session()->put('url.intended', $intendedUrl);
+
+            return redirect()->to(Filament::getLoginUrl());
         }
+
+        $this->auth->shouldUse(Filament::getAuthGuard());
+
+        return $next($request);
     }
 }

@@ -110,10 +110,14 @@ class MemberMagicLoginTest extends TestCase
 
         $this->get($link['url']);
 
-        // Non-admin users are redirected to the admin login page (not 403),
-        // so they can authenticate as admin and reach the intended URL.
+        // Non-admin users are redirected to the admin login page (not 403).
+        // The middleware also logs them out to prevent an infinite redirect loop
+        // (Filament's Login::mount() would otherwise redirect()->intended()
+        // straight back to the admin URL for any authenticated user).
         $this->get('/admin')
             ->assertRedirectToRoute('filament.admin.auth.login');
+
+        $this->assertGuest();
     }
 
     public function test_no_magic_link_is_issued_for_admin_email_even_if_member_exists(): void

@@ -1003,9 +1003,10 @@
 - Зафіксовано в `PROJECT.md` (Email → Заплановано) як фікс: guest/не-admin → `/admin/login` з redirect назад на запис; залогінений admin → одразу запис. Код не змінювався — лише документація.
 
 ### [2026-06-02] Фікс 403 → redirect-to-login для admin-панелі — Claude Code
-- Створено `app/Http/Middleware/AdminPanelAuthenticate.php`: розширює Filament `Authenticate`, перехоплює `abort(403)` для authenticated-non-admin users і замість цього робить `unauthenticated()` → redirect to admin login з `url.intended` (повертається на запис після входу).
-- `AdminPanelProvider`: замінено `Filament\Http\Middleware\Authenticate` на `AdminPanelAuthenticate`.
-- `MemberMagicLoginTest`: тест `test_member_magic_login_does_not_grant_admin_access` оновлено: `assertForbidden()` → `assertRedirectToRoute('filament.admin.auth.login')` — безпека та сама, відповідь тепер 302.
+- Створено `app/Http/Middleware/AdminPanelAuthenticate.php`: overrides `handle()` (не `authenticate()`), бо `authenticate()` повертає `void` і return-value ігнорується батьківським `handle()`. Логіка: guest → стандартний Filament `unauthenticated()` → redirect to login; authenticated-but-not-admin → logout + session invalidate + `url.intended` set + пряме redirect to `/admin/login`; admin → `$next($request)`.
+- Logout перед редіректом є обов'язковим: Filament `Login::mount()` рядок 62–63 одразу викликає `redirect()->intended()` якщо `auth()->check() = true` — без logout це спричиняло нескінченну петлю (підтверджено на проді: «Safari Can't Open the Page — Too many redirects»).
+- `AdminPanelProvider`: `authMiddleware` → `AdminPanelAuthenticate`.
+- `MemberMagicLoginTest`: `assertForbidden()` → `assertRedirectToRoute(...)` + `assertGuest()`.
 - Всі 116 тестів пройшли.
 
 ### [2026-06-01 17:45] Очищення deploy-artifacts + актуалізація doc — Claude Code
