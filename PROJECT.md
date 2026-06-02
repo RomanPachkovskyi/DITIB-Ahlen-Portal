@@ -91,7 +91,8 @@
 - [x] SEPA-згода і DSGVO-згода фіксуються з `zustimmung_at`; admin edit показує їх read-only.
 - [x] `Weiter` виконує м'яку валідацію на переходах 1 -> 2 і 2 -> 3: помилки поточного кроку показуються, але користувач може перейти далі й дозаповнити форму.
 - [x] Перехід 3 -> 4 (`Foto`) дозволений тільки після валідної анкети на кроках 1-3; якщо є помилки, форма повертає користувача до першого проблемного кроку.
-- [x] Duplicate guard перед входом на `Foto` і перед final submit блокує дубль за `birth_date + normalized phone`; email і full_name не використовуються як blocking criteria.
+- [x] Duplicate guard перед входом на `Foto` і перед final submit блокує дубль за `birth_date + normalized phone`; email і full_name не використовуються як blocking criteria. Перевірка на final submit виконується **всередині** `DB::transaction()` — захист від race condition при одночасних запитах.
+- [x] `submit()` має server-side idempotency guard: `if ($this->submitted) return;` першим рядком — повторний Livewire-запит відхиляється до будь-якої обробки (не покладатись тільки на `wire:loading.attr="disabled"`, який є client-side).
 - [x] При final submit форма перевіряє всі кроки й повертає користувача до першого проблемного кроку.
 - [x] Step indicators не клікабельні; кроки з помилками позначаються білим кружком із червоною рамкою поверх progress-line.
 - [x] Сіре summary-повідомлення над формою показується тільки тоді, коли помилки лишились у попередніх кроках.
@@ -113,6 +114,8 @@
 - Email не є унікальним: один email дозволений для кількох членів родини/фірми.
 - Duplicate guard не використовує ім'я через ризик різних турецьких/німецьких написань і помилок введення.
 - Додаткові зміни duplicate guard мають зберігати правило: blocking criterion зараз `birth_date + normalized phone`.
+- Перевірка дублів на final submit має лишатись **всередині** `DB::transaction()` — це єдиний спосіб закрити race condition при конкурентних запитах. Не виносити назовні.
+- `submit()` мусить мати `if ($this->submitted) return;` першим рядком — `wire:loading.attr="disabled"` є тільки client-side і не захищає від повторних серверних запитів.
 
 ### Фото Профілю
 

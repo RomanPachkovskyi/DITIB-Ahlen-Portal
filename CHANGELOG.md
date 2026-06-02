@@ -1040,3 +1040,14 @@
 ### [2026-06-02 11:02] Фікс URL посилання на члена в Email Logs — Claude Code
 - Виявлено: `EmailLogResource` генерував URL через `$record->member_id` (integer) → `/admin/members/3` → 404, бо `Member` використовує `member_number` як route key (`DA-2026-0003`).
 - Виправлено: URL тепер генерується через `$record->member` (model instance) → `MemberResource::getUrl('view', ['record' => $record->member])` → коректний `/admin/members/DA-2026-0003`. Бонус: якщо member soft-deleted (relationship null), посилання не генерується.
+
+### [2026-06-02 11:02] Фікс: getEmailLogs відсутній у ViewMemberAccountLogs (/konto) — Claude Code
+- Виявлено після деплою: `/konto/mitgliedschaften/{id}/logs` падав з `BadMethodCallException` — метод `getEmailLogs()` існував тільки в адмінському `ViewMemberLogs`, але обидві панелі використовують один blade-шаблон.
+- Додано `getEmailLogs()` до `ViewMemberAccountLogs` (member panel).
+
+### [2026-06-02 11:58] Security фікс: подвійна реєстрація — race condition і $submitted guard — Claude Code
+- **Причина виявлення:** знайдено два ідентичних записи на проді (DA-2026-0043 і DA-2026-0044, різниця 2 секунди, 23.05.2026) — до впровадження duplicate guard (26.05). Аналіз показав, що на момент реєстрації захисту не існувало, а синхронний SMTP (~2-4с) провокував повторне натискання кнопки.
+- **Дира 1 — відсутній server-side guard:** `$submitted` перевірявся тільки в blade (`wire:loading.attr="disabled"` — client-side). Додано `if ($this->submitted) { return; }` першим рядком `submit()` — повторний Livewire-запит відхиляється на сервері до будь-якої обробки.
+- **Дира 2 — race condition (TOCTOU):** `hasDuplicateMember()` викликався поза `DB::transaction()`. Два конкурентних запити обидва проходили перевірку до того, як будь-який із них встигав закомітити новий запис. Переміщено перевірку **всередину** `DB::transaction()` — тепер обидва читання і запис відбуваються в одній транзакції; другий конкурентний запит побачить вже закомічений дубль.
+- **Чому DB-рівень unique constraint не додавали:** `birth_date + phone` — не бізнес-унікальний ключ (родина може мати спільний телефон), це тільки anti-spam guard. Транзакційного захисту достатньо.
+- Всі 25 тестів `MembershipFormTest` пройшли після змін.

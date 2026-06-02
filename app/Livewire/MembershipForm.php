@@ -443,6 +443,10 @@ class MembershipForm extends Component
 
     public function submit(): void
     {
+        if ($this->submitted) {
+            return;
+        }
+
         $firstInvalidStep = null;
 
         foreach ([1, 2, 3, 4] as $step) {
@@ -458,14 +462,16 @@ class MembershipForm extends Component
             return;
         }
 
-        if ($this->hasDuplicateMember()) {
-            $this->markDuplicateMemberError();
-
-            return;
-        }
-
         try {
             $member = DB::transaction(function () {
+                // Duplicate check inside transaction — prevents race condition where
+                // two concurrent requests both pass the check before either commits.
+                if ($this->hasDuplicateMember()) {
+                    $this->markDuplicateMemberError();
+
+                    return null;
+                }
+
                 $member = Member::create([
                     'anrede' => $this->anrede,
                     'full_name' => $this->full_name,
@@ -513,6 +519,12 @@ class MembershipForm extends Component
             $this->showValidationSummary = true;
 
             throw $exception;
+        }
+
+        // Duplicate was detected inside the transaction — markDuplicateMemberError()
+        // already set the UI state; just return without creating a member.
+        if ($member === null) {
+            return;
         }
 
         $this->member_number = $member->member_number;
