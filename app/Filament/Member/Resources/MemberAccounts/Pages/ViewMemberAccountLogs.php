@@ -40,4 +40,13 @@ class ViewMemberAccountLogs extends Page
             ->latest('id')
             ->get();
     }
+
+    public function getEmailLogs(): Collection
+    {
+        return $this->record
+            ->emailLogs()
+            ->latest('created_at')
+            ->latest('id')
+            ->get();
+    }
 }
