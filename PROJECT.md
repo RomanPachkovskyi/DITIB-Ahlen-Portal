@@ -235,6 +235,7 @@
 
 **Заплановано / хочемо додати:**
 - [x] Email адміну, коли клієнт змінив власні дані в `/konto` — `MemberUpdatedByMemberNotification`: ім'я, member_number, email, список змінених полів (старе→нове), IBAN/BIC лише маска `****1234`, пряме посилання на admin record. Шле `EditMemberAccount::afterSave()` синхронно; SMTP-помилка логується і не ламає save.
+- [x] **ФІКС: кнопка «Datensatz im Admin öffnen» у листі member-edit дає 403.** Виправлено через `AdminPanelAuthenticate` middleware (`app/Http/Middleware/AdminPanelAuthenticate.php`): перехоплює випадок «залогінений, але `canAccessPanel()=false`» і робить redirect-to-login з intended URL замість `abort(403)`. Зареєстровано в `AdminPanelProvider` замість Filament `Authenticate`.
 - [ ] Якщо Gmail/Outlook/Apple Mail покажуть недостатній контроль верстки, перейти на власний HTML email template (`view:`) окремим етапом.
 
 **Важливі рішення:**
@@ -301,9 +302,7 @@
 - [x] `scripts/build-artifact.sh` збирає production artifact у staging-папці в `/tmp`.
 - [x] `scripts/build-artifact.sh` автоматично піднімає technical version у `config/system-version.json`.
 - [x] Production photo data живе поза Laravel-проєктом у `Home directory/ditib-portal-data/member-photos`.
-- [x] Для magic-link access migration підготовлено phpMyAdmin SQL `deploy-artifacts/production-member-login-tokens-release-20260529.sql`.
-- [x] Для колонки `sepa_zustimmung_at` підготовлено phpMyAdmin SQL `deploy-artifacts/production-add-sepa-zustimmung-at-release-20260529.sql` (виконати при наступному deploy).
-- [x] Для таблиці `member_audit_logs` підготовлено phpMyAdmin SQL `deploy-artifacts/production-create-member-audit-logs-release-20260601.sql` (виконати при наступному deploy).
+- [x] SQL-зміни БД для magic-link і self-service edit **застосовані на проді 2026-06-01**: таблиця `member_login_tokens`, колонка `members.sepa_zustimmung_at`, таблиця `member_audit_logs` (+ backfill created-логів). Робочі SQL-файли після застосування видалено з `deploy-artifacts/`; папка (gitignored) лишається тільки для майбутніх релізних артефактів.
 
 **Заплановано / хочемо додати:**
 - [ ] При кожній новій migration готувати SQL-файл у `deploy-artifacts/` для phpMyAdmin.

@@ -110,8 +110,10 @@ class MemberMagicLoginTest extends TestCase
 
         $this->get($link['url']);
 
+        // Non-admin users are redirected to the admin login page (not 403),
+        // so they can authenticate as admin and reach the intended URL.
         $this->get('/admin')
-            ->assertForbidden();
+            ->assertRedirectToRoute('filament.admin.auth.login');
     }
 
     public function test_no_magic_link_is_issued_for_admin_email_even_if_member_exists(): void

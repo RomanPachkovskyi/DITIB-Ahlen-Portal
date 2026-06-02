@@ -996,3 +996,18 @@
 - Phases 1–6 self-service edit завершені; робочий документ `docs/member-account-editing-audit-plan.md` консолідовано в `PROJECT.md` і видалено (як і передбачав сам план — тимчасовий чернетковий документ).
 - У `PROJECT.md`: прибрано посилання на план; done-`[x]` Phase-пункти з «Заплановано» прибрано (функціонал уже в «Працює зараз»); `Änderungsantrag` переформульовано (доля `change_requests` відкрита). Додано архітектурні замітки: `MemberFieldRules` як єдине джерело валідації; обчислення member-edit змін через розшифровані old/new (не `getChanges()`).
 - CHANGELOG історичні записи з назвою плану лишено як хронологію.
+
+### [2026-06-01 17:30] Зафіксовано фікс: 403 на лінк з листа member-edit — Claude Code
+- На проді реліз self-service edit працює (листи зі змінами ходять, логи пишуться).
+- Виявлено: кнопка «Datensatz im Admin öffnen» у листі `MemberUpdatedByMemberNotification` веде прямо на `/admin/members/{member_number}` → 403 Forbidden, якщо браузер не залогінений як admin (нюанс: спільний web guard admin/member — member-сесія або guest дає 403, не редірект на логін).
+- Зафіксовано в `PROJECT.md` (Email → Заплановано) як фікс: guest/не-admin → `/admin/login` з redirect назад на запис; залогінений admin → одразу запис. Код не змінювався — лише документація.
+
+### [2026-06-02] Фікс 403 → redirect-to-login для admin-панелі — Claude Code
+- Створено `app/Http/Middleware/AdminPanelAuthenticate.php`: розширює Filament `Authenticate`, перехоплює `abort(403)` для authenticated-non-admin users і замість цього робить `unauthenticated()` → redirect to admin login з `url.intended` (повертається на запис після входу).
+- `AdminPanelProvider`: замінено `Filament\Http\Middleware\Authenticate` на `AdminPanelAuthenticate`.
+- `MemberMagicLoginTest`: тест `test_member_magic_login_does_not_grant_admin_access` оновлено: `assertForbidden()` → `assertRedirectToRoute('filament.admin.auth.login')` — безпека та сама, відповідь тепер 302.
+- Всі 116 тестів пройшли.
+
+### [2026-06-01 17:45] Очищення deploy-artifacts + актуалізація doc — Claude Code
+- Roman очистив `deploy-artifacts/` (SQL уже застосовані на проді 2026-06-01); папка gitignored, тож git цього не торкається. Лишається для майбутніх релізних артефактів.
+- PROJECT.md: пункти про підготовлені SQL замінено на «застосовано на проді 2026-06-01» (щоб ніхто повторно не запускав non-idempotent SQL).
