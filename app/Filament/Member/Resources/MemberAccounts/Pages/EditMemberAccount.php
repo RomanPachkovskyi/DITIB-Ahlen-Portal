@@ -6,6 +6,7 @@ use App\Filament\Member\Resources\MemberAccounts\MemberAccountResource;
 use App\Filament\Resources\Members\MemberResource;
 use App\Filament\Resources\Members\Schemas\MemberFormContext;
 use App\Mail\MemberUpdatedByMemberNotification;
+use App\Services\EmailLogger;
 use App\Services\MemberAuditLogger;
 use App\Support\MemberStatus;
 use Filament\Actions\Action;
@@ -155,7 +156,9 @@ class EditMemberAccount extends EditRecord
         try {
             Mail::to('info@ditib-ahlen-projekte.de')
                 ->send(new MemberUpdatedByMemberNotification($this->record, $described, $adminUrl));
+            app(EmailLogger::class)->sent('admin_member_updated', MemberUpdatedByMemberNotification::class, 'admin', 'info@ditib-ahlen-projekte.de', $this->record);
         } catch (Throwable $exception) {
+            app(EmailLogger::class)->failed('admin_member_updated', MemberUpdatedByMemberNotification::class, 'admin', 'info@ditib-ahlen-projekte.de', $exception, $this->record);
             Log::error('Member self-edit admin notification failed.', [
                 'member_id' => $this->record->id,
                 'member_number' => $this->record->member_number,

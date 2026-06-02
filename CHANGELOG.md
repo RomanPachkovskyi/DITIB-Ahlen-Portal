@@ -1002,6 +1002,13 @@
 - Виявлено: кнопка «Datensatz im Admin öffnen» у листі `MemberUpdatedByMemberNotification` веде прямо на `/admin/members/{member_number}` → 403 Forbidden, якщо браузер не залогінений як admin (нюанс: спільний web guard admin/member — member-сесія або guest дає 403, не редірект на логін).
 - Зафіксовано в `PROJECT.md` (Email → Заплановано) як фікс: guest/не-admin → `/admin/login` з redirect назад на запис; залогінений admin → одразу запис. Код не змінювався — лише документація.
 
+### [2026-06-02] Фікс timezone: Europe/Berlin замість UTC — Claude Code
+- `config/app.php`: `'timezone' => env('APP_TIMEZONE', 'Europe/Berlin')` — system timestamps (`now()`, audit log, `created_at` тощо) тепер відповідають німецькому місцевому часу (CEST/CET).
+- `.env.example`: додано `APP_TIMEZONE=Europe/Berlin`.
+- `PROJECT.md`: додано `APP_TIMEZONE=Europe/Berlin` до прикладу production `.env`.
+- **Для production**: додати `APP_TIMEZONE=Europe/Berlin` у `.env` на сервері і очистити config cache (або перезавантажити artifact).
+- Примітка: записи, що вже є в БД, зберігались у UTC і відображатимуться зі зміщенням ±1–2 год — прийнятно, бо система нова.
+
 ### [2026-06-02] Фікс 403 → redirect-to-login для admin-панелі — Claude Code
 - Створено `app/Http/Middleware/AdminPanelAuthenticate.php`: overrides `handle()` (не `authenticate()`), бо `authenticate()` повертає `void` і return-value ігнорується батьківським `handle()`. Логіка: guest → стандартний Filament `unauthenticated()` → redirect to login; authenticated-but-not-admin → logout + session invalidate + `url.intended` set + пряме redirect to `/admin/login`; admin → `$next($request)`.
 - Logout перед редіректом є обов'язковим: Filament `Login::mount()` рядок 62–63 одразу викликає `redirect()->intended()` якщо `auth()->check() = true` — без logout це спричиняло нескінченну петлю (підтверджено на проді: «Safari Can't Open the Page — Too many redirects»).
@@ -1012,3 +1019,24 @@
 ### [2026-06-01 17:45] Очищення deploy-artifacts + актуалізація doc — Claude Code
 - Roman очистив `deploy-artifacts/` (SQL уже застосовані на проді 2026-06-01); папка gitignored, тож git цього не торкається. Лишається для майбутніх релізних артефактів.
 - PROJECT.md: пункти про підготовлені SQL замінено на «застосовано на проді 2026-06-01» (щоб ніхто повторно не запускав non-idempotent SQL).
+
+---
+
+## 2026-06-02 (продовження)
+
+### [2026-06-02 11:02] Email Logs — логування всіх відправлених листів — Claude Code
+- Реалізовано повне логування вихідної пошти: кожен `Mail::send()` у системі тепер фіксується в БД незалежно від результату.
+- Міграція `2026_06_02_000001_create_email_logs_table`: нова таблиця `email_logs` — `member_id` (nullable FK), `event`, `mail_class`, `recipient_type` (member/admin), `recipient_email`, `status` (sent/failed), `error_message`.
+- Модель `App\Models\EmailLog` з методами `eventLabel()` / `recipientTypeLabel()`.
+- Сервіс `App\Services\EmailLogger` з методами `sent()` / `failed()` — єдине місце запису логів.
+- Інтегровано в усі 7 точок відправки: `SendRegistrationEmails` (реєстрація → клієнт і адмін), `Member` booted-хук (підтвердження, видалення → клієнт і адмін), `EditMemberAccount` (self-edit → адмін), `RequestLoginLink` (magic-link → клієнт). Кожна точка розділена на два окремі try/catch — збій одного листа не скасовує другий.
+- `Member::emailLogs()` — новий `HasMany` зв'язок.
+
+### [2026-06-02 11:02] Email Logs UI — перегляд в адмін-панелі — Claude Code
+- Глобальна сторінка `/admin/email-logs` (`EmailLogResource`): таблиця всіх листів із сортуванням за датою, пошуком, фільтрами по статусу / типу листа / одержувачу. Ім'я члена — клікабельне посилання на його картку в адмінці.
+- На per-member сторінці `/admin/members/{id}/logs` додано секцію «E-Mail Versand» нижче аудит-тімлайну: таблиця всіх листів цього члена (дата, тип, одержувач, email, статус-badge, hover-tooltip з текстом помилки).
+- CSS для email-log таблиці і badge-статусів (sent/failed) з підтримкою light/dark теми — у спільному `panel-style.blade.php`.
+
+### [2026-06-02 11:02] Фікс URL посилання на члена в Email Logs — Claude Code
+- Виявлено: `EmailLogResource` генерував URL через `$record->member_id` (integer) → `/admin/members/3` → 404, бо `Member` використовує `member_number` як route key (`DA-2026-0003`).
+- Виправлено: URL тепер генерується через `$record->member` (model instance) → `MemberResource::getUrl('view', ['record' => $record->member])` → коректний `/admin/members/DA-2026-0003`. Бонус: якщо member soft-deleted (relationship null), посилання не генерується.

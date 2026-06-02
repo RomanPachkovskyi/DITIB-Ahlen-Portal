@@ -174,4 +174,74 @@
     .ditib-inactive-row {
         opacity: 0.5;
     }
+
+    .ditib-email-log-table {
+        overflow-x: auto;
+    }
+
+    .ditib-email-log-table table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .ditib-email-log-table th {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: nowrap;
+    }
+
+    .ditib-email-log-table td {
+        padding: 0.5rem 0.75rem;
+        color: #4b5563;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+    }
+
+    .ditib-email-log-badge {
+        display: inline-block;
+        padding: 0.125rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .ditib-email-log-badge--sent {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .ditib-email-log-badge--failed {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .ditib-email-log-error {
+        margin-left: 0.25rem;
+        cursor: help;
+        color: #f59e0b;
+    }
+
+    .dark .ditib-email-log-table th {
+        color: #f3f4f6;
+        border-bottom-color: #374151;
+    }
+
+    .dark .ditib-email-log-table td {
+        color: #9ca3af;
+        border-bottom-color: #1f2937;
+    }
+
+    .dark .ditib-email-log-badge--sent {
+        background: #064e3b;
+        color: #6ee7b7;
+    }
+
+    .dark .ditib-email-log-badge--failed {
+        background: #7f1d1d;
+        color: #fca5a5;
+    }
 </style>

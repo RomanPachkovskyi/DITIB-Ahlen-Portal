@@ -3,6 +3,7 @@
 namespace App\Filament\Member\Pages\Auth;
 
 use App\Mail\MemberLoginLinkMail;
+use App\Services\EmailLogger;
 use App\Services\MemberMagicLoginService;
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Actions\Action;
@@ -51,11 +52,15 @@ class RequestLoginLink extends Login
         $loginLink = $magicLogin->createForEmail($email, request()->ip(), request()->userAgent());
 
         if ($loginLink !== null) {
+            $normalizedEmail = $magicLogin->normalizeEmail($email);
+            $member = \App\Models\Member::whereRaw('lower(email) = ?', [$normalizedEmail])->first();
             try {
-                Mail::to($magicLogin->normalizeEmail($email))->send(new MemberLoginLinkMail($loginLink['url']));
+                Mail::to($normalizedEmail)->send(new MemberLoginLinkMail($loginLink['url']));
+                app(EmailLogger::class)->sent('login_link', MemberLoginLinkMail::class, 'member', $normalizedEmail, $member);
             } catch (\Throwable $exception) {
+                app(EmailLogger::class)->failed('login_link', MemberLoginLinkMail::class, 'member', $normalizedEmail, $exception, $member);
                 Log::error('Failed to send member login link mail.', [
-                    'email' => $magicLogin->normalizeEmail($email),
+                    'email' => $normalizedEmail,
                     'exception' => $exception,
                 ]);
             }

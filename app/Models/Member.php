@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Mail\MemberApprovedNotification;
 use App\Mail\MemberDeletedAdminNotification;
 use App\Mail\MemberDeletedNotification;
+use App\Services\EmailLogger;
 use App\Services\MemberAuditLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -109,7 +110,9 @@ class Member extends Model
 
             try {
                 Mail::to($member->email)->send(new MemberApprovedNotification($member));
+                app(EmailLogger::class)->sent('member_approved', MemberApprovedNotification::class, 'member', $member->email, $member);
             } catch (Throwable $exception) {
+                app(EmailLogger::class)->failed('member_approved', MemberApprovedNotification::class, 'member', $member->email, $exception, $member);
                 Log::error('Member approval email delivery failed.', [
                     'member_id' => $member->id,
                     'member_number' => $member->member_number,
@@ -125,7 +128,9 @@ class Member extends Model
 
             try {
                 Mail::to('info@ditib-ahlen-projekte.de')->send(new MemberDeletedAdminNotification($member));
+                app(EmailLogger::class)->sent('admin_member_deleted', MemberDeletedAdminNotification::class, 'admin', 'info@ditib-ahlen-projekte.de', $member);
             } catch (Throwable $exception) {
+                app(EmailLogger::class)->failed('admin_member_deleted', MemberDeletedAdminNotification::class, 'admin', 'info@ditib-ahlen-projekte.de', $exception, $member);
                 Log::error('Member deletion admin email delivery failed.', [
                     'member_id' => $member->id,
                     'member_number' => $member->member_number,
@@ -137,7 +142,9 @@ class Member extends Model
 
             try {
                 Mail::to($member->email)->send(new MemberDeletedNotification($member));
+                app(EmailLogger::class)->sent('member_deleted', MemberDeletedNotification::class, 'member', $member->email, $member);
             } catch (Throwable $exception) {
+                app(EmailLogger::class)->failed('member_deleted', MemberDeletedNotification::class, 'member', $member->email, $exception, $member);
                 Log::error('Member deletion email delivery failed.', [
                     'member_id' => $member->id,
                     'member_number' => $member->member_number,
@@ -157,5 +164,10 @@ class Member extends Model
     public function auditLogs(): HasMany
     {
         return $this->hasMany(MemberAuditLog::class);
+    }
+
+    public function emailLogs(): HasMany
+    {
+        return $this->hasMany(EmailLog::class);
     }
 }

@@ -128,7 +128,7 @@
 - [x] Production deploy фото-функції виконано; admin upload/replace/delete і public crop/preview перевірені; `/konto` production QA відкладено до access-flow задачі.
 
 **Заплановано / хочемо додати:**
-- [ ] Audit log для фото: хто і коли завантажив, замінив або видалив фото.
+- [x] Audit log для фото: хто і коли завантажив, замінив або видалив фото. Реалізовано через `MemberAuditLogger::photoUploaded()` і `photoDeleted()`; викликається з `EditMember` при admin upload/replace/delete. Перша реєстрація з фото (public form) покривається подією `member_created`. Детальніше — у розділі «Експорт І Audit Log».
 - [ ] Процес відкликання photo consent із `/konto`, якщо пізніше буде self-service edit/change-request.
 - [ ] Optional workflow `Foto geprüft`, якщо фото пізніше використовуватимуться для друку, PDF-пакетів або карток і потрібна ручна перевірка якості.
 - [ ] Якщо знадобиться audit/metadata для фото, майбутня міграція може додати `profile_photo_mime` і `profile_photo_size`; зараз цих полів у `members` немає.
@@ -168,7 +168,7 @@
 > **Self-service edit (Phases 1–6) повністю реалізовано** — функціонал описано вище в «Працює зараз». Тимчасовий робочий документ `docs/member-account-editing-audit-plan.md` після завершення консолідовано сюди й видалено.
 
 **Заплановано / хочемо додати:**
-- [ ] Production QA `/konto` після deploy: magic-link delivery, одноразовий вхід, profile photo, member-edit → email адміну, per-record Logs.
+- [x] Production QA `/konto` після deploy: magic-link delivery, одноразовий вхід, profile photo, member-edit → email адміну, per-record Logs — підтверджено на проді 2026-06-02.
 - [ ] `Änderungsantrag` / approval workflow — можливий майбутній напрямок (таблиця `change_requests` існує, але не використовується); поточна реалізація — пряме редагування з audit log і статусом `processing`. Доля таблиці відкрита: лишити під майбутній approval workflow або прибрати cleanup-міграцією.
 
 **Важливі рішення:**
@@ -232,15 +232,18 @@
 - [x] Логіка відправки відділена від Livewire через event/listener layer.
 - [x] Централізований branding layer для Laravel Markdown emails: `config/mail.php` -> `mail.brand.*`, `resources/views/vendor/mail/`, `resources/views/emails/`.
 - [x] Artifact build виправлений, щоб mail override templates не випадали через exclude `vendor`.
-
-**Заплановано / хочемо додати:**
 - [x] Email адміну, коли клієнт змінив власні дані в `/konto` — `MemberUpdatedByMemberNotification`: ім'я, member_number, email, список змінених полів (старе→нове), IBAN/BIC лише маска `****1234`, пряме посилання на admin record. Шле `EditMemberAccount::afterSave()` синхронно; SMTP-помилка логується і не ламає save.
 - [x] **ФІКС: кнопка «Datensatz im Admin öffnen» у листі member-edit дає 403.** Виправлено через `AdminPanelAuthenticate` middleware (`app/Http/Middleware/AdminPanelAuthenticate.php`): перехоплює випадок «залогінений, але `canAccessPanel()=false`» і робить redirect-to-login з intended URL замість `abort(403)`. Зареєстровано в `AdminPanelProvider` замість Filament `Authenticate`.
+- [x] **Email Logs** — повне логування всіх вихідних листів у таблицю `email_logs`; деталі нижче в «Експорт І Audit Log».
+
+**Заплановано / хочемо додати:**
+- [ ] **Відправка листів вручну прямо з адмін-панелі** — адмін повинен мати можливість написати довільний лист конкретному члену безпосередньо зі сторінки картки члена (без переходу в поштовий клієнт). Реалізується як Filament `Action` з модальним вікном (тема + текст), `Mail::send()` і автоматичним записом у `email_logs`. Тип події: `admin_manual`. Пріоритет: середній, реалізувати коли з'явиться конкретна потреба.
 - [ ] Якщо Gmail/Outlook/Apple Mail покажуть недостатній контроль верстки, перейти на власний HTML email template (`view:`) окремим етапом.
 
 **Важливі рішення:**
 - На поточному Plesk artifact-deploy немає стабільного queue worker; `ShouldQueue` не використовувати для production email flow.
-- При SMTP-помилці збереження анкети не має ламатися; помилка має логуватись.
+- При SMTP-помилці збереження анкети не має ламатися; помилка має логуватись — і в `Log::error()`, і в `email_logs` зі `status=failed`.
+- Кожна точка відправки має два окремі try/catch — збій одного листа (напр. клієнту) не скасовує інший (адміну), і навпаки.
 - Окремі email views не повинні містити логотип, footer або глобальні стилі — тільки зміст конкретного повідомлення.
 - Magic-link email використовує той самий Markdown mail branding layer; окремий view містить тільки зміст конкретного листа.
 
@@ -277,22 +280,30 @@
 
 **Працює зараз:**
 - [x] Core audit log для фактичних змін `Member` реалізований через таблицю `member_audit_logs`, модель `MemberAuditLog` і service `MemberAuditLogger`.
-- [x] У admin і `/konto` кожен запис має окрему сторінку `Logs` з хронологією змін; breadcrumb вигляду `Mitglieder / Name / Logs` або `Meine Mitgliedschaften / Name / Logs`.
+- [x] У admin і `/konto` кожен запис має окрему сторінку `Logs` з хронологією змін; breadcrumb вигляду `Mitglieder / Name / Logs` або `Meine Mitgliedschaften / Name / Logs`. Сторінка Logs містить дві секції: аудит-тімлайн і таблицю «E-Mail Versand» для цього члена.
 - [x] Логуються: створення акаунта з public form, member self-edit, admin edit, admin status actions/bulk status actions, admin profile photo upload/replace/delete, soft delete/delete.
 - [x] IBAN/BIC у audit log не зберігаються відкрито; у `new_values` пишеться тільки маска виду `****1234`.
 - [x] Немає production Excel export; це свідомо ще не реалізовано.
 - [x] Існує legacy/future таблиця `change_requests`, але вона не є audit log і зараз не використовується як єдина система логування.
 - [x] Cleanup для `member_login_tokens` реалізовано: при видачі нового лінка (1) відкликаються всі попередні активні токени email, (2) spent (used/expired) токени видаляються через `MemberLoginToken::pruneSpent()`. Таблиця ніколи не накопичує ні активні токени, ні PII-рядки. Опційна команда `member:prune-login-tokens` — тільки для разового ops-purge. Закриває retention для login-токенів; глобальний audit log і його retention ще не реалізовані.
+- [x] **Email Logs** — таблиця `email_logs`, модель `EmailLog`, сервіс `EmailLogger`. Кожен відправлений або невдалий лист фіксується зі статусом (`sent`/`failed`), типом події, адресою одержувача і типом одержувача (`member`/`admin`). Прив'язується до конкретного `Member` через nullable FK. У `/admin/email-logs` — глобальна таблиця всіх листів із фільтрами. На сторінці `Logs` конкретного члена — окрема секція «E-Mail Versand».
 
 **Заплановано / хочемо додати:**
 - [ ] Експорт таблиці членів громади в `.xlsx` із адмінки.
-- [ ] Розширення audit scope за межі конкретного `Member`: admin login і email-помилки.
+- [ ] Розширення audit scope за межі конкретного `Member`: admin login.
 - [ ] Окрема адмін-сторінка audit log із фільтрами по користувачу, типу дії, сутності та даті.
-- [ ] Retention/anonymization для audit log: він містить персональні дані (ім'я, адреса, телефон) навіть для несенситивних полів, тому при soft-delete/erasure члена потрібен service/command для очищення або анонімізації записів по `member_id`. (Cleanup для `member_login_tokens` уже реалізовано окремо, див. вище.)
+- [ ] **Retention/anonymization для audit log (DSGVO Art. 17 — right to erasure).** Детальний план нижче в «Важливих рішеннях».
 
 **Важливі рішення:**
 - Фото в Excel export не додавати.
 - Для audit log не показувати IBAN/BIC відкрито; або маскувати, або не логувати значення цих полів.
+- **Retention / anonymization — зафіксований план (реалізація відкладена):**
+  - `member_audit_logs` зберігає `old_values`/`new_values` із PII (ім'я, адреса, телефон) — потребує очищення при erasure-запиті.
+  - **`inactive` ≠ підстава для анонімізації.** `Inactive` — нормальний кінець членства; дані ще потрібні для юридичної документації та можливої реактивації. Анонімізація при переведенні в `inactive` не відбувається.
+  - **Основний тригер — явний erasure request (DSGVO Art. 17):** член подає заявку через `/konto` → адмін підтверджує в `/admin` → автоматично: анонімізуються `member_audit_logs` по `member_id` + виконується soft delete `Member`.
+  - **Вторинний тригер — soft delete:** якщо адмін технічно видаляє запис, анонімізація відбувається автоматично через `Member::deleted()` Observer як підстрахування.
+  - **Кнопка «Видалити» (`DeleteAction`) у `/admin` зараз повністю відсутня в коді** — не підключена ні у `ViewMember`, ні в `EditMember`, ні в table/bulk actions. Для реалізації erasure workflow потрібно: (1) додати форму erasure request у `/konto`; (2) додати підтверджувальну дію в `/admin` (не звичайний `DeleteAction`, а окрема «Daten löschen» дія з підтвердженням); (3) ця дія запускає anonymize service + soft delete.
+  - **Анонімізація** — замінити `old_values`/`new_values` у `member_audit_logs` на `[gelöscht]`, залишивши лише метадані події (дата, тип, actor_type). Не видаляти самі audit рядки — хронологія факту дії залишається, тільки PII прибирається.
 
 ### Deploy І Production Operations
 
@@ -402,6 +413,21 @@
 | created_at | timestamp | використовується для timeline, нові записи зверху |
 
 > `ip_address`/`user_agent` свідомо НЕ зберігаються (Рішення Roman): достатньо фіксувати, хто діяв (admin/member/system), бо редагувати можуть тільки ці двоє. Менше PII.
+
+### Таблиця `email_logs`
+
+| Поле | Тип | Примітка |
+|------|-----|---------|
+| member_id | foreignId nullable | `members.id`, nullable — деякі листи не прив'язані до конкретного члена; `nullOnDelete` при hard delete |
+| event | string(80) | тип події: `registration_confirmation` / `admin_new_member` / `member_approved` / `member_deleted` / `admin_member_deleted` / `admin_member_updated` / `login_link` / `admin_manual` (майбутнє) |
+| mail_class | string(120) | `class_basename` Mailable-класу, напр. `MemberApprovedNotification` |
+| recipient_type | string(20) | `member` або `admin` |
+| recipient_email | string | фактична адреса одержувача |
+| status | string(10) | `sent` або `failed` |
+| error_message | text nullable | текст exception при `failed` |
+| created_at | timestamp | час відправки або спроби |
+
+> `EmailLogger::sent()` / `failed()` викликається у кожному try/catch після `Mail::send()`. Кожна точка відправки має два окремі try/catch — збій одного листа не скасовує інший.
 
 ---
 
@@ -752,6 +778,7 @@ APP_ENV=production
 APP_KEY=base64:PASTE_GENERATED_KEY_HERE
 APP_DEBUG=false
 APP_URL=https://mitglied.ditib-ahlen-projekte.de
+APP_TIMEZONE=Europe/Berlin
 
 APP_LOCALE=de
 APP_FALLBACK_LOCALE=de

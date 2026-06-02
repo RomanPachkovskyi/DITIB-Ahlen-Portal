@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Members\Pages;
 
 use App\Filament\Resources\Members\MemberResource;
+use App\Models\EmailLog;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
@@ -37,6 +38,15 @@ class ViewMemberLogs extends Page
     {
         return $this->record
             ->auditLogs()
+            ->latest('created_at')
+            ->latest('id')
+            ->get();
+    }
+
+    public function getEmailLogs(): Collection
+    {
+        return $this->record
+            ->emailLogs()
             ->latest('created_at')
             ->latest('id')
             ->get();
